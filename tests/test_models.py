@@ -25,7 +25,7 @@ class Config:
         mlp_dim = hidden_dim * 4
         activation_fn = nn.GELU
         activation_name = 'relu'
-        attn_hidden_layer = False
+        attn_hidden_layer = True
 
     # Layer Norm Configurations
     class LayerNorm:
@@ -49,6 +49,8 @@ class Config:
     # Other Configurations
     num_classes = 10
     global_pool = False
+
+
 
     
     def __repr__(self):

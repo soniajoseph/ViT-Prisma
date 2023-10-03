@@ -16,7 +16,8 @@ class Config:
         mlp_dim = hidden_dim * 4
         activation_fn = nn.GELU
         activation_name = 'relu'
-        attn_hidden_layer = False
+        attention_only = True
+        attn_hidden_layer = True
 
     # Layer Norm Configurations
     class LayerNorm:

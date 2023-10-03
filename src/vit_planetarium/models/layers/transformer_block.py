@@ -24,14 +24,14 @@ class TransformerBlock(nn.Module):
     def forward(self, x):
         if self.logger:
             self.logger.info("TransformerBlock input size is {}".format(x.shape))
-        x = x + self.attention(x)
+        x = x + self.attention(x) 
         x = self.post_attn_ln(x) 
         if self.logger:
             self.logger.info("TransformerBlock after attention size is {}".format(x.shape))
-        x = x + self.mlp(x)
+        x = x + self.mlp(x) if not self.config.Transformer.attention_only else x
         if self.logger:
             self.logger.info("TransformerBlock after MLP size is {}".format(x.shape))
-        x = self.post_mlp_ln(x) 
+        x = self.post_mlp_ln(x) if not self.config.Transformer.attention_only else x
         if self.logger:
             self.logger.info("TransformerBlock output size is {}".format(x.shape))
         return x 
