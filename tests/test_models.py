@@ -21,6 +21,7 @@ class Config:
         hidden_dim = 64
         num_heads = 4
         num_layers = 12
+        block_fn = TransformerBlock
         mlp_dim = hidden_dim * 4
         activation_fn = nn.GELU
         activation_name = 'relu'
@@ -36,7 +37,7 @@ class Config:
         patch = 0.0
         position = 0.0
         attention = 0.0
-        projection = 0.0
+        proj = 0.0
         mlp = 0.0
 
     # Weight Initialization Configurations
@@ -65,16 +66,16 @@ class TestAttention(unittest.TestCase):
     def test_attention(self):
         config = Config()
         attention = Attention(config, self.logger)
-        x = torch.randn(8, 16, config.hidden_dim)  # Batch size: 8, Sequence length: 16
+        x = torch.randn(8, 16, config.Transformer.hidden_dim)  # Batch size: 8, Sequence length: 16
 
         # Test forward pass
         output = attention(x)
-        self.assertEqual(output.shape, (8, 16, config.hidden_dim))
+        self.assertEqual(output.shape, (8, 16, config.Transformer.hidden_dim))
 
         # Test attention scores sum to 1
         with torch.no_grad():
             B, N, C = x.shape
-            qkv = attention.qkv(x).reshape(B, N, 3, config.num_heads, attention.head_dim).permute(2, 0, 3, 1, 4)
+            qkv = attention.qkv(x).reshape(B, N, 3, config.Transformer.num_heads, attention.head_dim).permute(2, 0, 3, 1, 4)
             q, k, v = qkv.unbind(0)
             q, k = attention.q_norm(q), attention.k_norm(k)
             q = q * attention.scale
@@ -93,11 +94,11 @@ class TestMLP(unittest.TestCase):
     def test_mlp(self):
         config = Config()
         mlp = MLP(config, self.logger)
-        x = torch.randn(8, 16, config.hidden_dim)  
+        x = torch.randn(8, 16, config.Transformer.hidden_dim)  
 
         # Test forward pass
         output = mlp(x)
-        self.assertEqual(output.shape, (8, 16, config.hidden_dim))
+        self.assertEqual(output.shape, (8, 16, config.Transformer.hidden_dim))
 
 class TestTransformerBlock(unittest.TestCase):
 
@@ -109,11 +110,11 @@ class TestTransformerBlock(unittest.TestCase):
     def test_transformer_block(self):
         config = Config()
         transformer_block = TransformerBlock(config, self.logger)
-        x = torch.randn(8, 16, config.hidden_dim)  # Batch size: 8, Sequence length: 16
+        x = torch.randn(8, 16, config.Transformer.hidden_dim)  # Batch size: 8, Sequence length: 16
 
         # Test forward pass
         output = transformer_block(x)
-        self.assertEqual(output.shape, (8, 16, config.hidden_dim))
+        self.assertEqual(output.shape, (8, 16, config.Transformer.hidden_dim))
 
 class TestBaseViT(unittest.TestCase):
 
@@ -153,7 +154,7 @@ class TestPatchEmbedding(unittest.TestCase):
 
         # Test forward pass
         output = patch_embedding(x)
-        self.assertEqual(output.shape, (8, num_patches, config.hidden_dim))
+        self.assertEqual(output.shape, (8, num_patches, config.Transformer.hidden_dim))
 
 
 if __name__ == '__main__':
