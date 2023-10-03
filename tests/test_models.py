@@ -4,6 +4,7 @@ from vit_planetarium.models.layers.attention import Attention
 from vit_planetarium.models.layers.mlp import MLP  
 from vit_planetarium.models.layers.transformer_block import TransformerBlock
 from vit_planetarium.models.base_vit import BaseViT
+from vit_planetarium.models.layers.patch_embedding import PatchEmbedding
 
 import logging
 
@@ -12,18 +13,27 @@ import torch.nn as nn
 class Config:
     hidden_dim = 64
     num_heads = 4
+    image_size = 224
+    patch_size = 16
+    n_channels = 3
+    num_layers = 12
+    num_classes = 10
     activation_fn = nn.GELU
+    activation_name = 'relu'
     mlp_dim = hidden_dim * 4
     attn_hidden_layer = False
-    attn_dropout = 0.1
-    proj_dropout = 0.1
+    patch_dropout = 0.0
+    position_dropout = 0.0
+    attn_dropout = 0.0
+    proj_dropout = 0.0
     mlp_dropout = 0.0
-    layer_norm_eps = 1e-6
-    qknorm = True
+    layer_norm_eps = 0.0
+    qknorm = False
     weight_init_type = 'he'
     global_pool = False
-
-
+    cls_std_init = 1e-6
+    pos_std_init = 0.02
+    
     def __repr__(self):
         attributes = [f"{attr} = {getattr(self, attr)}" for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
         return "\n".join(attributes)
@@ -100,11 +110,33 @@ class TestBaseViT(unittest.TestCase):
         model = BaseViT(config, self.logger)
         
         # Create a dummy batch of images
-        x = torch.randn(8, config.channels, config.image_size, config.image_size)  # Batch size: 8
+        x = torch.randn(8, config.n_channels, config.image_size, config.image_size)  # Batch size: 8
 
         # Test forward pass
         output = model(x)
         self.assertEqual(output.shape, (8, config.num_classes))
+
+class TestPatchEmbedding(unittest.TestCase):
+
+
+    def setUp(self):
+        # Configure logging for this test case
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+
+    def test_patch_embedding(self):
+        config = Config()
+        patch_embedding = PatchEmbedding(config, self.logger)
+        
+        # Create a dummy batch of images
+        x = torch.randn(8, config.n_channels, config.image_size, config.image_size)  # Batch size: 8
+
+        # Calculate expected number of patches
+        num_patches = (config.image_size // config.patch_size) ** 2
+
+        # Test forward pass
+        output = patch_embedding(x)
+        self.assertEqual(output.shape, (8, num_patches, config.hidden_dim))
 
 
 if __name__ == '__main__':
