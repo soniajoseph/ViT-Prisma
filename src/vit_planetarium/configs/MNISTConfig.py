@@ -15,7 +15,7 @@ class Config:
         block_fn = TransformerBlock
         mlp_dim = hidden_dim * 4
         activation_fn = nn.GELU
-        activation_name = 'relu'
+        activation_name = 'relu' # relu for initialization purposes
         attention_only = True
         attn_hidden_layer = True
 
@@ -38,6 +38,32 @@ class Config:
         cls_std = 1e-6
         pos_std = 0.02 
 
+    class Training:
+        optimizer = ...
+        lr = 1e-3
+        num_epochs = 5
+        batch_size = 64
+        warmup_steps = 0
+        weight_decay = 0.0
+        max_grad_norm = None
+        log_frequency = 10
+        save_checkpoints = True
+        save_dir = 'checkpoints'
+        use_wandb = False
+        wandb_project_name = None
+        device = 'cuda'
+        
+
+    class Logging: 
+        log_dir = 'logs'
+        log_frequency = 10
+        print_every = 10
+        use_wandb = False
+    
+    class Saving:
+        save_dir = 'checkpoints'
+        save_frequency = 10
+        
     # Other Configurations
     num_classes = 10
     global_pool = False
