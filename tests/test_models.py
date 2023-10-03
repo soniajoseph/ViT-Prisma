@@ -11,32 +11,49 @@ import logging
 import torch.nn as nn
 
 class Config:
-    hidden_dim = 64
-    num_heads = 4
+    # Image and Patch Configurations
     image_size = 224
     patch_size = 16
     n_channels = 3
-    num_layers = 12
+
+    # Transformer Configurations
+    class Transformer:
+        hidden_dim = 64
+        num_heads = 4
+        num_layers = 12
+        mlp_dim = hidden_dim * 4
+        activation_fn = nn.GELU
+        activation_name = 'relu'
+        attn_hidden_layer = False
+
+    # Layer Norm Configurations
+    class LayerNorm:
+        qknorm = False
+        layer_norm_eps = 0.0
+
+    # Dropout Configurations
+    class Dropout:
+        patch = 0.0
+        position = 0.0
+        attention = 0.0
+        projection = 0.0
+        mlp = 0.0
+
+    # Weight Initialization Configurations
+    class Initialization:
+        weight_type = 'he'
+        cls_std = 1e-6
+        pos_std = 0.02
+
+    # Other Configurations
     num_classes = 10
-    activation_fn = nn.GELU
-    activation_name = 'relu'
-    mlp_dim = hidden_dim * 4
-    attn_hidden_layer = False
-    patch_dropout = 0.0
-    position_dropout = 0.0
-    attn_dropout = 0.0
-    proj_dropout = 0.0
-    mlp_dropout = 0.0
-    layer_norm_eps = 0.0
-    qknorm = False
-    weight_init_type = 'he'
     global_pool = False
-    cls_std_init = 1e-6
-    pos_std_init = 0.02
+
     
     def __repr__(self):
         attributes = [f"{attr} = {getattr(self, attr)}" for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
         return "\n".join(attributes)
+
 
 class TestAttention(unittest.TestCase):
 
