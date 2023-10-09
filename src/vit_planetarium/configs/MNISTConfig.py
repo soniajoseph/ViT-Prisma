@@ -1,69 +1,87 @@
+from dataclasses import dataclass
 from vit_planetarium.models.layers.transformer_block import TransformerBlock
 import torch.nn as nn
 
-class Config:
-    # Image and Patch Configurations
-    image_size = 28
-    patch_size = 7
-    n_channels = 1
+@dataclass
+class ImageConfig:
+    image_size: int = 28
+    patch_size: int = 7
+    n_channels: int = 1
 
-    # Transformer Configurations
-    class Transformer:
-        hidden_dim = 128
-        num_heads = 4
-        num_layers = 4
-        block_fn = TransformerBlock
-        mlp_dim = hidden_dim * 4
-        activation_fn = nn.GELU
-        activation_name = 'relu' # relu for initialization purposes
-        attention_only = True
-        attn_hidden_layer = True
+@dataclass
+class TransformerConfig:
+    hidden_dim: int = 128
+    num_heads: int = 4
+    num_layers: int = 4
+    block_fn = TransformerBlock
+    mlp_dim: int = 128 * 4  # Use a computed default
+    activation_fn = nn.GELU
+    activation_name: str = 'relu'
+    attention_only: bool = True
+    attn_hidden_layer: bool = True
 
-    # Layer Norm Configurations
-    class LayerNorm:
-        qknorm = False
-        layer_norm_eps = 0.0
+@dataclass
+class LayerNormConfig:
+    qknorm: bool = False
+    layer_norm_eps: float = 0.0
 
-    # Dropout Configurations
-    class Dropout:
-        patch = 0.0
-        position = 0.0
-        attention = 0.0
-        proj = 0.0
-        mlp = 0.0
+@dataclass
+class DropoutConfig:
+    patch: float = 0.0
+    position: float = 0.0
+    attention: float = 0.0
+    proj: float = 0.0
+    mlp: float = 0.0
 
-    # Weight Initialization Configurations
-    class Initialization:
-        weight_type = 'he'
-        cls_std = 1e-6
-        pos_std = 0.02 
+@dataclass
+class InitializationConfig:
+    weight_type: str = 'he'
+    cls_std: float = 1e-6
+    pos_std: float = 0.02
 
-    class Training:
-        optimizer = ...
-        lr = 1e-3
-        num_epochs = 5
-        batch_size = 64
-        warmup_steps = 0
-        weight_decay = 0.0
-        max_grad_norm = None
-        log_frequency = 10
-        save_checkpoints = True
-        save_dir = 'checkpoints'
-        use_wandb = False
-        wandb_project_name = None
-        device = 'cuda'
-        
+@dataclass
+class TrainingConfig:
+    optimizer = ...
+    lr: float = 1e-3
+    num_epochs: int = 5
+    batch_size: int = 64
+    warmup_steps: int = 0
+    weight_decay: float = 0.0
+    max_grad_norm = None
+    log_frequency: int = 10
+    save_checkpoints: bool = True
+    save_dir: str = 'checkpoints'
+    use_wandb: bool = False
+    wandb_project_name = None
+    device: str = 'cuda'
+    seed: int = 0
 
-    class Logging: 
-        log_dir = 'logs'
-        log_frequency = 10
-        print_every = 10
-        use_wandb = False
-    
-    class Saving:
-        save_dir = 'checkpoints'
-        save_frequency = 10
-        
-    # Other Configurations
-    num_classes = 10
-    global_pool = False
+@dataclass
+class LoggingConfig:
+    log_dir: str = 'logs'
+    log_frequency: int = 10
+    print_every: int = 10
+    use_wandb: bool = False
+
+@dataclass
+class SavingConfig:
+    save_dir: str = 'checkpoints'
+    save_frequency: int = 10
+
+
+class ClassificationConfig:
+    num_classes: int = 10
+    global_pool: bool = False
+
+@dataclass
+class GlobalConfig:
+    image: ImageConfig = ImageConfig()
+    transformer: TransformerConfig = TransformerConfig()
+    layernorm: LayerNormConfig = LayerNormConfig()
+    dropout: DropoutConfig = DropoutConfig()
+    init: InitializationConfig = InitializationConfig()
+    training: TrainingConfig = TrainingConfig()
+    logging: LoggingConfig = LoggingConfig()
+    saving: SavingConfig = SavingConfig()
+    classification: ClassificationConfig = ClassificationConfig()
+

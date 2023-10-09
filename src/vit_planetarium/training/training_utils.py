@@ -33,8 +33,7 @@ def calculate_loss(net, data_loader, loss_function, device, N=2000, batch_size=5
             points += len(labels)
         return total / points
     
-def set_seed(seed, dtype):
-    torch.set_default_dtype(dtype)
+def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     random.seed(seed)
