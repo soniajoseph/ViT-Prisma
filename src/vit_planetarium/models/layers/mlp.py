@@ -3,7 +3,8 @@ import torch.nn as nn
 
 class MLP(nn.Module):
 
-    def __init__(self, config, logger=None):
+    def __init__(self, config, 
+    logger=None):
         super().__init__()
         self.logger = logger
         self.config = config

@@ -40,20 +40,16 @@ class InitializationConfig:
 
 @dataclass
 class TrainingConfig:
-    loss_function: "CrossEntropy"
+    loss_fn_name: str = "CrossEntropy"
     lr: float = 1e-3
     num_epochs: int = 5
     batch_size: int = 64
     warmup_steps: int = 0
     weight_decay: float = 0.0
     max_grad_norm = None
-    log_frequency: int = 10
-    save_checkpoints: bool = True
-    save_dir: str = 'checkpoints'
-    use_wandb: bool = False
-    wandb_project_name = None
     device: str = 'cuda'
     seed: int = 0
+    optimizer_name: str = "AdamW"
 
 @dataclass
 class LoggingConfig:
@@ -61,12 +57,14 @@ class LoggingConfig:
     log_frequency: int = 10
     print_every: int = 10
     use_wandb: bool = False
+    wandb_project_name = None
 
 @dataclass
 class SavingConfig:
+    parent_dir: str = "/network/scratch/s/sonia.joseph/vit_planetarium"
     save_dir: str = 'checkpoints'
-    save_frequency: int = 10
-
+    save_checkpoints: bool = True
+    save_cp_frequency: int = 10
 
 class ClassificationConfig:
     num_classes: int = 10

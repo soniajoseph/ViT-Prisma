@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from vit_planetarium.models.layers.transformer_block import TransformerBlock
 from vit_planetarium.models.layers.patch_embedding import PatchEmbedding
+from vit_planetarium.training.training_dictionary import activation_dict, initialization_dict
 
 class BaseViT(nn.Module):
     """
@@ -14,6 +15,8 @@ class BaseViT(nn.Module):
 
         self.logger = logger
         self.config = config
+
+        self.config.transformer.activation_fn = activation_dict[self.config.transformer.activation_name]
 
         layer_norm = self.config.layernorm.layer_norm_eps
         hidden_dim = self.config.transformer.hidden_dim
@@ -42,7 +45,7 @@ class BaseViT(nn.Module):
         if self.config.init.weight_type == 'he':
             for m in self.modules():
                 if isinstance(m, nn.Linear):
-                    nn.init.kaiming_normal_(m.weight, nonlinearity=self.config.transformer.activation_name)
+                    nn.init.kaiming_normal_(m.weight, nonlinearity=initialization_dict[self.config.transformer.activation_name])
                     if m.bias is not None:
                         nn.init.constant_(m.bias, 0)
 
