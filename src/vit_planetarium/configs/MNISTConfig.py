@@ -15,8 +15,7 @@ class TransformerConfig:
     num_layers: int = 4
     block_fn = TransformerBlock
     mlp_dim: int = 128 * 4  # Use a computed default
-    activation_fn = nn.GELU
-    activation_name: str = 'relu'
+    activation_name: str = 'GELU'
     attention_only: bool = True
     attn_hidden_layer: bool = True
 
@@ -41,7 +40,7 @@ class InitializationConfig:
 
 @dataclass
 class TrainingConfig:
-    optimizer = ...
+    loss_function: "CrossEntropy"
     lr: float = 1e-3
     num_epochs: int = 5
     batch_size: int = 64

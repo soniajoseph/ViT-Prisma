@@ -42,7 +42,7 @@ def train(
 
 
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
-    if config.Logging.use_wandb:
+    if config.logging.use_wandb:
         update_config_with_wandb(config, wandb.config)
         print(f"Updated config with wandb values: {config}")
         if config.training.wandb_project_name is None:
@@ -73,9 +73,9 @@ def train(
             if steps % config.logging.log_frequency == 0:
                 model.eval()
                 logs = {}
-                train_loss = calculate_loss(model, train_loader, hp['loss_function'], config.training.device)
+                train_loss = calculate_loss(model, train_loader, config.training.loss_function, config.training.device)
                 train_acc = calculate_accuracy(model, train_loader, config.training.device)
-                test_loss = calculate_loss(model, test_loader, hp['loss_function'], config.training.device)
+                test_loss = calculate_loss(model, test_loader, config.training.loss_function, config.training.device)
                 test_acc = calculate_accuracy(model, test_loader, config.training.device)
 
                 print(f"Steps{steps} | Train loss: {train_loss:.3f} | Train acc: {train_acc:.3f} | Test loss: {test_loss:.3f} | Test acc: {test_acc:.3f}")
