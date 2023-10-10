@@ -1,0 +1,99 @@
+
+Config is: GlobalConfig(image=ImageConfig(image_size=32, patch_size=7, n_channels=1), transformer=TransformerConfig(hidden_dim=128, num_heads=4, num_layers=4, mlp_dim=512, activation_name='GELU', attention_only=True, attn_hidden_layer=True), layernorm=LayerNormConfig(qknorm=False, layer_norm_eps=0.0), dropout=DropoutConfig(patch=0.0, position=0.0, attention=0.0, proj=0.0, mlp=0.0), init=InitializationConfig(weight_type='he', cls_std=1e-06, pos_std=0.02), training=TrainingConfig(loss_fn_name='CrossEntropy', lr=0.001, num_epochs=100, batch_size=64, warmup_steps=0, weight_decay=0.0, device='cuda', seed=0, optimizer_name='AdamW'), logging=LoggingConfig(log_dir='logs', log_frequency=10, print_every=0, use_wandb=True), saving=SavingConfig(parent_dir='/network/scratch/s/sonia.joseph/vit_planetarium', save_dir='checkpoints', save_checkpoints=True, save_cp_frequency=10), classification=<vit_planetarium.configs.CircleConfig.ClassificationConfig object at 0x7f19dac4b4d0>)
+  0%|                                                                                                                                                                                                                                                                         | 0/100 [00:00<?, ?it/s]
+0it [00:00, ?it/s]
+
+6it [00:06,  1.17it/s]
+  1%|██▌                                                                                                                                                                                                                                                              | 1/100 [00:09<15:36,  9.46s/it]
+0it [00:00, ?it/s]
+Steps20 | Train loss: 0.074 | Train acc: 0.017 | Test loss: 0.136 | Test acc: 0.000
+
+8it [00:01,  8.07it/s]
+  2%|█████▏                                                                                                                                                                                                                                                           | 2/100 [00:13<09:55,  6.07s/it]
+0it [00:00, ?it/s]
+Steps50 | Train loss: 0.069 | Train acc: 0.016 | Test loss: 0.120 | Test acc: 0.000
+
+10it [00:01,  9.22it/s]
+Steps70 | Train loss: 0.068 | Train acc: 0.019 | Test loss: 0.118 | Test acc: 0.028
+  3%|███████▋                                                                                                                                                                                                                                                         | 3/100 [00:16<08:05,  5.01s/it]
+5it [00:00, 45.22it/s]
+
+24it [00:02,  9.53it/s]
+Steps100 | Train loss: 0.067 | Train acc: 0.017 | Test loss: 0.118 | Test acc: 0.000
+  4%|██████████▎                                                                                                                                                                                                                                                      | 4/100 [00:20<07:12,  4.51s/it]
+5it [00:00, 45.04it/s]
+  5%|████████████▊                                                                                                                                                                                                                                                    | 5/100 [00:23<06:06,  3.86s/it]
+0it [00:00, ?it/s]
+Steps130 | Train loss: 0.068 | Train acc: 0.017 | Test loss: 0.119 | Test acc: 0.000
+
+6it [00:01,  6.65it/s]
+  6%|███████████████▍                                                                                                                                                                                                                                                 | 6/100 [00:27<05:58,  3.82s/it]
+0it [00:00, ?it/s]
+Steps160 | Train loss: 0.067 | Train acc: 0.017 | Test loss: 0.119 | Test acc: 0.000
+
+18it [00:02,  8.87it/s]
+Steps180 | Train loss: 0.067 | Train acc: 0.019 | Test loss: 0.120 | Test acc: 0.000
+  7%|█████████████████▉                                                                                                                                                                                                                                               | 7/100 [00:30<05:52,  3.79s/it]
+0it [00:00, ?it/s]
+
+20it [00:02,  9.31it/s]
+Steps210 | Train loss: 0.067 | Train acc: 0.019 | Test loss: 0.120 | Test acc: 0.028
+  8%|████████████████████▌                                                                                                                                                                                                                                            | 8/100 [00:34<05:46,  3.77s/it]
+5it [00:00, 44.99it/s]
+
+24it [00:02,  9.62it/s]
+Steps240 | Train loss: 0.067 | Train acc: 0.016 | Test loss: 0.119 | Test acc: 0.028
+  9%|███████████████████████▏                                                                                                                                                                                                                                         | 9/100 [00:39<05:41,  3.75s/it]
+10it [00:01,  6.98it/s]
+Steps260 | Train loss: 0.068 | Train acc: 0.017 | Test loss: 0.122 | Test acc: 0.000
+ 10%|█████████████████████████▌                                                                                                                                                                                                                                      | 10/100 [00:40<05:07,  3.41s/it]
+0it [00:00, ?it/s]
+
+16it [00:02,  8.50it/s]
+ 10%|█████████████████████████▌                                                                                                                                                                                                                                      | 10/100 [00:44<06:36,  4.40s/it]
+Traceback (most recent call last):
+  File "test_trainer_circle.py", line 28, in <module>
+    unittest.main()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 101, in __init__
+    self.runTests()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 271, in runTests
+    self.result = testRunner.run(self.test)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/runner.py", line 176, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 676, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 628, in run
+    testMethod()
+  File "test_trainer_circle.py", line 24, in test_train_function
+    trained_model = train(self.model, self.config, self.train_dataset, self.val_dataset)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/trainer.py", line 56, in train
+    train_acc = calculate_accuracy(model, train_loader, config.training.device)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/training_utils.py", line 14, in calculate_accuracy
+    for items in islice(data_loader, N // batch_size):
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 628, in __next__
+    data = self._next_data()
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 671, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 167, in __getitem__
+    img = draw_circle_with_points(data_point[0], data_point[1], self.circle_metadata, model_type = self.model_type)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 112, in draw_circle_with_points
+    img = transform(img)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/transforms.py", line 95, in __call__
+    img = t(img)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/transforms.py", line 135, in __call__
+    return F.to_tensor(pic)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/functional.py", line 171, in to_tensor
+    return img.to(dtype=default_float_dtype).div(255)
+KeyboardInterrupt

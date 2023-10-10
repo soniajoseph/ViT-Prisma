@@ -1,0 +1,29 @@
+2023-10-10 12:41:36,331 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Current SDK version is 0.15.11
+2023-10-10 12:41:36,334 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Configure stats pid to 22379
+2023-10-10 12:41:36,334 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Loading settings from /home/mila/s/sonia.joseph/.config/wandb/settings
+2023-10-10 12:41:36,334 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Loading settings from /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/settings
+2023-10-10 12:41:36,335 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2023-10-10 12:41:36,335 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2023-10-10 12:41:36,335 INFO    MainThread:22379 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'tests/test_trainer_circle.py', 'program_abspath': '/home/mila/s/sonia.joseph/ViT-Planetarium/tests/test_trainer_circle.py', 'program': 'test_trainer_circle.py'}
+2023-10-10 12:41:36,335 INFO    MainThread:22379 [wandb_init.py:_log_setup():528] Logging user logs to /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_124136-lmaenls6/logs/debug.log
+2023-10-10 12:41:36,336 INFO    MainThread:22379 [wandb_init.py:_log_setup():529] Logging internal logs to /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_124136-lmaenls6/logs/debug-internal.log
+2023-10-10 12:41:36,336 INFO    MainThread:22379 [wandb_init.py:init():568] calling init triggers
+2023-10-10 12:41:36,336 INFO    MainThread:22379 [wandb_init.py:init():576] wandb.init called with sweep_config: {}
+config: {}
+2023-10-10 12:41:36,337 INFO    MainThread:22379 [wandb_init.py:init():618] starting backend
+2023-10-10 12:41:36,337 INFO    MainThread:22379 [wandb_init.py:init():622] setting up manager
+2023-10-10 12:41:36,338 INFO    MainThread:22379 [backend.py:_multiprocessing_setup():107] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2023-10-10 12:41:36,341 INFO    MainThread:22379 [wandb_init.py:init():628] backend started and connected
+2023-10-10 12:41:36,343 INFO    MainThread:22379 [wandb_init.py:init():720] updated telemetry
+2023-10-10 12:41:36,366 INFO    MainThread:22379 [wandb_init.py:init():753] communicating run to backend with 90.0 second timeout
+2023-10-10 12:41:36,658 INFO    MainThread:22379 [wandb_run.py:_on_init():2220] communicating current version
+2023-10-10 12:41:36,684 INFO    MainThread:22379 [wandb_run.py:_on_init():2229] got version response upgrade_message: "wandb version 0.15.12 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2023-10-10 12:41:36,684 INFO    MainThread:22379 [wandb_init.py:init():804] starting run threads in backend
+2023-10-10 12:41:36,820 INFO    MainThread:22379 [wandb_run.py:_console_start():2199] atexit reg
+2023-10-10 12:41:36,821 INFO    MainThread:22379 [wandb_run.py:_redirect():2054] redirect: wrap_raw
+2023-10-10 12:41:36,821 INFO    MainThread:22379 [wandb_run.py:_redirect():2119] Wrapping output streams.
+2023-10-10 12:41:36,821 INFO    MainThread:22379 [wandb_run.py:_redirect():2144] Redirects installed.
+2023-10-10 12:41:36,822 INFO    MainThread:22379 [wandb_init.py:init():845] run started, returning control to user process
+2023-10-10 12:41:36,823 INFO    MainThread:22379 [wandb_run.py:_config_callback():1324] config_cb None None {'image': {'image_size': 32, 'patch_size': 7, 'n_channels': 1}, 'transformer': {'hidden_dim': 128, 'num_heads': 4, 'num_layers': 4, 'mlp_dim': 512, 'activation_name': 'GELU', 'attention_only': True, 'attn_hidden_layer': True}, 'layernorm': {'qknorm': False, 'layer_norm_eps': 0.0}, 'dropout': {'patch': 0.0, 'position': 0.0, 'attention': 0.0, 'proj': 0.0, 'mlp': 0.0}, 'init': {'weight_type': 'he', 'cls_std': 1e-06, 'pos_std': 0.02}, 'training': {'loss_fn_name': 'CrossEntropy', 'lr': 0.001, 'num_epochs': 5, 'batch_size': 64, 'warmup_steps': 0, 'weight_decay': 0.0, 'device': 'cuda', 'seed': 0, 'optimizer_name': 'AdamW'}, 'logging': {'log_dir': 'logs', 'log_frequency': 10, 'print_every': 0, 'use_wandb': True}, 'saving': {'parent_dir': '/network/scratch/s/sonia.joseph/vit_planetarium', 'save_dir': 'checkpoints', 'save_checkpoints': True, 'save_cp_frequency': 10}, 'classification': '<vit_planetarium.configs.CircleConfig.ClassificationConfig object at 0x7fa1cb1d2950>'}
+2023-10-10 12:41:45,605 WARNING MsgRouterThr:22379 [router.py:message_loop():77] message_loop has been closed

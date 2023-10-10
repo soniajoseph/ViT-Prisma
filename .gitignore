@@ -88,9 +88,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Data directories
-data/raw/
-data/processed/
+# wandb logs anywhere in folder
+**/wandb/
 
 # Results directories
 results/

@@ -1,0 +1,334 @@
+2023-10-10 13:14:12,575 INFO    StreamThr :2769 [internal.py:wandb_internal():89] W&B internal server running at pid: 2769, started at: 2023-10-10 13:14:12.573681
+2023-10-10 13:14:12,580 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status
+2023-10-10 13:14:12,582 INFO    WriterThread:2769 [datastore.py:open_for_write():85] open: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/run-x5vv0s5y.wandb
+2023-10-10 13:14:12,586 DEBUG   SenderThread:2769 [sender.py:send():380] send: header
+2023-10-10 13:14:12,610 DEBUG   SenderThread:2769 [sender.py:send():380] send: run
+2023-10-10 13:14:12,895 INFO    SenderThread:2769 [dir_watcher.py:__init__():211] watching files in: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files
+2023-10-10 13:14:12,896 INFO    SenderThread:2769 [sender.py:_start_run_threads():1125] run started: x5vv0s5y with start time 1696958052.575027
+2023-10-10 13:14:12,914 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: check_version
+2023-10-10 13:14:12,915 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: check_version
+2023-10-10 13:14:13,008 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: run_start
+2023-10-10 13:14:13,037 DEBUG   HandlerThread:2769 [system_info.py:__init__():32] System info init
+2023-10-10 13:14:13,038 DEBUG   HandlerThread:2769 [system_info.py:__init__():47] System info init done
+2023-10-10 13:14:13,038 INFO    HandlerThread:2769 [system_monitor.py:start():181] Starting system monitor
+2023-10-10 13:14:13,039 INFO    SystemMonitor:2769 [system_monitor.py:_start():145] Starting system asset monitoring threads
+2023-10-10 13:14:13,040 INFO    HandlerThread:2769 [system_monitor.py:probe():201] Collecting system info
+2023-10-10 13:14:13,041 INFO    SystemMonitor:2769 [interfaces.py:start():190] Started cpu monitoring
+2023-10-10 13:14:13,042 INFO    SystemMonitor:2769 [interfaces.py:start():190] Started disk monitoring
+2023-10-10 13:14:13,044 INFO    SystemMonitor:2769 [interfaces.py:start():190] Started gpu monitoring
+2023-10-10 13:14:13,045 INFO    SystemMonitor:2769 [interfaces.py:start():190] Started memory monitoring
+2023-10-10 13:14:13,048 INFO    SystemMonitor:2769 [interfaces.py:start():190] Started network monitoring
+2023-10-10 13:14:13,075 DEBUG   HandlerThread:2769 [system_info.py:probe():196] Probing system
+2023-10-10 13:14:13,084 DEBUG   HandlerThread:2769 [system_info.py:_probe_git():181] Probing git
+2023-10-10 13:14:13,117 DEBUG   HandlerThread:2769 [system_info.py:_probe_git():189] Probing git done
+2023-10-10 13:14:13,117 DEBUG   HandlerThread:2769 [system_info.py:probe():244] Probing system done
+2023-10-10 13:14:13,118 DEBUG   HandlerThread:2769 [system_monitor.py:probe():210] {'os': 'Linux-4.15.0-194-generic-x86_64-with-debian-buster-sid', 'python': '3.7.4', 'heartbeatAt': '2023-10-10T17:14:13.076576', 'startedAt': '2023-10-10T17:14:12.547542', 'docker': None, 'cuda': None, 'args': (), 'state': 'running', 'program': 'test_trainer_circle.py', 'codePathLocal': 'test_trainer_circle.py', 'codePath': 'tests/test_trainer_circle.py', 'git': {'remote': 'git@github.com:soniajoseph/ViT-Planetarium.git', 'commit': '64bfea51f80c724988e57ef02c724fdce1bd1833'}, 'email': 'soniamollyjoseph@gmail.com', 'root': '/home/mila/s/sonia.joseph/ViT-Planetarium', 'host': 'cn-c027.server.mila.quebec', 'username': 'sonia.joseph', 'executable': '/home/mila/s/sonia.joseph/ViT-Planetarium/env/bin/python', 'cpu_count': 64, 'cpu_count_logical': 64, 'cpu_freq': {'current': 1746.2142656250003, 'min': 1500.0, 'max': 2500.0}, 'cpu_freq_per_core': [{'current': 1483.473, 'min': 1500.0, 'max': 2500.0}, {'current': 3325.237, 'min': 1500.0, 'max': 2500.0}, {'current': 1487.316, 'min': 1500.0, 'max': 2500.0}, {'current': 1487.783, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.344, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.819, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.428, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.345, 'min': 1500.0, 'max': 2500.0}, {'current': 1797.89, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.389, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.21, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.751, 'min': 1500.0, 'max': 2500.0}, {'current': 1485.83, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.735, 'min': 1500.0, 'max': 2500.0}, {'current': 3325.897, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.243, 'min': 1500.0, 'max': 2500.0}, {'current': 2513.372, 'min': 1500.0, 'max': 2500.0}, {'current': 1486.261, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.34, 'min': 1500.0, 'max': 2500.0}, {'current': 1460.71, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.799, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.745, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.896, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.564, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.419, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.607, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.625, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.947, 'min': 1500.0, 'max': 2500.0}, {'current': 3349.279, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.878, 'min': 1500.0, 'max': 2500.0}, {'current': 1487.123, 'min': 1500.0, 'max': 2500.0}, {'current': 1487.906, 'min': 1500.0, 'max': 2500.0}, {'current': 3347.043, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.588, 'min': 1500.0, 'max': 2500.0}, {'current': 1914.251, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.363, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.844, 'min': 1500.0, 'max': 2500.0}, {'current': 1480.699, 'min': 1500.0, 'max': 2500.0}, {'current': 3342.678, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.652, 'min': 1500.0, 'max': 2500.0}, {'current': 3346.928, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.302, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.657, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.368, 'min': 1500.0, 'max': 2500.0}, {'current': 1680.547, 'min': 1500.0, 'max': 2500.0}, {'current': 1486.665, 'min': 1500.0, 'max': 2500.0}, {'current': 1491.743, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.064, 'min': 1500.0, 'max': 2500.0}, {'current': 2096.641, 'min': 1500.0, 'max': 2500.0}, {'current': 1470.886, 'min': 1500.0, 'max': 2500.0}, {'current': 1972.526, 'min': 1500.0, 'max': 2500.0}, {'current': 1468.136, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.61, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.577, 'min': 1500.0, 'max': 2500.0}, {'current': 1499.958, 'min': 1500.0, 'max': 2500.0}, {'current': 1498.188, 'min': 1500.0, 'max': 2500.0}, {'current': 3349.825, 'min': 1500.0, 'max': 2500.0}, {'current': 1653.071, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.554, 'min': 1500.0, 'max': 2500.0}, {'current': 1488.301, 'min': 1500.0, 'max': 2500.0}, {'current': 2196.092, 'min': 1500.0, 'max': 2500.0}, {'current': 1833.961, 'min': 1500.0, 'max': 2500.0}, {'current': 1463.467, 'min': 1500.0, 'max': 2500.0}, {'current': 1872.346, 'min': 1500.0, 'max': 2500.0}], 'disk': {'/': {'total': 430.6656723022461, 'used': 34.00736999511719}}, 'gpu': 'Quadro RTX 8000', 'gpu_count': 1, 'gpu_devices': [{'name': 'Quadro RTX 8000', 'memory_total': 51539607552}], 'memory': {'total': 377.7610626220703}}
+2023-10-10 13:14:13,118 INFO    HandlerThread:2769 [system_monitor.py:probe():211] Finished collecting system info
+2023-10-10 13:14:13,118 INFO    HandlerThread:2769 [system_monitor.py:probe():214] Publishing system info
+2023-10-10 13:14:13,119 DEBUG   HandlerThread:2769 [system_info.py:_save_pip():53] Saving list of pip packages installed into the current environment
+2023-10-10 13:14:13,120 DEBUG   HandlerThread:2769 [system_info.py:_save_pip():68] Saving pip packages done
+2023-10-10 13:14:13,123 INFO    HandlerThread:2769 [system_monitor.py:probe():216] Finished publishing system info
+2023-10-10 13:14:13,130 DEBUG   SenderThread:2769 [sender.py:send():380] send: files
+2023-10-10 13:14:13,130 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-metadata.json with policy now
+2023-10-10 13:14:13,144 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:14:13,144 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:14:13,145 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:14:13,310 DEBUG   SenderThread:2769 [sender.py:send():380] send: telemetry
+2023-10-10 13:14:13,311 DEBUG   SenderThread:2769 [sender.py:send():380] send: config
+2023-10-10 13:14:13,532 INFO    wandb-upload_0:2769 [upload_job.py:push():131] Uploaded file /tmp/tmp1m1r_vt7wandb/hctflo9s-wandb-metadata.json
+2023-10-10 13:14:13,900 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:13,901 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/requirements.txt
+2023-10-10 13:14:13,901 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-metadata.json
+2023-10-10 13:14:15,902 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:18,142 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:19,909 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:22,745 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:23,746 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:23,915 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:25,388 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:25,391 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:25,391 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:25,395 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:25,918 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:25,919 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:27,538 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:27,540 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:27,540 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:27,542 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:27,922 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:27,922 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:28,144 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:14:28,145 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:14:28,146 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:14:29,262 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:29,756 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:29,758 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:29,759 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:29,761 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:29,925 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:29,926 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:31,872 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:31,874 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:31,875 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:31,877 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:31,929 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:31,930 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:33,932 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:34,036 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:34,038 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:34,039 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:34,040 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:34,542 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:34,934 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:35,936 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:36,200 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:36,202 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:36,203 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:36,208 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:36,938 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:37,939 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:38,359 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:38,361 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:38,362 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:38,364 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:38,941 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:39,943 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:39,960 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:40,510 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:40,511 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:40,512 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:40,514 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:40,945 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:41,946 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:42,664 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:42,666 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:42,667 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:42,669 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:42,949 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:43,146 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:14:43,146 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:14:43,147 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:14:43,951 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:44,829 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:44,831 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:44,831 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:44,833 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:44,952 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:45,235 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:45,954 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/config.yaml
+2023-10-10 13:14:45,955 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:46,991 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:46,993 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:46,994 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:46,995 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:47,957 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:47,958 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:49,132 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:49,133 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:49,134 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:49,135 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:49,961 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:49,962 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:50,632 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:51,290 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:51,291 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:51,292 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:51,294 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:51,965 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:51,966 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:53,442 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:53,443 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:53,444 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:53,446 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:53,968 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:53,969 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:55,609 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:55,626 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:55,627 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:55,629 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:55,911 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:14:55,972 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:55,973 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:57,751 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:57,752 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:57,753 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:57,755 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:57,976 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:57,977 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:14:58,145 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:14:58,146 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:14:58,147 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:14:59,913 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:14:59,914 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:14:59,915 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:14:59,917 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:14:59,979 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:14:59,980 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:01,314 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:01,982 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:02,057 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:02,059 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:02,059 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:02,061 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:02,984 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:03,986 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:04,191 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:04,193 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:04,193 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:04,195 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:04,988 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:05,990 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:06,336 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:06,337 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:06,338 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:06,339 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:06,341 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:06,992 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:07,993 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:08,466 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:08,468 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:08,469 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:08,471 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:08,995 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:09,997 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:10,613 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:10,614 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:10,615 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:10,617 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:10,999 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:11,914 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:12,001 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:12,821 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:12,823 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:12,824 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:12,826 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:13,002 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:13,049 DEBUG   SystemMonitor:2769 [system_monitor.py:_start():159] Starting system metrics aggregation loop
+2023-10-10 13:15:13,051 DEBUG   SenderThread:2769 [sender.py:send():380] send: stats
+2023-10-10 13:15:13,146 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:15:13,146 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:15:13,147 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:15:14,004 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:14,980 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:14,982 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:14,982 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:14,984 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:15,005 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:16,007 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:17,125 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:17,127 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:17,127 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:17,128 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:17,130 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:18,010 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:18,011 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:19,258 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:19,260 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:19,261 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:19,262 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:20,014 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:20,015 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:21,412 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:15:21,414 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:21,415 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:21,416 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:22,020 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:22,021 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:22,191 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:22,207 DEBUG   SenderThread:2769 [sender.py:send():380] send: exit
+2023-10-10 13:15:22,207 INFO    SenderThread:2769 [sender.py:send_exit():585] handling exit code: 255
+2023-10-10 13:15:22,208 INFO    SenderThread:2769 [sender.py:send_exit():587] handling runtime: 69
+2023-10-10 13:15:22,209 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:22,210 INFO    SenderThread:2769 [sender.py:send_exit():593] send defer
+2023-10-10 13:15:22,211 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,211 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 0
+2023-10-10 13:15:22,212 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,213 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 0
+2023-10-10 13:15:22,213 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 1
+2023-10-10 13:15:22,214 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,214 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 1
+2023-10-10 13:15:22,215 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,215 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 1
+2023-10-10 13:15:22,215 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 2
+2023-10-10 13:15:22,216 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,216 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 2
+2023-10-10 13:15:22,217 INFO    HandlerThread:2769 [system_monitor.py:finish():190] Stopping system monitor
+2023-10-10 13:15:22,218 INFO    HandlerThread:2769 [interfaces.py:finish():202] Joined cpu monitor
+2023-10-10 13:15:22,219 DEBUG   SystemMonitor:2769 [system_monitor.py:_start():166] Finished system metrics aggregation loop
+2023-10-10 13:15:22,219 INFO    HandlerThread:2769 [interfaces.py:finish():202] Joined disk monitor
+2023-10-10 13:15:22,220 DEBUG   SystemMonitor:2769 [system_monitor.py:_start():170] Publishing last batch of metrics
+2023-10-10 13:15:22,327 INFO    HandlerThread:2769 [interfaces.py:finish():202] Joined gpu monitor
+2023-10-10 13:15:22,327 INFO    HandlerThread:2769 [interfaces.py:finish():202] Joined memory monitor
+2023-10-10 13:15:22,328 INFO    HandlerThread:2769 [interfaces.py:finish():202] Joined network monitor
+2023-10-10 13:15:22,329 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,329 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 2
+2023-10-10 13:15:22,329 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 3
+2023-10-10 13:15:22,330 DEBUG   SenderThread:2769 [sender.py:send():380] send: stats
+2023-10-10 13:15:22,330 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,331 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 3
+2023-10-10 13:15:22,332 DEBUG   SenderThread:2769 [sender.py:send():380] send: history
+2023-10-10 13:15:22,332 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:15:22,333 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:22,334 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,334 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 3
+2023-10-10 13:15:22,335 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 4
+2023-10-10 13:15:22,335 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,335 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 4
+2023-10-10 13:15:22,336 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,336 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 4
+2023-10-10 13:15:22,336 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 5
+2023-10-10 13:15:22,337 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,337 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 5
+2023-10-10 13:15:22,338 DEBUG   SenderThread:2769 [sender.py:send():380] send: summary
+2023-10-10 13:15:22,340 INFO    SenderThread:2769 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:15:22,340 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,340 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 5
+2023-10-10 13:15:22,341 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 6
+2023-10-10 13:15:22,341 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,342 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 6
+2023-10-10 13:15:22,342 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,343 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 6
+2023-10-10 13:15:22,343 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 7
+2023-10-10 13:15:22,343 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:15:22,344 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:22,345 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 7
+2023-10-10 13:15:22,345 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:22,346 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 7
+2023-10-10 13:15:23,021 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:23,206 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: poll_exit
+2023-10-10 13:15:24,023 INFO    Thread-12 :2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:25,418 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 8
+2023-10-10 13:15:25,419 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: poll_exit
+2023-10-10 13:15:25,419 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:25,420 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 8
+2023-10-10 13:15:25,421 DEBUG   SenderThread:2769 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:15:25,421 INFO    SenderThread:2769 [sender.py:send_request_defer():609] handle sender defer: 8
+2023-10-10 13:15:25,422 INFO    SenderThread:2769 [job_builder.py:build():281] Attempting to build job artifact
+2023-10-10 13:15:25,424 INFO    SenderThread:2769 [job_builder.py:_get_source_type():393] is repo sourced job
+2023-10-10 13:15:25,427 INFO    SenderThread:2769 [job_builder.py:build():369] adding wandb-job metadata file
+2023-10-10 13:15:25,438 INFO    SenderThread:2769 [sender.py:transition_state():613] send defer: 9
+2023-10-10 13:15:25,438 DEBUG   SenderThread:2769 [sender.py:send():380] send: artifact
+2023-10-10 13:15:25,438 DEBUG   HandlerThread:2769 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:15:25,444 INFO    HandlerThread:2769 [handler.py:handle_request_defer():170] handle defer: 9
+2023-10-10 13:15:25,660 WARNING StreamThr :2769 [internal.py:is_dead():415] Internal process exiting, parent pid 2647 disappeared
+2023-10-10 13:15:25,660 ERROR   StreamThr :2769 [internal.py:wandb_internal():152] Internal process shutdown.
+2023-10-10 13:15:25,872 INFO    SenderThread:2769 [sender.py:send_artifact():1456] sent artifact job-git_github.com_soniajoseph_ViT-Planetarium.git_tests_test_trainer_circle.py - {'id': 'QXJ0aWZhY3Q6NjAwMTM0MzE1', 'state': 'COMMITTED', 'artifactSequence': {'id': 'QXJ0aWZhY3RDb2xsZWN0aW9uOjEwNTY2NDI1MA==', 'latestArtifact': {'id': 'QXJ0aWZhY3Q6NjAwMTM0MzE1', 'versionIndex': 1}}}
+2023-10-10 13:15:25,873 INFO    SenderThread:2769 [sender.py:finish():1534] shutting down sender
+2023-10-10 13:15:25,873 INFO    SenderThread:2769 [dir_watcher.py:finish():358] shutting down directory watcher
+2023-10-10 13:15:26,026 INFO    SenderThread:2769 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:26,027 INFO    SenderThread:2769 [dir_watcher.py:finish():388] scan: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files
+2023-10-10 13:15:26,028 INFO    SenderThread:2769 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json wandb-summary.json
+2023-10-10 13:15:26,029 INFO    SenderThread:2769 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/config.yaml config.yaml
+2023-10-10 13:15:26,035 INFO    SenderThread:2769 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-metadata.json wandb-metadata.json
+2023-10-10 13:15:26,041 INFO    SenderThread:2769 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log output.log
+2023-10-10 13:15:26,042 INFO    SenderThread:2769 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/requirements.txt requirements.txt
+2023-10-10 13:15:26,049 INFO    SenderThread:2769 [file_pusher.py:finish():175] shutting down file pusher
+2023-10-10 13:15:26,049 INFO    SenderThread:2769 [file_pusher.py:join():181] waiting for file pusher
+2023-10-10 13:15:26,298 INFO    wandb-upload_2:2769 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/config.yaml
+2023-10-10 13:15:26,388 INFO    wandb-upload_1:2769 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/wandb-summary.json
+2023-10-10 13:15:26,445 INFO    HandlerThread:2769 [handler.py:finish():844] shutting down handler
+2023-10-10 13:15:26,445 INFO    WriterThread:2769 [datastore.py:close():294] close: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/run-x5vv0s5y.wandb
+2023-10-10 13:15:26,453 INFO    wandb-upload_3:2769 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/requirements.txt
+2023-10-10 13:15:26,579 INFO    wandb-upload_0:2769 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_131412-x5vv0s5y/files/output.log
+2023-10-10 13:15:27,056 INFO    SenderThread:2769 [file_stream.py:finish():595] file stream finish called
+2023-10-10 13:15:27,495 INFO    SenderThread:2769 [file_stream.py:finish():599] file stream finish is done

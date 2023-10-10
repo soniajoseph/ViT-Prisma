@@ -1,0 +1,59 @@
+
+Config is: GlobalConfig(image=ImageConfig(image_size=32, patch_size=7, n_channels=1), transformer=TransformerConfig(hidden_dim=128, num_heads=4, num_layers=4, mlp_dim=512, activation_name='GELU', attention_only=True, attn_hidden_layer=True), layernorm=LayerNormConfig(qknorm=False, layer_norm_eps=0.0), dropout=DropoutConfig(patch=0.0, position=0.0, attention=0.0, proj=0.0, mlp=0.0), init=InitializationConfig(weight_type='he', cls_std=1e-06, pos_std=0.02), training=TrainingConfig(loss_fn_name='CrossEntropy', lr=0.0001, num_epochs=100, batch_size=64, warmup_steps=10, weight_decay=0.0, device='cuda', seed=0, optimizer_name='AdamW'), logging=LoggingConfig(log_dir='logs', log_frequency=10, print_every=0, use_wandb=True), saving=SavingConfig(parent_dir='/network/scratch/s/sonia.joseph/vit_planetarium', save_dir='checkpoints', save_checkpoints=True, save_cp_frequency=10), classification=<vit_planetarium.configs.CircleConfig.ClassificationConfig object at 0x7f18d60b8250>)
+  0%|                                                                                                                                                                                                                                                                         | 0/100 [00:00<?, ?it/s]
+0it [00:00, ?it/s]
+
+6it [00:07,  1.13it/s]
+
+16it [00:08,  3.32it/s]
+Steps20 | Train loss: 0.102 | Train acc: 0.013 | Test loss: 0.157 | Test acc: 0.028
+  1%|██▌                                                                                                                                                                                                                                                              | 1/100 [00:10<16:04,  9.74s/it]
+8it [00:01,  7.95it/s]
+  2%|█████▏                                                                                                                                                                                                                                                           | 2/100 [00:13<10:10,  6.23s/it]
+0it [00:00, ?it/s]
+Steps50 | Train loss: 0.071 | Train acc: 0.018 | Test loss: 0.121 | Test acc: 0.000
+
+10it [00:01,  9.12it/s]
+  3%|███████▋                                                                                                                                                                                                                                                         | 3/100 [00:17<08:15,  5.11s/it]
+5it [00:00, 43.61it/s]
+Steps80 | Train loss: 0.068 | Train acc: 0.018 | Test loss: 0.120 | Test acc: 0.000
+
+15it [00:01, 11.11it/s]
+  4%|██████████▎      /home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/functional.py:163: DeprecationWarning: An exception was ignored while fetching the attribute `__array_interface__` from an object of type 'Image'.  With the exception of `AttributeError` NumPy will always raise this exception in the future.  Raise this deprecation warning to see the original exception. (Warning added NumPy 1.21)
+  img = torch.from_numpy(np.array(pic, mode_to_nptype.get(pic.mode, np.uint8), copy=True))
+8it [00:00, 23.17it/s]
+  4%|██████████▎                                                                                                                                                                                                                                                      | 4/100 [00:21<08:33,  5.35s/it]
+E
+======================================================================
+ERROR: test_train_function (__main__.TestTrainingFunction)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_trainer_circle.py", line 24, in test_train_function
+    trained_model = train(self.model, self.config, self.train_dataset, self.val_dataset)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/trainer.py", line 55, in train
+    train_loss = calculate_loss(model, train_loader, loss_fn, config.training.device)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/training_utils.py", line 27, in calculate_loss
+    for items in islice(data_loader, N // batch_size):
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 628, in __next__
+    data = self._next_data()
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 671, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 167, in __getitem__
+    img = draw_circle_with_points(data_point[0], data_point[1], self.circle_metadata, model_type = self.model_type)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 112, in draw_circle_with_points
+    img = transform(img)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/transforms.py", line 95, in __call__
+    img = t(img)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/transforms.py", line 135, in __call__
+    return F.to_tensor(pic)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/functional.py", line 163, in to_tensor
+    img = torch.from_numpy(np.array(pic, mode_to_nptype.get(pic.mode, np.uint8), copy=True))
+TypeError: int() argument must be a string, a bytes-like object or a number, not 'Image'
+----------------------------------------------------------------------
+Ran 1 test in 27.102s
+FAILED (errors=1)
+Steps110 | Train loss: 0.068 | Train acc: 0.020 | Test loss: 0.119 | Test acc: 0.000

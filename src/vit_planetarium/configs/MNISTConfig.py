@@ -16,7 +16,7 @@ class TransformerConfig:
     block_fn = TransformerBlock
     mlp_dim: int = 128 * 4  # Use a computed default
     activation_name: str = 'GELU'
-    attention_only: bool = True
+    attention_only: bool = False
     attn_hidden_layer: bool = True
 
 @dataclass

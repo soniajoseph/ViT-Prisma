@@ -1,0 +1,826 @@
+2023-10-10 13:05:39,302 INFO    StreamThr :37445 [internal.py:wandb_internal():89] W&B internal server running at pid: 37445, started at: 2023-10-10 13:05:39.302126
+2023-10-10 13:05:39,306 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status
+2023-10-10 13:05:39,306 INFO    WriterThread:37445 [datastore.py:open_for_write():85] open: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/run-nz4c2gep.wandb
+2023-10-10 13:05:39,308 DEBUG   SenderThread:37445 [sender.py:send():380] send: header
+2023-10-10 13:05:39,328 DEBUG   SenderThread:37445 [sender.py:send():380] send: run
+2023-10-10 13:05:39,605 INFO    SenderThread:37445 [dir_watcher.py:__init__():211] watching files in: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files
+2023-10-10 13:05:39,605 INFO    SenderThread:37445 [sender.py:_start_run_threads():1125] run started: nz4c2gep with start time 1696957539.303766
+2023-10-10 13:05:39,617 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: check_version
+2023-10-10 13:05:39,618 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: check_version
+2023-10-10 13:05:39,691 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: run_start
+2023-10-10 13:05:39,715 DEBUG   HandlerThread:37445 [system_info.py:__init__():32] System info init
+2023-10-10 13:05:39,716 DEBUG   HandlerThread:37445 [system_info.py:__init__():47] System info init done
+2023-10-10 13:05:39,716 INFO    HandlerThread:37445 [system_monitor.py:start():181] Starting system monitor
+2023-10-10 13:05:39,716 INFO    SystemMonitor:37445 [system_monitor.py:_start():145] Starting system asset monitoring threads
+2023-10-10 13:05:39,717 INFO    HandlerThread:37445 [system_monitor.py:probe():201] Collecting system info
+2023-10-10 13:05:39,717 INFO    SystemMonitor:37445 [interfaces.py:start():190] Started cpu monitoring
+2023-10-10 13:05:39,718 INFO    SystemMonitor:37445 [interfaces.py:start():190] Started disk monitoring
+2023-10-10 13:05:39,719 INFO    SystemMonitor:37445 [interfaces.py:start():190] Started gpu monitoring
+2023-10-10 13:05:39,720 INFO    SystemMonitor:37445 [interfaces.py:start():190] Started memory monitoring
+2023-10-10 13:05:39,720 INFO    SystemMonitor:37445 [interfaces.py:start():190] Started network monitoring
+2023-10-10 13:05:39,725 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:39,725 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:39,728 DEBUG   HandlerThread:37445 [system_info.py:probe():196] Probing system
+2023-10-10 13:05:39,734 DEBUG   HandlerThread:37445 [system_info.py:_probe_git():181] Probing git
+2023-10-10 13:05:39,756 DEBUG   HandlerThread:37445 [system_info.py:_probe_git():189] Probing git done
+2023-10-10 13:05:39,757 DEBUG   HandlerThread:37445 [system_info.py:probe():244] Probing system done
+2023-10-10 13:05:39,757 DEBUG   HandlerThread:37445 [system_monitor.py:probe():210] {'os': 'Linux-4.15.0-194-generic-x86_64-with-debian-buster-sid', 'python': '3.7.4', 'heartbeatAt': '2023-10-10T17:05:39.729290', 'startedAt': '2023-10-10T17:05:39.281847', 'docker': None, 'cuda': None, 'args': (), 'state': 'running', 'program': 'test_trainer_circle.py', 'codePathLocal': 'test_trainer_circle.py', 'codePath': 'tests/test_trainer_circle.py', 'git': {'remote': 'git@github.com:soniajoseph/ViT-Planetarium.git', 'commit': '64bfea51f80c724988e57ef02c724fdce1bd1833'}, 'email': 'soniamollyjoseph@gmail.com', 'root': '/home/mila/s/sonia.joseph/ViT-Planetarium', 'host': 'cn-g006.server.mila.quebec', 'username': 'sonia.joseph', 'executable': '/home/mila/s/sonia.joseph/ViT-Planetarium/env/bin/python', 'cpu_count': 64, 'cpu_count_logical': 64, 'cpu_freq': {'current': 2914.263812499999, 'min': 0.0, 'max': 0.0}, 'cpu_freq_per_core': [{'current': 3694.343, 'min': 0.0, 'max': 0.0}, {'current': 3699.946, 'min': 0.0, 'max': 0.0}, {'current': 3708.413, 'min': 0.0, 'max': 0.0}, {'current': 3706.932, 'min': 0.0, 'max': 0.0}, {'current': 3707.394, 'min': 0.0, 'max': 0.0}, {'current': 3706.75, 'min': 0.0, 'max': 0.0}, {'current': 3706.567, 'min': 0.0, 'max': 0.0}, {'current': 3708.523, 'min': 0.0, 'max': 0.0}, {'current': 3708.857, 'min': 0.0, 'max': 0.0}, {'current': 3706.726, 'min': 0.0, 'max': 0.0}, {'current': 3682.925, 'min': 0.0, 'max': 0.0}, {'current': 3708.19, 'min': 0.0, 'max': 0.0}, {'current': 3707.067, 'min': 0.0, 'max': 0.0}, {'current': 3688.707, 'min': 0.0, 'max': 0.0}, {'current': 3692.236, 'min': 0.0, 'max': 0.0}, {'current': 3680.774, 'min': 0.0, 'max': 0.0}, {'current': 3473.959, 'min': 0.0, 'max': 0.0}, {'current': 3467.857, 'min': 0.0, 'max': 0.0}, {'current': 3583.13, 'min': 0.0, 'max': 0.0}, {'current': 3635.582, 'min': 0.0, 'max': 0.0}, {'current': 1794.629, 'min': 0.0, 'max': 0.0}, {'current': 1796.65, 'min': 0.0, 'max': 0.0}, {'current': 1790.308, 'min': 0.0, 'max': 0.0}, {'current': 1795.35, 'min': 0.0, 'max': 0.0}, {'current': 1789.503, 'min': 0.0, 'max': 0.0}, {'current': 1796.65, 'min': 0.0, 'max': 0.0}, {'current': 1801.08, 'min': 0.0, 'max': 0.0}, {'current': 1796.419, 'min': 0.0, 'max': 0.0}, {'current': 1795.027, 'min': 0.0, 'max': 0.0}, {'current': 1795.923, 'min': 0.0, 'max': 0.0}, {'current': 1792.842, 'min': 0.0, 'max': 0.0}, {'current': 1793.262, 'min': 0.0, 'max': 0.0}, {'current': 3685.148, 'min': 0.0, 'max': 0.0}, {'current': 3710.46, 'min': 0.0, 'max': 0.0}, {'current': 3683.836, 'min': 0.0, 'max': 0.0}, {'current': 3684.073, 'min': 0.0, 'max': 0.0}, {'current': 3710.715, 'min': 0.0, 'max': 0.0}, {'current': 2967.747, 'min': 0.0, 'max': 0.0}, {'current': 2972.512, 'min': 0.0, 'max': 0.0}, {'current': 2974.166, 'min': 0.0, 'max': 0.0}, {'current': 2962.457, 'min': 0.0, 'max': 0.0}, {'current': 3710.524, 'min': 0.0, 'max': 0.0}, {'current': 3710.524, 'min': 0.0, 'max': 0.0}, {'current': 3710.898, 'min': 0.0, 'max': 0.0}, {'current': 3710.716, 'min': 0.0, 'max': 0.0}, {'current': 3710.91, 'min': 0.0, 'max': 0.0}, {'current': 3710.819, 'min': 0.0, 'max': 0.0}, {'current': 3710.725, 'min': 0.0, 'max': 0.0}, {'current': 2860.441, 'min': 0.0, 'max': 0.0}, {'current': 2182.853, 'min': 0.0, 'max': 0.0}, {'current': 3239.29, 'min': 0.0, 'max': 0.0}, {'current': 3007.514, 'min': 0.0, 'max': 0.0}, {'current': 2991.976, 'min': 0.0, 'max': 0.0}, {'current': 2218.715, 'min': 0.0, 'max': 0.0}, {'current': 2239.187, 'min': 0.0, 'max': 0.0}, {'current': 2171.214, 'min': 0.0, 'max': 0.0}, {'current': 1796.413, 'min': 0.0, 'max': 0.0}, {'current': 1794.254, 'min': 0.0, 'max': 0.0}, {'current': 1795.61, 'min': 0.0, 'max': 0.0}, {'current': 1793.316, 'min': 0.0, 'max': 0.0}, {'current': 1790.881, 'min': 0.0, 'max': 0.0}, {'current': 1796.865, 'min': 0.0, 'max': 0.0}, {'current': 1794.288, 'min': 0.0, 'max': 0.0}, {'current': 1801.316, 'min': 0.0, 'max': 0.0}], 'disk': {'/': {'total': 19.056472778320312, 'used': 5.675495147705078}}, 'gpu': 'NVIDIA A100-SXM4-80GB', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA A100-SXM4-80GB', 'memory_total': 85899345920}], 'memory': {'total': 1007.5161170959473}}
+2023-10-10 13:05:39,757 INFO    HandlerThread:37445 [system_monitor.py:probe():211] Finished collecting system info
+2023-10-10 13:05:39,758 INFO    HandlerThread:37445 [system_monitor.py:probe():214] Publishing system info
+2023-10-10 13:05:39,758 DEBUG   HandlerThread:37445 [system_info.py:_save_pip():53] Saving list of pip packages installed into the current environment
+2023-10-10 13:05:39,762 DEBUG   HandlerThread:37445 [system_info.py:_save_pip():68] Saving pip packages done
+2023-10-10 13:05:39,766 INFO    HandlerThread:37445 [system_monitor.py:probe():216] Finished publishing system info
+2023-10-10 13:05:39,771 DEBUG   SenderThread:37445 [sender.py:send():380] send: files
+2023-10-10 13:05:39,771 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-metadata.json with policy now
+2023-10-10 13:05:39,778 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:05:39,779 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:05:39,779 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:05:40,013 DEBUG   SenderThread:37445 [sender.py:send():380] send: telemetry
+2023-10-10 13:05:40,014 DEBUG   SenderThread:37445 [sender.py:send():380] send: config
+2023-10-10 13:05:40,155 INFO    wandb-upload_0:37445 [upload_job.py:push():131] Uploaded file /tmp/tmpigubnvjowandb/t0scy5tj-wandb-metadata.json
+2023-10-10 13:05:40,607 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/requirements.txt
+2023-10-10 13:05:40,608 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-metadata.json
+2023-10-10 13:05:40,608 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:41,731 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:41,732 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:42,609 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:43,736 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:43,737 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:44,618 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:05:45,613 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:45,741 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:45,742 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:47,746 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:47,747 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:48,004 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:48,617 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:49,618 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:49,751 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:49,752 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:50,102 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:05:50,226 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:50,227 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:50,227 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:50,230 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:50,619 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_created():271] file/dir created: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:51,621 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:51,757 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:51,757 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:51,939 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:51,940 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:51,940 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:51,941 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:52,622 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:52,623 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:53,665 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:53,666 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:53,667 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:53,668 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:53,762 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:53,763 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:54,625 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:54,626 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:54,779 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:05:54,780 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:05:54,823 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:05:55,395 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:05:55,439 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:55,440 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:55,440 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:55,442 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:55,626 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:55,627 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:55,767 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:55,768 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:56,628 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:57,110 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:57,110 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:57,111 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:57,112 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:57,629 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:57,630 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:57,773 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:57,773 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:58,631 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:58,854 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:05:58,855 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:05:58,856 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:05:58,857 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:05:59,632 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:05:59,633 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:05:59,778 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:05:59,779 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:00,527 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:00,588 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:00,589 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:00,589 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:00,590 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:00,634 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:00,634 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:01,635 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:01,785 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:01,786 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:02,334 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:02,335 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:02,335 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:02,337 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:02,637 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:02,638 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:03,791 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:03,791 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:04,063 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:04,064 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:04,065 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:04,066 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:04,640 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:04,641 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:05,642 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:05,752 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:05,796 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:05,797 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:05,810 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:05,811 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:05,812 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:05,813 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:06,644 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:06,644 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:07,553 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:07,554 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:07,554 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:07,556 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:07,645 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:07,645 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:07,802 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:07,804 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:08,646 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:09,283 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:09,283 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:09,284 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:09,285 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:09,648 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:09,648 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:09,779 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:06:09,780 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:06:09,780 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:06:09,874 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:09,875 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:10,649 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:10,973 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:11,031 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:11,080 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:11,081 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:11,082 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:11,654 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/config.yaml
+2023-10-10 13:06:11,655 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:11,657 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:11,880 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:11,881 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:12,655 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:12,763 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:12,764 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:12,765 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:12,767 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:13,657 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:13,658 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:13,886 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:13,886 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:14,505 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:14,506 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:14,506 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:14,508 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:14,659 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:14,660 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:15,661 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:15,891 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:15,892 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:16,190 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:16,232 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:16,233 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:16,233 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:16,235 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:16,662 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:16,663 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:17,664 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:17,897 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:17,897 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:17,976 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:17,976 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:17,977 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:17,978 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:18,665 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:18,666 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:19,667 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:19,719 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:19,720 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:19,720 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:19,722 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:19,902 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:19,903 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:20,668 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:20,669 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:21,314 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:21,445 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:21,446 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:21,446 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:21,448 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:21,670 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:21,671 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:21,907 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:21,908 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:22,672 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:23,190 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:23,191 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:23,192 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:23,193 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:23,673 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:23,674 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:23,914 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:23,915 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:24,675 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:24,779 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:06:24,780 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:06:24,780 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:06:24,924 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:24,925 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:24,926 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:24,927 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:25,677 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:25,677 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:25,941 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:25,942 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:26,508 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:26,678 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:26,687 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:26,688 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:26,688 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:26,689 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:27,680 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:27,680 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:27,947 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:27,948 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:28,400 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:28,400 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:28,401 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:28,402 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:28,681 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:28,682 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:29,684 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:29,952 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:29,953 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:30,143 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:30,144 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:30,144 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:30,145 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:30,686 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:30,686 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:31,688 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:31,752 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:31,885 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:31,886 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:31,886 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:31,889 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:31,957 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:31,958 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:32,689 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:32,690 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:33,597 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:33,598 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:33,598 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:33,600 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:33,691 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:33,691 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:33,962 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:33,963 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:34,692 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:35,320 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:35,340 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:35,341 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:35,342 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:35,694 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:35,695 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:35,967 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:35,968 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:36,695 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:36,984 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:37,031 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:37,032 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:37,033 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:37,034 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:37,697 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:37,697 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:37,972 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:37,973 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:38,698 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:38,778 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:38,779 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:38,780 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:38,781 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:39,700 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:39,700 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:39,721 DEBUG   SystemMonitor:37445 [system_monitor.py:_start():159] Starting system metrics aggregation loop
+2023-10-10 13:06:39,723 DEBUG   SenderThread:37445 [sender.py:send():380] send: stats
+2023-10-10 13:06:39,780 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:06:39,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:06:39,781 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:06:40,030 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:40,031 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:40,539 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:40,541 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:40,541 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:40,543 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:40,701 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:40,702 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:41,703 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:42,035 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:42,036 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:42,187 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:42,246 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:42,246 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:42,247 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:42,248 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:42,704 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:42,705 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:43,705 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:43,988 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:43,989 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:43,990 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:43,991 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:44,040 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:44,041 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:44,707 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:44,708 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:45,701 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:45,708 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:45,708 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:45,709 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:45,710 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:46,045 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:46,046 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:46,710 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:46,711 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:47,382 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:47,428 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:47,429 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:47,429 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:47,431 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:47,711 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:47,712 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:48,053 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:48,054 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:48,713 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:49,160 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:49,161 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:49,162 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:49,163 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:49,714 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:50,059 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:50,059 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:50,715 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:50,903 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:50,904 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:50,904 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:50,906 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:51,717 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:51,717 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:52,064 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:52,064 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:52,583 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:52,619 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:52,620 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:52,621 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:52,622 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:52,718 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:52,719 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:53,720 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:54,069 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:54,070 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:54,351 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:54,352 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:54,353 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:54,354 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:54,721 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:54,722 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:54,780 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:06:54,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:06:54,782 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:06:55,723 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:56,076 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:56,077 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:56,085 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:56,086 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:56,087 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:56,088 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:56,724 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:56,725 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:57,675 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:06:57,726 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:57,800 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:57,801 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:57,802 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:57,803 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:58,081 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:58,082 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:06:58,727 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:58,728 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:06:59,525 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:06:59,526 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:06:59,526 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:06:59,527 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:06:59,729 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:06:59,730 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:00,087 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:00,087 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:00,730 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:01,242 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:01,243 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:01,243 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:01,245 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:01,732 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:01,733 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:02,092 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:02,092 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:02,733 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:02,846 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:02,971 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:02,972 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:02,972 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:02,974 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:03,735 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:03,736 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:04,097 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:04,098 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:04,734 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:04,735 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:04,736 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:04,737 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:04,738 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:05,738 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:05,739 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:06,102 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:06,102 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:06,478 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:06,479 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:06,479 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:06,481 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:06,739 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:06,740 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:07,741 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:08,088 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:08,109 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:08,109 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:08,220 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:08,236 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:08,237 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:08,238 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:08,742 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:08,743 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:09,723 DEBUG   SenderThread:37445 [sender.py:send():380] send: stats
+2023-10-10 13:07:09,744 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:09,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:07:09,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:07:09,781 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:07:09,963 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:09,965 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:09,965 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:09,967 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:10,167 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:10,168 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:10,745 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:10,746 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:11,655 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:11,656 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:11,657 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:11,658 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:11,747 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:11,747 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:12,174 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:12,174 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:12,748 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:13,320 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:13,367 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:13,368 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:13,368 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:13,369 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:13,750 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:13,751 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:14,179 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:14,179 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:14,751 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:15,092 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:15,093 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:15,094 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:15,095 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:15,753 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:15,754 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:16,184 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:16,185 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:16,754 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:16,802 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:16,804 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:16,804 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:16,805 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:17,756 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:17,756 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:18,189 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:18,190 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:18,505 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:18,561 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:18,562 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:18,562 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:18,563 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:18,757 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:18,758 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:19,758 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:20,194 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:20,195 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:20,303 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:20,304 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:20,304 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:20,306 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:20,759 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:20,760 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:21,761 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:22,035 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:22,037 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:22,037 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:22,038 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:22,200 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:22,200 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:22,763 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:22,764 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:23,712 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:23,758 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:23,760 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:23,761 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:23,762 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:23,764 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:23,764 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:24,205 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:24,206 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:24,765 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:24,780 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:07:24,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:07:24,781 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:07:25,511 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:25,513 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:25,513 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:25,515 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:25,767 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:25,768 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:26,210 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:26,211 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:26,768 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:27,197 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:27,198 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:27,198 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:27,200 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:27,770 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:27,770 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:28,215 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:28,216 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:28,771 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:28,879 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:28,913 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:28,914 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:28,914 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:28,916 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:29,772 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:29,773 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:30,222 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:30,222 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:30,648 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:30,649 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:30,649 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:30,651 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:30,774 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:30,775 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:31,776 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:32,227 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:32,228 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:32,378 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:32,379 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:32,380 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:32,381 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:32,777 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:32,778 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:33,778 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:33,970 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:34,092 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:34,093 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:34,094 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:34,095 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:34,240 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:34,240 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:34,780 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:34,781 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:35,781 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:35,825 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:35,826 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:35,827 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:35,828 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:36,254 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:36,254 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:36,783 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:36,783 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:37,540 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:37,541 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:37,542 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:37,543 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:37,784 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:37,785 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:38,259 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:38,260 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:38,785 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:39,145 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:39,267 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:39,268 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:39,269 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:39,270 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:39,724 DEBUG   SenderThread:37445 [sender.py:send():380] send: stats
+2023-10-10 13:07:39,781 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: stop_status
+2023-10-10 13:07:39,782 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:07:39,782 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: stop_status
+2023-10-10 13:07:39,787 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:39,788 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:40,317 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:40,318 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:40,789 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:41,019 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:41,021 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:41,022 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:41,024 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:41,790 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:41,791 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:42,322 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:42,323 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:42,761 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:42,763 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:42,764 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:42,765 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:42,792 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:42,793 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:43,793 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:44,327 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:44,328 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:44,369 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:44,493 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:44,494 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:44,495 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:44,496 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:44,795 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:44,795 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:45,796 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:46,209 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:46,210 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:46,211 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:46,212 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:46,335 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:46,335 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:46,798 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:46,799 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:47,800 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:47,940 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: partial_history
+2023-10-10 13:07:47,942 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:47,942 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:47,944 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:48,340 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:48,341 ERROR   gpu       :37445 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2023-10-10 13:07:48,609 DEBUG   SenderThread:37445 [sender.py:send():380] send: telemetry
+2023-10-10 13:07:48,610 DEBUG   SenderThread:37445 [sender.py:send():380] send: exit
+2023-10-10 13:07:48,611 INFO    SenderThread:37445 [sender.py:send_exit():585] handling exit code: 0
+2023-10-10 13:07:48,611 INFO    SenderThread:37445 [sender.py:send_exit():587] handling runtime: 128
+2023-10-10 13:07:48,612 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:48,613 INFO    SenderThread:37445 [sender.py:send_exit():593] send defer
+2023-10-10 13:07:48,613 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,614 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 0
+2023-10-10 13:07:48,614 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,615 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 0
+2023-10-10 13:07:48,615 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 1
+2023-10-10 13:07:48,615 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,616 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 1
+2023-10-10 13:07:48,616 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,617 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 1
+2023-10-10 13:07:48,617 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 2
+2023-10-10 13:07:48,617 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,618 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 2
+2023-10-10 13:07:48,618 INFO    HandlerThread:37445 [system_monitor.py:finish():190] Stopping system monitor
+2023-10-10 13:07:48,618 DEBUG   SystemMonitor:37445 [system_monitor.py:_start():166] Finished system metrics aggregation loop
+2023-10-10 13:07:48,620 DEBUG   SystemMonitor:37445 [system_monitor.py:_start():170] Publishing last batch of metrics
+2023-10-10 13:07:48,620 INFO    HandlerThread:37445 [interfaces.py:finish():202] Joined cpu monitor
+2023-10-10 13:07:48,621 INFO    HandlerThread:37445 [interfaces.py:finish():202] Joined disk monitor
+2023-10-10 13:07:48,681 INFO    HandlerThread:37445 [interfaces.py:finish():202] Joined gpu monitor
+2023-10-10 13:07:48,682 INFO    HandlerThread:37445 [interfaces.py:finish():202] Joined memory monitor
+2023-10-10 13:07:48,682 INFO    HandlerThread:37445 [interfaces.py:finish():202] Joined network monitor
+2023-10-10 13:07:48,683 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,683 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 2
+2023-10-10 13:07:48,683 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 3
+2023-10-10 13:07:48,684 DEBUG   SenderThread:37445 [sender.py:send():380] send: stats
+2023-10-10 13:07:48,684 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,685 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 3
+2023-10-10 13:07:48,686 DEBUG   SenderThread:37445 [sender.py:send():380] send: history
+2023-10-10 13:07:48,686 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: summary_record
+2023-10-10 13:07:48,687 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:48,688 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,688 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 3
+2023-10-10 13:07:48,688 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 4
+2023-10-10 13:07:48,689 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,689 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 4
+2023-10-10 13:07:48,689 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,690 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 4
+2023-10-10 13:07:48,690 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 5
+2023-10-10 13:07:48,690 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,690 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 5
+2023-10-10 13:07:48,691 DEBUG   SenderThread:37445 [sender.py:send():380] send: summary
+2023-10-10 13:07:48,692 INFO    SenderThread:37445 [sender.py:_save_file():1378] saving file wandb-summary.json with policy end
+2023-10-10 13:07:48,692 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,693 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 5
+2023-10-10 13:07:48,693 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 6
+2023-10-10 13:07:48,693 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,694 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 6
+2023-10-10 13:07:48,694 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,694 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 6
+2023-10-10 13:07:48,699 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: status_report
+2023-10-10 13:07:48,801 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:48,802 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:48,848 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 7
+2023-10-10 13:07:48,848 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:48,848 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 7
+2023-10-10 13:07:48,849 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:48,849 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 7
+2023-10-10 13:07:49,611 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: poll_exit
+2023-10-10 13:07:49,803 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/config.yaml
+2023-10-10 13:07:49,804 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:50,804 INFO    Thread-12 :37445 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:50,871 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 8
+2023-10-10 13:07:50,871 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: poll_exit
+2023-10-10 13:07:50,871 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:50,872 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 8
+2023-10-10 13:07:50,873 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:50,873 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 8
+2023-10-10 13:07:50,873 INFO    SenderThread:37445 [job_builder.py:build():281] Attempting to build job artifact
+2023-10-10 13:07:50,875 INFO    SenderThread:37445 [job_builder.py:_get_source_type():393] is repo sourced job
+2023-10-10 13:07:50,877 INFO    SenderThread:37445 [job_builder.py:build():369] adding wandb-job metadata file
+2023-10-10 13:07:50,887 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 9
+2023-10-10 13:07:50,888 DEBUG   SenderThread:37445 [sender.py:send():380] send: artifact
+2023-10-10 13:07:50,888 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:50,891 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 9
+2023-10-10 13:07:51,389 INFO    SenderThread:37445 [sender.py:send_artifact():1456] sent artifact job-git_github.com_soniajoseph_ViT-Planetarium.git_tests_test_trainer_circle.py - {'id': 'QXJ0aWZhY3Q6NjAwMTM0MzE1', 'state': 'COMMITTED', 'artifactSequence': {'id': 'QXJ0aWZhY3RDb2xsZWN0aW9uOjEwNTY2NDI1MA==', 'latestArtifact': {'id': 'QXJ0aWZhY3Q6NjAwMTM0MzE1', 'versionIndex': 1}}}
+2023-10-10 13:07:51,389 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:51,389 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 9
+2023-10-10 13:07:51,390 INFO    SenderThread:37445 [dir_watcher.py:finish():358] shutting down directory watcher
+2023-10-10 13:07:51,807 INFO    SenderThread:37445 [dir_watcher.py:finish():388] scan: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files
+2023-10-10 13:07:51,807 INFO    SenderThread:37445 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json wandb-summary.json
+2023-10-10 13:07:51,808 INFO    SenderThread:37445 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/config.yaml config.yaml
+2023-10-10 13:07:51,812 INFO    SenderThread:37445 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-metadata.json wandb-metadata.json
+2023-10-10 13:07:51,815 INFO    SenderThread:37445 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log output.log
+2023-10-10 13:07:51,816 INFO    SenderThread:37445 [dir_watcher.py:finish():402] scan save: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/requirements.txt requirements.txt
+2023-10-10 13:07:51,819 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 10
+2023-10-10 13:07:51,821 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:51,821 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 10
+2023-10-10 13:07:51,822 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:51,822 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 10
+2023-10-10 13:07:51,823 INFO    SenderThread:37445 [file_pusher.py:finish():175] shutting down file pusher
+2023-10-10 13:07:52,052 INFO    wandb-upload_0:37445 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/wandb-summary.json
+2023-10-10 13:07:52,134 INFO    wandb-upload_1:37445 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/config.yaml
+2023-10-10 13:07:52,182 INFO    wandb-upload_4:37445 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/requirements.txt
+2023-10-10 13:07:52,216 INFO    wandb-upload_3:37445 [upload_job.py:push():131] Uploaded file /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/files/output.log
+2023-10-10 13:07:52,417 INFO    Thread-11 :37445 [sender.py:transition_state():613] send defer: 11
+2023-10-10 13:07:52,418 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:52,418 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 11
+2023-10-10 13:07:52,419 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:52,419 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 11
+2023-10-10 13:07:52,419 INFO    SenderThread:37445 [file_pusher.py:join():181] waiting for file pusher
+2023-10-10 13:07:52,420 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 12
+2023-10-10 13:07:52,420 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:52,420 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 12
+2023-10-10 13:07:52,421 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:52,421 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 12
+2023-10-10 13:07:52,421 INFO    SenderThread:37445 [file_stream.py:finish():595] file stream finish called
+2023-10-10 13:07:52,755 INFO    SenderThread:37445 [file_stream.py:finish():599] file stream finish is done
+2023-10-10 13:07:52,755 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 13
+2023-10-10 13:07:52,756 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:52,756 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 13
+2023-10-10 13:07:52,756 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:52,757 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 13
+2023-10-10 13:07:52,757 INFO    SenderThread:37445 [sender.py:transition_state():613] send defer: 14
+2023-10-10 13:07:52,757 DEBUG   SenderThread:37445 [sender.py:send():380] send: final
+2023-10-10 13:07:52,757 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: defer
+2023-10-10 13:07:52,758 DEBUG   SenderThread:37445 [sender.py:send():380] send: footer
+2023-10-10 13:07:52,758 INFO    HandlerThread:37445 [handler.py:handle_request_defer():170] handle defer: 14
+2023-10-10 13:07:52,759 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: defer
+2023-10-10 13:07:52,759 INFO    SenderThread:37445 [sender.py:send_request_defer():609] handle sender defer: 14
+2023-10-10 13:07:52,761 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: internal_messages
+2023-10-10 13:07:52,762 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: poll_exit
+2023-10-10 13:07:52,762 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: poll_exit
+2023-10-10 13:07:52,763 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: server_info
+2023-10-10 13:07:52,763 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: get_summary
+2023-10-10 13:07:52,763 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: server_info
+2023-10-10 13:07:52,764 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: sampled_history
+2023-10-10 13:07:52,767 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: job_info
+2023-10-10 13:07:52,849 DEBUG   SenderThread:37445 [sender.py:send_request():407] send_request: job_info
+2023-10-10 13:07:52,850 DEBUG   HandlerThread:37445 [handler.py:handle_request():144] handle_request: shutdown
+2023-10-10 13:07:52,851 INFO    HandlerThread:37445 [handler.py:finish():844] shutting down handler
+2023-10-10 13:07:53,768 INFO    WriterThread:37445 [datastore.py:close():294] close: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/wandb/run-20231010_130539-nz4c2gep/run-nz4c2gep.wandb
+2023-10-10 13:07:53,850 INFO    SenderThread:37445 [sender.py:finish():1534] shutting down sender
+2023-10-10 13:07:53,850 INFO    SenderThread:37445 [file_pusher.py:finish():175] shutting down file pusher
+2023-10-10 13:07:53,851 INFO    SenderThread:37445 [file_pusher.py:join():181] waiting for file pusher

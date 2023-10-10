@@ -17,6 +17,21 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses
 
+class WarmupThenStepLR(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, warmup_steps, step_size, gamma=0.5, last_epoch=-1):
+        # Does warmup for warmup steps, then moves to step decay parameterized by step_size
+        self.warmup_steps = warmup_steps
+        self.step_size = step_size
+        self.gamma = gamma
+        super(WarmupThenStepLR, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        if self.last_epoch < self.warmup_steps:
+            return [base_lr * (self.last_epoch / self.warmup_steps) for base_lr in self.base_lrs]
+        else:
+            print(f"Reducing learning rate by a factor of {self.gamma} at epoch {self.last_epoch}")
+            return [base_lr * (self.gamma ** ((self.last_epoch - self.warmup_steps) // self.step_size))
+                    for base_lr in self.base_lrs]
 
 
 def train(
@@ -25,7 +40,6 @@ def train(
         train_dataset,
         val_dataset,
 ):
-
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
         wandb.init(project=config.logging.wandb_project_name)
@@ -41,17 +55,27 @@ def train(
     optimizer = optimizer_dict[config.training.optimizer_name](model.parameters(), lr = config.training.lr, weight_decay = config.training.weight_decay)
     loss_fn = loss_function_dict[config.training.loss_fn_name]()
 
+    if config.training.batch_size == -1:
+        batch_size_train, batch_size_test = len(train_dataset), len(val_dataset) # use full batch
+    else:
+        batch_size_train, batch_size_test = config.training.batch_size, config.training.batch_size
 
-    train_loader = DataLoader(train_dataset, batch_size=config.training.batch_size, shuffle=True)
-    test_loader = DataLoader(val_dataset, batch_size=config.training.batch_size, shuffle=False)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
+    test_loader = DataLoader(val_dataset, batch_size=batch_size_test, shuffle=False)
+
+    print(f"Length of trainloader {len(train_loader)}.")
+    print(f"Length of testloader {len(test_loader)}")
     steps = 0
-    if config.training.warmup_steps > 0:
-        scheduler = optim.lr_scheduler.LambdaLR(
-            optimizer,
-            lr_lambda=lambda step: min(1.0, steps/ config.training.warmup_steps),
-        )
+    # if config.training.warmup_steps > 0:
+    #     scheduler = optim.lr_scheduler.LambdaLR(
+    #         optimizer,
+    #         lr_lambda=lambda step: min(1.0, steps/ config.training.warmup_steps),)
+
+    scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.training.warmup_steps, step_size=config.training.scheduler_step, gamma=config.training.scheduler_gamma)
+
     for epoch in tqdm(range(1, config.training.num_epochs + 1)):
-        for idx, (images, labels) in tqdm(enumerate(train_loader)):
+        for idx, items in enumerate(train_loader):
             if steps % config.logging.log_frequency == 0:
                 model.eval()
                 logs = {}
@@ -59,7 +83,7 @@ def train(
                 train_acc = calculate_accuracy(model, train_loader, config.training.device)
                 test_loss = calculate_loss(model, test_loader, loss_fn, config.training.device)
                 test_acc = calculate_accuracy(model, test_loader, config.training.device)
-                tqdm.write(f"Steps{steps} | Train loss: {train_loss:.3f} | Train acc: {train_acc:.3f} | Test loss: {test_loss:.3f} | Test acc: {test_acc:.3f}")
+                tqdm.write(f"Steps{steps} | Train loss: {train_loss:.5f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.5f} | Test acc: {test_acc:.5f}")
                 log_dict = {
                 "train_loss": train_loss,
                 "train_acc": train_acc,
@@ -67,9 +91,9 @@ def train(
                 "test_acc": test_acc,
                 }
                 if config.logging.use_wandb:
-                    wandb.log(log_dict)
+                    wandb.log(log_dict, step=steps)
                 model.train() # set model back to train mode
-        
+            images, labels, *metadata = items
             images, labels = images.to(config.training.device), labels.to(config.training.device)
             y = model(images)
             loss = loss_fn(y, labels)

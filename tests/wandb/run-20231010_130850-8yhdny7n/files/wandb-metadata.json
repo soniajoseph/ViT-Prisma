@@ -1,0 +1,80 @@
+{
+    "os": "Linux-4.15.0-180-generic-x86_64-with-debian-buster-sid",
+    "python": "3.7.4",
+    "heartbeatAt": "2023-10-10T17:08:51.034182",
+    "startedAt": "2023-10-10T17:08:50.592391",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "test_trainer_circle.py",
+    "codePathLocal": "test_trainer_circle.py",
+    "codePath": "tests/test_trainer_circle.py",
+    "git": {
+        "remote": "git@github.com:soniajoseph/ViT-Planetarium.git",
+        "commit": "64bfea51f80c724988e57ef02c724fdce1bd1833"
+    },
+    "email": "soniamollyjoseph@gmail.com",
+    "root": "/home/mila/s/sonia.joseph/ViT-Planetarium",
+    "host": "login-1",
+    "username": "sonia.joseph",
+    "executable": "/home/mila/s/sonia.joseph/ViT-Planetarium/env/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 2345.5940000000005,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2345.594,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 78.2425765991211,
+            "used": 22.79534912109375
+        }
+    },
+    "memory": {
+        "total": 23.538284301757812
+    }
+}

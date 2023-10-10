@@ -1,0 +1,171 @@
+
+Config is: GlobalConfig(image=ImageConfig(image_size=32, patch_size=7, n_channels=1), transformer=TransformerConfig(hidden_dim=128, num_heads=4, num_layers=4, mlp_dim=512, activation_name='GELU', attention_only=False, attn_hidden_layer=True), layernorm=LayerNormConfig(qknorm=False, layer_norm_eps=0.0), dropout=DropoutConfig(patch=0.0, position=0.0, attention=0.0, proj=0.0, mlp=0.0), init=InitializationConfig(weight_type='he', cls_std=1e-06, pos_std=0.02), training=TrainingConfig(loss_fn_name='CrossEntropy', lr=0.0006, num_epochs=50000, batch_size=256, warmup_steps=10, weight_decay=0.0, device='cuda', seed=0, optimizer_name='AdamW'), logging=LoggingConfig(log_dir='logs', log_frequency=30, print_every=0, use_wandb=True), saving=SavingConfig(parent_dir='/network/scratch/s/sonia.joseph/vit_planetarium', save_dir='checkpoints', save_checkpoints=True, save_cp_frequency=10), classification=<vit_planetarium.configs.CircleConfig.ClassificationConfig object at 0x7f48bb876290>)
+
+  0%|                                                                                                                                                                                                                                                                       | 0/50000 [00:05<?, ?it/s]
+
+
+  0%|                                                                                                                                                                                                                                                            | 4/50000 [00:08<19:45:43,  1.42s/it]
+
+
+  0%|                                                                                                                                                                                                                                                            | 8/50000 [00:12<13:06:45,  1.06it/s]
+
+
+  0%|                                                                                                                                                                                                                                                           | 12/50000 [00:15<11:50:32,  1.17it/s]
+
+
+  0%|                                                                                                                                                                                                                                                           | 17/50000 [00:20<10:52:00,  1.28it/s]
+
+
+  0%|                                                                                                                                                                                                                                                           | 21/50000 [00:24<11:23:46,  1.22it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 25/50000 [00:28<11:27:37,  1.21it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 30/50000 [00:32<10:45:28,  1.29it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 34/50000 [00:36<11:17:12,  1.23it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 38/50000 [00:40<11:26:59,  1.21it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 42/50000 [00:44<11:27:04,  1.21it/s]
+
+
+  0%|▏                                                                                                                                                                                                                                                          | 47/50000 [00:48<10:46:10,  1.29it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 51/50000 [00:52<11:16:02,  1.23it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 55/50000 [00:56<11:37:25,  1.19it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 60/50000 [01:00<10:49:17,  1.28it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 64/50000 [01:04<11:16:06,  1.23it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 68/50000 [01:08<11:23:57,  1.22it/s]
+
+
+  0%|▎                                                                                                                                                                                                                                                          | 72/50000 [01:12<11:27:25,  1.21it/s]
+
+
+  0%|▍                                                                                                                                                                                                                                                          | 77/50000 [01:16<10:46:42,  1.29it/s]
+
+
+  0%|▍                                                                                                                                                                                                                                                          | 81/50000 [01:20<11:18:46,  1.23it/s]
+
+
+  0%|▍                                                                                                                                                                                                                                                          | 85/50000 [01:24<11:25:09,  1.21it/s]
+
+
+  0%|▍                                                                                                                                                                                                                                                          | 90/50000 [01:29<10:44:56,  1.29it/s]
+
+
+  0%|▍                                                                                                                                                                                                                                                          | 94/50000 [01:32<11:14:15,  1.23it/s]
+
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 100/50000 [01:39<13:41:14,  1.01it/s]
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 105/50000 [01:43<12:20:44,  1.12it/s]
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 109/50000 [01:47<13:37:14,  1.02it/s]
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 113/50000 [01:51<13:42:50,  1.01it/s]
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 117/50000 [01:55<13:39:29,  1.01it/s]
+
+
+  0%|▌                                                                                                                                                                                                                                                         | 122/50000 [01:59<13:23:12,  1.03it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 126/50000 [02:03<13:39:20,  1.01it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 130/50000 [02:07<13:42:20,  1.01it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 134/50000 [02:11<13:46:15,  1.01it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 139/50000 [02:15<13:27:36,  1.03it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 143/50000 [02:19<13:40:43,  1.01it/s]
+
+
+  0%|▋                                                                                                                                                                                                                                                         | 147/50000 [02:23<13:42:29,  1.01it/s]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 151/50000 [02:27<15:14:18,  1.10s/it]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 156/50000 [02:32<13:42:51,  1.01it/s]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 160/50000 [02:35<13:42:23,  1.01it/s]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 164/50000 [02:39<13:51:19,  1.00s/it]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 168/50000 [02:43<15:15:28,  1.10s/it]
+
+
+  0%|▊                                                                                                                                                                                                                                                         | 173/50000 [02:48<13:40:08,  1.01it/s]
+
+  0%|▉                                                                                                                                                                                                                                                         | 175/50000 [02:50<13:30:44,  1.02it/s]
+Traceback (most recent call last):
+  File "test_trainer_circle.py", line 28, in <module>
+    unittest.main()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 101, in __init__
+    self.runTests()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 271, in runTests
+    self.result = testRunner.run(self.test)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/runner.py", line 176, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 676, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 628, in run
+    testMethod()
+  File "test_trainer_circle.py", line 24, in test_train_function
+    trained_model = train(self.model, self.config, self.train_dataset, self.val_dataset)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/trainer.py", line 56, in train
+    train_acc = calculate_accuracy(model, train_loader, config.training.device)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/training_utils.py", line 14, in calculate_accuracy
+    for items in islice(data_loader, N // batch_size):
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 628, in __next__
+    data = self._next_data()
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 671, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 167, in __getitem__
+    img = draw_circle_with_points(data_point[0], data_point[1], self.circle_metadata, model_type = self.model_type)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 107, in draw_circle_with_points
+    transforms.Grayscale(num_output_channels=1),
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torchvision/transforms/transforms.py", line 1548, in __init__
+    super().__init__()
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/nn/modules/module.py", line 321, in __init__
+    super().__setattr__('training', True)
+KeyboardInterrupt
