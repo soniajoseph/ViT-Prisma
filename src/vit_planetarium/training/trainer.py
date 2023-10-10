@@ -14,26 +14,30 @@ from vit_planetarium.training.training_utils import calculate_accuracy, calculat
 from vit_planetarium.training.training_dictionary import optimizer_dict, loss_function_dict
 import os
 from torch.utils.data import Dataset, DataLoader
+import dataclasses
 
-def update_config_with_wandb(config, wandb_config, prefix=""):
-    for key, value in vars(config).items():
-        wandb_key = f"{prefix}{key}" if prefix else key
-        if wandb_key in wandb_config:
-            if isinstance(value, type):  # Check if the attribute is a nested class
-                update_config_with_wandb(value, wandb_config, prefix=f"{wandb_key}.")
+
+
+def update_dataclass_from_dict(dc, dct):
+    # takes original config and sweep_values and updates original config with the sweep values
+    for key, value in dct.items():
+        if hasattr(dc, key):
+            attr = getattr(dc, key)
+            if isinstance(attr, (ImageConfig, TransformerConfig, LayerNormConfig, DropoutConfig, 
+                                 InitializationConfig, TrainingConfig, LoggingConfig, SavingConfig, ClassificationConfig)):
+                update_dataclass_from_dict(attr, value)
             else:
-                setattr(config, key, wandb_config[wandb_key])
+                setattr(dc, key, value)
 
-def class_to_dict(obj):
-    if not hasattr(obj, "__dict__"):
+def update_config_with_wandb_sweep(config, sweep_values):
+    update_dataclass_from_dict(config, sweep_values)
+
+def dataclass_to_dict(obj):
+    if dataclasses.is_dataclass(obj):
+        return {name: dataclass_to_dict(value) for name, value in dataclasses.asdict(obj).items()}
+    else:
         return obj
-    result = {}
-    for key, value in obj.__dict__.items():
-        if isinstance(value, type):  # Check if the attribute is a nested class
-            result[key] = class_to_dict(value)
-        else:
-            result[key] = value
-    return result
+
 
 def train(
         model,
@@ -44,12 +48,12 @@ def train(
 
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
-        update_config_with_wandb(config, wandb.config)
-        print(f"Updated config with wandb values: {config}")
-        if config.training.wandb_project_name is None:
-            config.training.wandb_project_name = "vit-planetarium"
-        config_dict = class_to_dict(config)
-        wandb.init(project = config.wandb_project_name, config = config_dict)
+        wandb.init(project=config.logging.wandb_project_name)
+        sweep_values = wandb.config._items # get sweep values
+        update_dataclass_from_dict(config, sweep_values)
+        wandb.config.update(dataclass_to_dict(config))
+    
+    print("Config is:", config)
 
     set_seed(config.training.seed)
     model.train()
@@ -82,6 +86,8 @@ def train(
                 "test_loss": test_loss,
                 "test_acc": test_acc,
                 }
+                if config.logging.use_wandb:
+                    wandb.log(log_dict)
                 model.train() # set model back to train mode
         
             images, labels = images.to(config.training.device), labels.to(config.training.device)

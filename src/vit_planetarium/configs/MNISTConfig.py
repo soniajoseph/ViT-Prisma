@@ -55,9 +55,9 @@ class TrainingConfig:
 class LoggingConfig:
     log_dir: str = 'logs'
     log_frequency: int = 10
-    print_every: int = 10
-    use_wandb: bool = False
-    wandb_project_name = None
+    print_every: int = 0
+    use_wandb: bool = True
+    wandb_project_name = 'mnist_test'
 
 @dataclass
 class SavingConfig:
