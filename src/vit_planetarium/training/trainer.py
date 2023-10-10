@@ -11,32 +11,12 @@ import torch.optim as optim
 import tqdm
 from tqdm.auto import tqdm
 from vit_planetarium.training.training_utils import calculate_accuracy, calculate_loss, set_seed
+from vit_planetarium.utils.wandb_utils import dataclass_to_dict, update_dataclass_from_dict
 from vit_planetarium.training.training_dictionary import optimizer_dict, loss_function_dict
 import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses
 
-
-
-def update_dataclass_from_dict(dc, dct):
-    # takes original config and sweep_values and updates original config with the sweep values
-    for key, value in dct.items():
-        if hasattr(dc, key):
-            attr = getattr(dc, key)
-            if isinstance(attr, (ImageConfig, TransformerConfig, LayerNormConfig, DropoutConfig, 
-                                 InitializationConfig, TrainingConfig, LoggingConfig, SavingConfig, ClassificationConfig)):
-                update_dataclass_from_dict(attr, value)
-            else:
-                setattr(dc, key, value)
-
-def update_config_with_wandb_sweep(config, sweep_values):
-    update_dataclass_from_dict(config, sweep_values)
-
-def dataclass_to_dict(obj):
-    if dataclasses.is_dataclass(obj):
-        return {name: dataclass_to_dict(value) for name, value in dataclasses.asdict(obj).items()}
-    else:
-        return obj
 
 
 def train(
