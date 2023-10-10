@@ -231,3 +231,200 @@ Length of testloader 1
   1%|███▎                                                                                                                                                                                                                                                       | 660/50000 [06:53<8:00:47,  1.71it/s]
 
 
+
+
+
+
+
+
+
+  1%|███▍                                                                                                                                                                                                                                                       | 690/50000 [07:12<7:54:28,  1.73it/s]
+
+
+
+
+
+
+
+
+
+  1%|███▌                                                                                                                                                                                                                                                       | 720/50000 [07:30<7:53:26,  1.73it/s]
+
+
+
+
+
+
+
+
+
+
+  2%|███▊                                                                                                                                                                                                                                                      | 751/50000 [07:51<12:46:57,  1.07it/s]
+
+
+
+
+
+
+
+
+
+  2%|███▉                                                                                                                                                                                                                                                       | 780/50000 [08:07<7:50:26,  1.74it/s]
+
+
+
+
+
+
+
+
+
+  2%|████                                                                                                                                                                                                                                                       | 810/50000 [08:26<7:57:39,  1.72it/s]
+
+
+
+
+
+
+
+
+
+  2%|████▏                                                                                                                                                                                                                                                      | 840/50000 [08:44<7:50:16,  1.74it/s]
+
+
+
+
+
+
+
+
+
+
+  2%|████▎                                                                                                                                                                                                                                                     | 871/50000 [09:05<12:53:49,  1.06it/s]
+
+
+
+
+
+
+
+
+
+  2%|████▌                                                                                                                                                                                                                                                      | 900/50000 [09:22<7:50:06,  1.74it/s]
+
+
+
+
+
+
+
+
+
+  2%|████▋                                                                                                                                                                                                                                                      | 930/50000 [09:40<7:50:51,  1.74it/s]
+
+
+
+
+
+
+
+
+
+
+  2%|████▊                                                                                                                                                                                                                                                     | 961/50000 [10:01<12:49:13,  1.06it/s]
+
+
+
+
+
+
+
+
+
+  2%|████▉                                                                                                                                                                                                                                                     | 991/50000 [10:19<12:40:57,  1.07it/s]
+
+
+
+
+
+
+
+
+
+  2%|█████                                                                                                                                                                                                                                                     | 1020/50000 [10:36<8:00:04,  1.70it/s]
+
+
+
+
+
+
+
+
+
+  2%|█████▎                                                                                                                                                                                                                                                    | 1050/50000 [10:55<7:51:08,  1.73it/s]
+
+
+
+
+
+
+
+
+
+
+  2%|█████▍                                                                                                                                                                                                                                                   | 1081/50000 [11:15<12:56:25,  1.05it/s]
+
+
+
+
+
+
+
+
+
+  2%|█████▌                                                                                                                                                                                                                                                    | 1110/50000 [11:34<7:52:12,  1.73it/s]
+
+
+
+
+
+
+  2%|█████▋                                                                                                                                                                                                                                                    | 1132/50000 [11:46<8:28:24,  1.60it/s]
+Traceback (most recent call last):
+  File "test_trainer_circle.py", line 28, in <module>
+    unittest.main()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 101, in __init__
+    self.runTests()
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/main.py", line 271, in runTests
+    self.result = testRunner.run(self.test)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/runner.py", line 176, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/suite.py", line 122, in run
+    test(result)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 676, in __call__
+    return self.run(*args, **kwds)
+  File "/cvmfs/ai.mila.quebec/apps/x86_64/debian/anaconda/3/lib/python3.7/unittest/case.py", line 628, in run
+    testMethod()
+  File "test_trainer_circle.py", line 24, in test_train_function
+    trained_model = train(self.model, self.config, self.train_dataset, self.val_dataset)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/training/trainer.py", line 77, in train
+    for epoch in tqdm(range(1, config.training.num_epochs + 1)):
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 628, in __next__
+    data = self._next_data()
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/dataloader.py", line 671, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/env/lib/python3.7/site-packages/torch/utils/data/_utils/fetch.py", line 58, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 167, in __getitem__
+    img = draw_circle_with_points(data_point[0], data_point[1], self.circle_metadata, model_type = self.model_type)
+  File "/home/mila/s/sonia.joseph/ViT-Planetarium/src/vit_planetarium/dataloaders/circle.py", line 72, in draw_circle_with_points
+    y = center[1] + radius * math.sin(math.radians(i))
+KeyboardInterrupt

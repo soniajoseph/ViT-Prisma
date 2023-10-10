@@ -29,9 +29,14 @@ class WarmupThenStepLR(torch.optim.lr_scheduler._LRScheduler):
         if self.last_epoch < self.warmup_steps:
             return [base_lr * (self.last_epoch / self.warmup_steps) for base_lr in self.base_lrs]
         else:
-            print(f"Reducing learning rate by a factor of {self.gamma} at epoch {self.last_epoch}")
+            # Check if it's time for step decay
+            if (self.last_epoch - self.warmup_steps + 1) % self.step_size == 0:
+                current_lr = self.optimizer.param_groups[0]['lr']  # Assuming all parameter groups have the same learning rate
+                print(f"Reducing learning rate from {current_lr} to {current_lr * self.gamma} at epoch {self.last_epoch}")
+
             return [base_lr * (self.gamma ** ((self.last_epoch - self.warmup_steps) // self.step_size))
                     for base_lr in self.base_lrs]
+
 
 
 def train(
@@ -39,6 +44,7 @@ def train(
         config,
         train_dataset,
         val_dataset,
+        checkpoint_path=None,
 ):
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
@@ -74,6 +80,13 @@ def train(
 
     scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.training.warmup_steps, step_size=config.training.scheduler_step, gamma=config.training.scheduler_gamma)
 
+    if checkpoint_path and os.path.exists(checkpoint_path):
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+        print(f"Loaded checkpoint from epoch {checkpoint['epoch']}")
+
     for epoch in tqdm(range(1, config.training.num_epochs + 1)):
         for idx, items in enumerate(train_loader):
             if steps % config.logging.log_frequency == 0:
@@ -103,9 +116,16 @@ def train(
             scheduler.step() if config.training.warmup_steps > 0 else None
             optimizer.zero_grad()
             tqdm.write(f"Epoch {epoch} | steps{steps} | Loss {loss.item()}") if config.logging.print_every and steps % config.logging.print_every == 0 else None
-            torch.save(model.state_dict(), os.path.join(os.path.join(config.saving.parent_dir, config.saving.save_dir), f"model_{steps}.pth")) if steps % config.saving.save_cp_frequency == 0 else None
+            
+            if steps % config.saving.save_cp_frequency == 0:
+                torch.save({
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'epoch': epoch
+                }, os.path.join(os.path.join(config.saving.parent_dir, config.saving.save_dir), f"model_{steps}.pth"))
             if hasattr(config.training, 'max_steps') and config.training.max_steps and steps >= config.training.max_steps:
                 break
+            
             steps += 1
     if config.logging.use_wandb:
         wandb.finish()

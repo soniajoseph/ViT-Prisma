@@ -1,0 +1,20 @@
+program: /home/mila/s/sonia.joseph/ViT-Planetarium/tests/test_trainer_circle.py  # Replace with the name of your training script
+project: "ViT 1-Variable Sweeps"
+
+method: grid  # Use grid search for the given patch sizes
+
+metric:
+  goal: minimize  # or 'maximize' depending on your metric
+  name: train_loss  # Replace with your validation metric name
+
+parameters:
+  image.patch_size:
+    values: [1, 2, 4, 8]
+
+early_terminate:
+  type: hyperband
+  max_iter: 50000
+  s: 2
+
+name: patch-size-sweep
+description: Sweep over different patch sizes

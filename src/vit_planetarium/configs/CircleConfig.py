@@ -5,7 +5,7 @@ import torch.nn as nn
 @dataclass
 class ImageConfig:
     image_size: int = 32
-    patch_size: int = 7
+    patch_size: int = 1
     n_channels: int = 1
 
 @dataclass
@@ -50,8 +50,8 @@ class TrainingConfig:
     device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
-    scheduler_step: int = 1000
-    scheduler_gamma: float = 0.5
+    scheduler_step: int = 1500
+    scheduler_gamma: float = 0.8
 
 @dataclass
 class LoggingConfig:
