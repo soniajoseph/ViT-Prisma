@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=4
-####SBATCH --nodelist=cn-g[001-029],cn-i001,cn-d[001-002],cn-d[003-004],cn-e[002-003]
-#SBATCH --mem=48Gb
+#SBATCH --nodelist="cn-g[001-029],cn-i001,cn-d[001-002],cn-d[003-004],cn-e[002-003]"
+#SBATCH --mem=128Gb
 #SBATCH --time=15:00:00
 #SBATCH --output=sbatch_out/transformer_hyperparam.%A.out
 #SBATCH --error=sbatch_err/transformer_hyperparam.%A.err

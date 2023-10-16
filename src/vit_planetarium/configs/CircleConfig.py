@@ -5,12 +5,12 @@ import torch.nn as nn
 @dataclass
 class ImageConfig:
     image_size: int = 32
-    patch_size: int = 1
+    patch_size: int = 4
     n_channels: int = 1
 
 @dataclass
 class TransformerConfig:
-    hidden_dim: int = 128 
+    hidden_dim: int = 512
     num_heads: int = 4
     num_layers: int = 4
     block_fn = TransformerBlock
@@ -41,9 +41,9 @@ class InitializationConfig:
 @dataclass
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
-    lr: float = 5e-4 #4e-4 trains
+    lr: float = 4e-4 #4e-4 trains
     num_epochs: int = 50000
-    batch_size: int = -1 # set to -1 to denote whole batch
+    batch_size: int = 64 # set to -1 to denote whole batch
     warmup_steps: int = 10
     weight_decay: float = 0.1
     max_grad_norm = None
@@ -51,7 +51,7 @@ class TrainingConfig:
     seed: int = 0
     optimizer_name: str = "AdamW"
     scheduler_step: int = 1500
-    scheduler_gamma: float = 0.8
+    scheduler_gamma: float = 0.5
 
 @dataclass
 class LoggingConfig:
