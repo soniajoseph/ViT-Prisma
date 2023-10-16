@@ -29,8 +29,8 @@ def get_datasets(split_ratio, model_type):
     circle_metadata = get_circle_metadata()
     # Create train and test data once
     train_data_raw, test_data_raw = get_train_test_data(circle_metadata, split_ratio) 
-    train_dataset = CircleDataset(circle_metadata, train_data_raw, model_type = model_type)
-    test_dataset = CircleDataset(circle_metadata, test_data_raw, model_type = model_type)
+    train_dataset = CircleDataset(circle_metadata, train_data_raw, train_or_test='train', model_type = model_type)
+    test_dataset = CircleDataset(circle_metadata, test_data_raw, train_or_test='test', model_type = model_type)
     return train_dataset, test_dataset
 
 def get_train_test_data(circle_metadata, split_ratio=0.5):

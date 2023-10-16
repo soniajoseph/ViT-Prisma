@@ -80,7 +80,6 @@ venv.bak/
 # mkdocs documentation
 /site
 
-scripts/
 
 # mypy
 .mypy_cache/
@@ -98,6 +97,8 @@ results/
 
 # Config files
 configs/
+
+data/*
 
 # Directories to keep, but ignore contents
 !data/
