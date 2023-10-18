@@ -18,7 +18,8 @@ _To train_
 * Modular Arithmetic Mice
 
 **Guidelines for training + uploading models**
-We will upload trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including dataset, hyperparameters, optimizer, learning rate schedule, and other details that may be relevant.
+
+Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including dataset, hyperparameters, optimizer, learning rate schedule, and other details that may be relevant.
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
