@@ -1,16 +1,16 @@
 import unittest
 import torch
-from vit_planetarium.models.layers.attention import Attention  
-from vit_planetarium.models.layers.mlp import MLP  
-from vit_planetarium.models.layers.transformer_block import TransformerBlock
-from vit_planetarium.models.base_vit import BaseViT
-from vit_planetarium.models.layers.patch_embedding import PatchEmbedding
+from vit_prisma.models.layers.attention import Attention  
+from vit_prisma.models.layers.mlp import MLP  
+from vit_prisma.models.layers.transformer_block import TransformerBlock
+from vit_prisma.models.base_vit import BaseViT
+from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 
 import logging
 
 import torch.nn as nn
 
-from vit_planetarium.configs.MNISTConfig import GlobalConfig
+from vit_prisma.configs.MNISTConfig import GlobalConfig
 
 
 class TestAttention(unittest.TestCase):

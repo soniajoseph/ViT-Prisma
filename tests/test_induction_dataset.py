@@ -1,5 +1,5 @@
 import unittest
-from vit_planetarium.dataloaders.induction import InductionDataset
+from vit_prisma.dataloaders.induction import InductionDataset
 import torch
 import random
 

@@ -4,4 +4,4 @@ nvidia-cuda-runtime-cu11==11.7.99
 nvidia-cudnn-cu11==8.5.0.96
 torch==1.13.1
 typing_extensions==4.7.1
--e git+https://github.com/soniajoseph/ViT-Planetarium.git@a7ec3687ffe1170e6a377a91cbbcf1b75d92571e#egg=vit_planetarium
+-e git+https://github.com/soniajoseph/ViT-Planetarium.git@a7ec3687ffe1170e6a377a91cbbcf1b75d92571e#egg=vit_prisma

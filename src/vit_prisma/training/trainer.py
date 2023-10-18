@@ -10,9 +10,9 @@ import torch
 import torch.optim as optim
 import tqdm
 from tqdm.auto import tqdm
-from vit_planetarium.training.training_utils import calculate_accuracy, calculate_loss, set_seed
-from vit_planetarium.utils.wandb_utils import dataclass_to_dict, update_dataclass_from_dict
-from vit_planetarium.training.training_dictionary import optimizer_dict, loss_function_dict
+from vit_prisma.training.training_utils import calculate_accuracy, calculate_loss, set_seed
+from vit_prisma.utils.wandb_utils import dataclass_to_dict, update_dataclass_from_dict
+from vit_prisma.training.training_dictionary import optimizer_dict, loss_function_dict
 import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses

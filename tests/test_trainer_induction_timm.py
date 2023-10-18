@@ -1,11 +1,11 @@
 import unittest
 from torchvision import datasets, transforms
 from torch.nn import CrossEntropyLoss
-from vit_planetarium.models.base_vit import BaseViT  # Assuming you have a ViT model defined somewhere
+from vit_prisma.models.base_vit import BaseViT  # Assuming you have a ViT model defined somewhere
 
-from vit_planetarium.configs.InductionConfig import GlobalConfig
-from vit_planetarium.training.trainer import train
-from vit_planetarium.dataloaders.induction import InductionDataset
+from vit_prisma.configs.InductionConfig import GlobalConfig
+from vit_prisma.training.trainer import train
+from vit_prisma.dataloaders.induction import InductionDataset
 import timm
 import torch.nn as nn
 

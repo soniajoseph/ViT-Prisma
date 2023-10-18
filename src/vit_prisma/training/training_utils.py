@@ -3,7 +3,7 @@ import torch.nn as nn
 from itertools import islice
 import numpy as np
 import random
-from vit_planetarium.training.training_dictionary import loss_function_dict
+from vit_prisma.training.training_dictionary import loss_function_dict
 
 
 def calculate_accuracy(net, data_loader, device, N=2000, batch_size=50):

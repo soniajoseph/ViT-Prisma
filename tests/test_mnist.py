@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 # Assuming you have the Config and Transformer model defined as before
-from vit_planetarium.configs.MNISTConfig import Config
-from vit_planetarium.models.base_vit import BaseViT as Transformer
+from vit_prisma.configs.MNISTConfig import Config
+from vit_prisma.models.base_vit import BaseViT as Transformer
 
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])

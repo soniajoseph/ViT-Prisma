@@ -1,16 +1,16 @@
 from dataclasses import dataclass
-from vit_planetarium.models.layers.transformer_block import TransformerBlock
+from vit_prisma.models.layers.transformer_block import TransformerBlock
 import torch.nn as nn
 
 @dataclass
 class ImageConfig:
-    image_size: int = 28
-    patch_size: int = 7
+    image_size: int = 32
+    patch_size: int = 4
     n_channels: int = 1
 
 @dataclass
 class TransformerConfig:
-    hidden_dim: int = 128
+    hidden_dim: int = 512
     num_heads: int = 4
     num_layers: int = 4
     block_fn = TransformerBlock
@@ -41,35 +41,35 @@ class InitializationConfig:
 @dataclass
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
-    lr: float = 1e-4
-    num_epochs: int = 5
-    batch_size: int = 64
+    lr: float = 1e-3 #4e-4 trains
+    num_epochs: int = 50000
+    batch_size: int = 64 # set to -1 to denote whole batch
     warmup_steps: int = 10
-    weight_decay: float = 0.0
-    max_grad_norm = None
+    weight_decay: float = 0.01
+    max_grad_norm = 1.0
     device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
-    scheduler_step: int = 1200
-    scheduler_gamma: float = .8
+    scheduler_step: int = 50
+    scheduler_gamma: float = 0.8
 
 @dataclass
 class LoggingConfig:
     log_dir: str = 'logs'
-    log_frequency: int = 10
+    log_frequency: int = 12
     print_every: int = 0
     use_wandb: bool = True
-    wandb_project_name = 'mnist_test'
+    wandb_project_name = 'circle_test'
 
 @dataclass
 class SavingConfig:
-    parent_dir: str = "/network/scratch/s/sonia.joseph/vit_planetarium"
+    parent_dir: str = "/network/scratch/s/sonia.joseph/vit_prisma"
     save_dir: str = 'checkpoints'
     save_checkpoints: bool = True
     save_cp_frequency: int = 10
 
 class ClassificationConfig:
-    num_classes: int = 10
+    num_classes: int = 60
     global_pool: bool = False
 
 @dataclass

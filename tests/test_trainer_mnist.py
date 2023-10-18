@@ -1,10 +1,10 @@
 import unittest
 from torchvision import datasets, transforms
 from torch.nn import CrossEntropyLoss
-from vit_planetarium.models.base_vit import BaseViT  # Assuming you have a ViT model defined somewhere
+from vit_prisma.models.base_vit import BaseViT  # Assuming you have a ViT model defined somewhere
 
-from vit_planetarium.configs.MNISTConfig import GlobalConfig
-from vit_planetarium.training.trainer import train
+from vit_prisma.configs.MNISTConfig import GlobalConfig
+from vit_prisma.training.trainer import train
 
 class TestTrainingFunction(unittest.TestCase):
 

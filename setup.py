@@ -2,14 +2,14 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='vit-planetarium',
+    name='vit-prisma',
     version='0.1.0',
     author='Sonia Joseph',
     author_email='soniamollyjoseph@gmail.com',
     description='A Vision Transformer library for mechanistic interpretability.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/soniajoseph/vit-planetarium',
+    url='https://github.com/soniajoseph/vit-prisma',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     classifiers=[
@@ -27,6 +27,6 @@ setup(
             # Other development dependencies...
         ],
     },
-    keywords='vision-transformer machine-learning',
+    keywords='vision-transformer, machine-learning, mechanistic interpretability',
     zip_safe=False,
 )

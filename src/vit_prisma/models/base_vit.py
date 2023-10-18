@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from vit_planetarium.models.layers.transformer_block import TransformerBlock
-from vit_planetarium.models.layers.patch_embedding import PatchEmbedding
-from vit_planetarium.training.training_dictionary import activation_dict, initialization_dict
+from vit_prisma.models.layers.transformer_block import TransformerBlock
+from vit_prisma.models.layers.patch_embedding import PatchEmbedding
+from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 
 class BaseViT(nn.Module):
     """
