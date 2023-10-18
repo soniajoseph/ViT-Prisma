@@ -24,7 +24,7 @@ First and foremost, thank you for considering contributing to ViT-Planetarium. I
 - If you're unable to find an open issue addressing the problem, open a new one. Be sure to include a title and clear description, as much relevant information as possible, and a code sample or an executable test case demonstrating the expected behavior that is not occurring.
 
 ## Suggesting Enhancements
-
+- Feel free to discuss any new ideas on the Discussions tab
 - Open a new issue on GitHub with a detailed description of the feature.
 - Include the steps that it would enhance, and the possible benefits.
 
