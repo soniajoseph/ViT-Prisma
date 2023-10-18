@@ -1,10 +1,0 @@
-wandb: Currently logged in as: soniajoseph (perceptual-alignment). Use `wandb login --relogin` to force relogin
-wandb: wandb version 0.15.12 is available!  To upgrade, please run:
-wandb:  $ pip install wandb --upgrade
-wandb: Tracking run with wandb version 0.15.11
-wandb: Run data is saved locally in /home/mila/s/sonia.joseph/ViT-Planetarium/scripts/wandb/run-20231017_184322-87h879s4
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run laced-armadillo-53
-wandb: ⭐️ View project at https://wandb.ai/perceptual-alignment/circle_test
-wandb: 🚀 View run at https://wandb.ai/perceptual-alignment/circle_test/runs/87h879s4
-  0%|          | 0/50000 [00:00<?, ?it/s]                                           0%|          | 0/50000 [00:21<?, ?it/s]                                           0%|          | 0/50000 [00:42<?, ?it/s]                                           0%|          | 0/50000 [01:03<?, ?it/s]  0%|          | 1/50000 [01:04<895:52:06, 64.50s/it]slurmstepd: error: *** JOB 3749346 ON cn-g006 CANCELLED AT 2023-10-17T18:44:38 ***
