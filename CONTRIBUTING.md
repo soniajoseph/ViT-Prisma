@@ -35,5 +35,5 @@ First and foremost, thank you for considering contributing to ViT-Planetarium. I
 
 ## Code of Conduct
 
-By participating in this project, you are expected to uphold our [Code of Conduct](LINK-TO-YOUR-CODE-OF-CONDUCT.md).
+By participating in this project, you are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md).
 
