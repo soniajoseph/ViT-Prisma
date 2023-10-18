@@ -31,7 +31,7 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
 ## ViT Prisms 🌈
-Our "Prisms" are the interpretability tools designed to provide insights into ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
+Our "Prisms" are the interpretability tools for ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
 
 
 ## ViT Training Code 🚀
