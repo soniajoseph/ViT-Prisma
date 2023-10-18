@@ -39,7 +39,7 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
 
 **Guidelines for training + uploading models**
 
-Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including loss curves, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. Links to the wandb training info are also welcome.
+Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including loss and accuracy curves, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. Links to the wandb training info are also welcome.
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
