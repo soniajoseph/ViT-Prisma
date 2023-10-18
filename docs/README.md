@@ -1,4 +1,4 @@
-# ViT Prisma 
+# Vision Transformer (ViT) Prisma Library
 <div style="display: flex; align-items: center;">
   <img src="assets/images/house.jpg" alt="Logo Image 1" width="200" style="margin-right: 10px;"/>
   <img src="assets/images/prism1.jpg" alt="Logo Image 2" width="200" style="margin-right: 10px;"/>
