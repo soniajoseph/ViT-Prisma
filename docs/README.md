@@ -23,8 +23,21 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
 
 _To train_ (1-4 layer, attention-only, and full-attention versions of each)
 * ImageNet-1k Mice
+   * Attention-only
+     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
+   * Full-attention
+     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
 * Induction Mice
+     * Smallest possible full model that can do task on induction dataset
+     * Smallest possible attention-only model
 * Modular Arithmetic Mice
+     * Smallest possible full model that can do task on induction dataset
+     * Smallest possible attention-only model
+* dSprites Mice
+     * Smallest possible model that can recognize shapes
+     * Smallest possible model that can recognize size
+     * Smallest possible model that can recognize position
+     * Smallest possible model that can do all of the above with minimal fine-tuning 
 
 **Guidelines for training + uploading models**
 
