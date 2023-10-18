@@ -1,7 +1,7 @@
 # ViT Prisma 
 ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs).
 
-We welcome new contributers. Check out our contributing guidelines [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/CONTRIBUTING.md).
+We welcome new contributers. Check out our contributing guidelines [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/CONTRIBUTING.md).
 
 ## ViT Mice 🐭
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
