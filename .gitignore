@@ -98,8 +98,11 @@ results/
 # Config files
 configs/
 
+# Added
 data/*
 **slurm**
+my_draft/*
+
 
 # Directories to keep, but ignore contents
 !data/
