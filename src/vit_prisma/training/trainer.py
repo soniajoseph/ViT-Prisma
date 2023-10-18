@@ -11,9 +11,6 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses
 
-
-
-
 def train(
         model,
         config,
@@ -41,17 +38,12 @@ def train(
     else:
         batch_size_train, batch_size_test = config.training.batch_size, config.training.batch_size
 
-
     train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
     test_loader = DataLoader(val_dataset, batch_size=batch_size_test, shuffle=False)
 
     print(f"Length of trainloader {len(train_loader)}.")
     print(f"Length of testloader {len(test_loader)}")
     steps = 0
-    # if config.training.warmup_steps > 0:
-    #     scheduler = optim.lr_scheduler.LambdaLR(
-    #         optimizer,
-    #         lr_lambda=lambda step: min(1.0, steps/ config.training.warmup_steps),)
 
     scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.training.warmup_steps, step_size=config.training.scheduler_step, gamma=config.training.scheduler_gamma)
 

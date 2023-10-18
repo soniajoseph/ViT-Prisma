@@ -40,6 +40,16 @@ Our "Prisms" are the interpretability tools for ViTs. By viewing a ViT through d
 
 This repo includes training code to easily train ViTs from scratch or finetune existing models.
 
+## Installing Repo
+
+To install as an editable repo:
+
+```
+git clone https://github.com/soniajoseph/ViT-Prisma
+cd ViT-Prisma
+pip install -e .
+```
+
 # Citation
 
 Please cite this repository when used in papers or research projects.
