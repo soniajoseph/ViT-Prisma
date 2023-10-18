@@ -28,7 +28,7 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
 
 **Guidelines for training + uploading models**
 
-Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including dataset, hyperparameters, optimizer, learning rate schedule, and other details that may be relevant.
+Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, and other details that may be relevant.
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
