@@ -19,7 +19,7 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
 
 **List of Mice** 
 
-_To train_
+_To train_ (1-4 layer, attention-only, and full-attention versions of each)
 * ImageNet-1k Mice
 * Induction Mice
 * Modular Arithmetic Mice
