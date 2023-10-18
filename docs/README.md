@@ -1,5 +1,5 @@
 # ViT Prisma 
-<div style="display: flex; justify-content: center; align-items: center;">
+<div style="display: flex; align-items: center;">
   <img src="assets/images/house.jpg" alt="Logo Image 1" width="200" style="margin-right: 10px;"/>
   <img src="assets/images/prism1.jpg" alt="Logo Image 2" width="200" style="margin-right: 10px;"/>
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
