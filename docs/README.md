@@ -27,12 +27,10 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
      * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
    * Full-attention
      * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
-* Induction Mice
+* Induction Mice (full and attention-only)
      * Smallest possible full model that can do task on induction dataset
-     * Smallest possible attention-only model
-* Modular Arithmetic Mice
+* Modular Arithmetic Mice (full and attention-only)
      * Smallest possible full model that can do task on induction dataset
-     * Smallest possible attention-only model
 * dSprites Mice
      * Smallest possible model that can recognize shapes
      * Smallest possible model that can recognize size
