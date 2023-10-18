@@ -1,12 +1,13 @@
 # ViT Prisma 
 
 
-
+<p align="center">
 <div style="display: flex; justify-content: center;">
   <img src="assets/images/house.jpg" alt="Logo Image 1" width="200" style="margin-right: 10px;"/>
   <img src="assets/images/prism1.jpg" alt="Logo Image 2" width="200" style="margin-right: 10px;"/>
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
+</p>
 
 ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs).
 
