@@ -31,9 +31,24 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
 ## ViT Prisms 🌈
-Our "Prisms" are the interpretability tools designed to provide insights into the functioning of the ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
+Our "Prisms" are the interpretability tools designed to provide insights into ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
 
 
 ## ViT Training Code 🚀
 
- 
+This repo includes training code to easily train ViTs from scratch or finetune existing models.
+
+# Citation
+
+Please cite this repository when used in papers or research projects.
+
+```
+@misc{joseph2023vit,
+  author = {Sonia Joseph},
+  title = {ViT Prisma: A Mechanistic Interpretability Library for Vision Transformers},
+  year = {2023},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/soniajoseph/vit-prisma}}
+}
+```
