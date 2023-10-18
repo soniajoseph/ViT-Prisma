@@ -99,6 +99,7 @@ results/
 configs/
 
 data/*
+**slurm**
 
 # Directories to keep, but ignore contents
 !data/

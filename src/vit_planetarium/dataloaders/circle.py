@@ -25,13 +25,13 @@ def check_if_valid_angle(angle, angle_range):
     if not np.isin(angle, angle_range):
         raise ValueError('Angle must at correct interval of angle_range')
     
-def get_datasets(split_ratio, model_type):
-    circle_metadata = get_circle_metadata()
-    # Create train and test data once
-    train_data_raw, test_data_raw = get_train_test_data(circle_metadata, split_ratio) 
-    train_dataset = CircleDataset(circle_metadata, train_data_raw, train_or_test='train', model_type = model_type)
-    test_dataset = CircleDataset(circle_metadata, test_data_raw, train_or_test='test', model_type = model_type)
-    return train_dataset, test_dataset
+# def get_datasets(split_ratio, model_type):
+#     circle_metadata = get_circle_metadata()
+#     # Create train and test data once
+#     train_data_raw, test_data_raw = get_train_test_data(circle_metadata, split_ratio) 
+#     train_dataset = CircleDataset(circle_metadata, train_data_raw, train_or_test='train', model_type = model_type)
+#     test_dataset = CircleDataset(circle_metadata, test_data_raw, train_or_test='test', model_type = model_type)
+#     return train_dataset, test_dataset
 
 def get_train_test_data(circle_metadata, split_ratio=0.5):
     data = list(combinations(range(0, circle_metadata['mod_arith']), 2))
@@ -101,31 +101,33 @@ def draw_circle_with_points(angle1=None, angle2=None, metadata=None, model_type=
         transforms.ToTensor()           # Convert the PIL Image to a tensor
     ])
     else:
-        mean = (0.9423853,)
-        std = (0.23196082,)
         transform = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-            ])
+        transforms.Grayscale(num_output_channels=1),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5])  # Normalize to [-1, 1]
+    ])
 
     img = transform(img)
     
     return img 
 
-class BaseCircleDataset(Dataset):
-    def __init__(self, circle_metadata, data, model_type, train_or_test='test', cache_path = '/home/mila/s/sonia.joseph/ViT-Planetarium/data/circle'):
+class CircleDataset(Dataset):
+    def __init__(self, train_or_test='test', 
+    cache_path = '/home/mila/s/sonia.joseph/ViT-Planetarium/data/circle',
+    transform=None):
 
         self.cache_path = cache_path
         self.train_or_test = train_or_test
 
-        self.circle_metadata = circle_metadata
-        self.mod_arith = circle_metadata['mod_arith']
-        self.data = [{'data': item, 'metadata': i} for i, item in enumerate(data)]
-        self.model_type = model_type
+        # self.circle_metadata = circle_metadata
+        # self.mod_arith = circle_metadata['mod_arith']
+        # self.data = [{'data': item, 'metadata': i} for i, item in enumerate(data)]
+        # self.model_type = model_type
+
+        self.transform=transform
 
         if os.path.exists(f'{cache_path}/{train_or_test}.npz'):
-            print("Loading circle dataset from cache...")
+            print("Loading circle dataset from cache...", f'{cache_path}/{train_or_test}.npz')
             self._load_from_cache()
         else:
             print("Generating and saving new circle dataset...")
@@ -138,7 +140,7 @@ class BaseCircleDataset(Dataset):
         self.data_points = loaded['data_points']
 
     def __len__(self):
-        return len(self.data)
+        return len(self.imgs)
 
     def _generate_and_cache(self):
         imgs = []
@@ -162,11 +164,10 @@ class BaseCircleDataset(Dataset):
         np.savez(f'{self.cache_path}/{self.train_or_test}.npz', imgs=self.imgs, labels=self.labels, data_points=self.data_points)
 
     def __getitem__(self, idx):
-        data_point = self.data[idx]['data']
-        label = sum(data_point) % self.mod_arith
-        img = draw_circle_with_points(data_point[0], data_point[1], self.circle_metadata, model_type = self.model_type)
-        return img, torch.tensor(label, dtype=torch.int64), torch.tensor(data_point, dtype=torch.int64)
+        image = self.imgs[idx]
+        label = self.labels[idx]
+        # meta_data = self.metadata[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
 
-class CircleDataset(BaseCircleDataset):
-    def __init__(self, circle_metadata, data_raw, model_type):
-        super().__init__(circle_metadata, data_raw, model_type)

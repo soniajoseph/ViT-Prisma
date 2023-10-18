@@ -96,7 +96,7 @@ def train(
                 train_acc = calculate_accuracy(model, train_loader, config.training.device)
                 test_loss = calculate_loss(model, test_loader, loss_fn, config.training.device)
                 test_acc = calculate_accuracy(model, test_loader, config.training.device)
-                tqdm.write(f"Steps{steps} | Train loss: {train_loss:.5f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.5f} | Test acc: {test_acc:.5f}")
+                tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}")
                 log_dict = {
                 "train_loss": train_loss,
                 "train_acc": train_acc,
@@ -108,13 +108,13 @@ def train(
                 model.train() # set model back to train mode
             images, labels, *metadata = items
             images, labels = images.to(config.training.device), labels.to(config.training.device)
+            optimizer.zero_grad()
             y = model(images)
             loss = loss_fn(y, labels)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.training.max_grad_norm) if config.training.max_grad_norm is not None else None
             optimizer.step()
             scheduler.step() if config.training.warmup_steps > 0 else None
-            optimizer.zero_grad()
             tqdm.write(f"Epoch {epoch} | steps{steps} | Loss {loss.item()}") if config.logging.print_every and steps % config.logging.print_every == 0 else None
             
             if steps % config.saving.save_cp_frequency == 0:

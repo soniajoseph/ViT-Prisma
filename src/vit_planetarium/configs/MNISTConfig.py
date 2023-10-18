@@ -14,7 +14,7 @@ class TransformerConfig:
     num_heads: int = 4
     num_layers: int = 4
     block_fn = TransformerBlock
-    mlp_dim: int = 128 * 4  # Use a computed default
+    mlp_dim: int = hidden_dim * 4  # Use a computed default
     activation_name: str = 'GELU'
     attention_only: bool = False
     attn_hidden_layer: bool = True
@@ -41,15 +41,17 @@ class InitializationConfig:
 @dataclass
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
-    lr: float = 1e-3
+    lr: float = 1e-4
     num_epochs: int = 5
     batch_size: int = 64
-    warmup_steps: int = 0
+    warmup_steps: int = 10
     weight_decay: float = 0.0
     max_grad_norm = None
     device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
+    scheduler_step: int = 1200
+    scheduler_gamma: float = .8
 
 @dataclass
 class LoggingConfig:

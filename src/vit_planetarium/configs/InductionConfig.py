@@ -5,12 +5,12 @@ import torch.nn as nn
 @dataclass
 class ImageConfig:
     image_size: int = 32
-    patch_size: int = 4
+    patch_size: int = 1
     n_channels: int = 1
 
 @dataclass
 class TransformerConfig:
-    hidden_dim: int = 512
+    hidden_dim: int = 128
     num_heads: int = 4
     num_layers: int = 4
     block_fn = TransformerBlock
@@ -41,7 +41,7 @@ class InitializationConfig:
 @dataclass
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
-    lr: float = 1e-3 #4e-4 trains
+    lr: float = 3e-4
     num_epochs: int = 50000
     batch_size: int = 64 # set to -1 to denote whole batch
     warmup_steps: int = 10
@@ -50,16 +50,16 @@ class TrainingConfig:
     device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
-    scheduler_step: int = 50
-    scheduler_gamma: float = 0.8
+    scheduler_step: int = 200
+    scheduler_gamma: float = .8
 
 @dataclass
 class LoggingConfig:
     log_dir: str = 'logs'
-    log_frequency: int = 12
+    log_frequency: int = 1
     print_every: int = 0
     use_wandb: bool = True
-    wandb_project_name = 'circle_test'
+    wandb_project_name = 'induction_test'
 
 @dataclass
 class SavingConfig:
@@ -69,7 +69,7 @@ class SavingConfig:
     save_cp_frequency: int = 10
 
 class ClassificationConfig:
-    num_classes: int = 60
+    num_classes: int = 4
     global_pool: bool = False
 
 @dataclass
