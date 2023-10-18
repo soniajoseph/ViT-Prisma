@@ -1,5 +1,5 @@
 # ViT Planetarium
-ViT Planetarium is a mechanistic interpretability library for Vision Transformers (ViTs).
+ViT Planetarium is an open-source mechanistic interpretability library for Vision Transformers (ViTs).
 
 
 ## ViT Mice
