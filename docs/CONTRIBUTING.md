@@ -1,4 +1,4 @@
-# Contributing to ViT-Planetarium 
+# Contributing to ViT Prisma 
 
 First and foremost, thank you for considering contributing to ViT-Planetarium. It's people like you that make ViT-Planetarium such a great tool.
 
