@@ -63,8 +63,8 @@ git clone https://github.com/soniajoseph/ViT-Prisma
 cd ViT-Prisma
 pip install -e .
 ```
-# Errors
-If you see a conceptual error in those code (e.g. incorrect implementation of a transformer, not a minor type bug), I will give you $5-10 depending on the bug's severity.
+## Errors
+If you point out a conceptual error in those code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-10 depending on the bug's severity.
 
 # Citation
 
