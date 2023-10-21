@@ -64,7 +64,7 @@ cd ViT-Prisma
 pip install -e .
 ```
 ## Errors 💰
-If you point out a conceptual error in those code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-10 depending on the bug's severity.
+If you point out a conceptual error in those code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-25 per bug depending on the bug's severity.
 
 # Citation
 
