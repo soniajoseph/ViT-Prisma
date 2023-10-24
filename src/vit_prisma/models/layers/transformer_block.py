@@ -15,7 +15,7 @@ class TransformerBlock(nn.Module):
         layer_norm = self.config.layernorm.layer_norm_eps
         self.attention = Attention(self.config)
         self.post_attn_ln = nn.LayerNorm(self.config.transformer.hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
-        self.mlp = MLP(self.config) if not self.config.transformer_attention_only else nn.Identity()
+        self.mlp = MLP(self.config) if not self.config.transformer.attention_only else nn.Identity()
         self.post_mlp_ln = nn.LayerNorm(self.config.transformer.hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
 
     def _log(self, stage, tensor):
