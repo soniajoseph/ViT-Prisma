@@ -2,6 +2,15 @@
 beta-tcvae
 disent
 
+# Added
+data/*
+**slurm**
+my_draft/*
+my_draft
+scripts
+*.vscode
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -104,11 +113,7 @@ results/
 # Config files
 configs/
 
-# Added
-data/*
-**slurm**
-my_draft/*
-scripts
+
 
 
 # Directories to keep, but ignore contents
