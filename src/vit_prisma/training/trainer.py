@@ -54,6 +54,8 @@ def train(
         start_epoch = checkpoint['epoch'] + 1
         print(f"Loaded checkpoint from epoch {checkpoint['epoch']}")
 
+    num_samples = 0
+
     for epoch in tqdm(range(1, config.training.num_epochs + 1)):
         for idx, items in enumerate(train_loader):
             if steps % config.logging.log_frequency == 0:
@@ -71,7 +73,7 @@ def train(
                 "test_acc": test_acc,
                 }
                 if config.logging.use_wandb:
-                    wandb.log(log_dict, step=steps)
+                    wandb.log(log_dict, step=num_samples)
                 model.train() # set model back to train mode
             images, labels, *metadata = items
             images, labels = images.to(config.training.device), labels.to(config.training.device)
@@ -94,6 +96,8 @@ def train(
                 break
             
             steps += 1
+            num_samples += len(labels)
+
     if config.logging.use_wandb:
         wandb.finish()
     return model
