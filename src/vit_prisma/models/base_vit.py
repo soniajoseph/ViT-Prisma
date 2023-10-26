@@ -29,12 +29,12 @@ class BaseViT(nn.Module):
         token_length = num_patches + 1 if not self.config.classification.global_pool else num_patches
         self.position_embedding = nn.Parameter(torch.randn(1, token_length, hidden_dim))
         self.position_dropout = nn.Dropout(self.config.dropout.position)
+        self.pre_block_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
         block_fn = self.config.transformer.block_fn if hasattr(self.config.transformer, 'block_fn') else TransformerBlock
         self.blocks = nn.Sequential(*[block_fn(self.config) for _ in range(self.config.transformer.num_layers)])
+        self.pre_head_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
         self.head = nn.Linear(hidden_dim, self.config.classification.num_classes)
 
-        self.pre_head_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
-        self.pre_block_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
 
         self.init_weights()
 
