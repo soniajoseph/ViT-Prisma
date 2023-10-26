@@ -1,4 +1,4 @@
-# Contributing to ViT-Planetarium 
+# Contributing to ViT Prisma 
 
 First and foremost, thank you for considering contributing to ViT-Planetarium. It's people like you that make ViT-Planetarium such a great tool.
 
@@ -15,7 +15,7 @@ First and foremost, thank you for considering contributing to ViT-Planetarium. I
 
 - Follow the code style and conventions used throughout the existing codebase.
 - Include comments in your code as necessary.
-- Document each function with input and output arguments (include types) and the purpose of the function.
+- Document each function with input and output arguments (include types) and the purpose of the function or class.
 - Write tests for any new code, and ensure all tests pass before submitting a pull request.
 
 ## Reporting Bugs
@@ -32,6 +32,7 @@ First and foremost, thank you for considering contributing to ViT-Planetarium. I
 
 - One pull request for one feature/fix. Do not mix multiple subjects into a single PR.
 - Update the `README.md` or documentation as necessary with your changes.
+- Delete your branch once changes have been merged.
 
 ## Code of Conduct
 

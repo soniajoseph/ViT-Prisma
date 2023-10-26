@@ -153,6 +153,8 @@ def generate_dataset(dir_path = '../data/induction'):
     
     path = f'{dir_path}/induction_dataset.npz'
     print(f"Saving raw dataset to {path}...")
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
     np.savez(path, images=images, metadata=metadata, labels=labels)
 
     print("Balancing dataset...")
