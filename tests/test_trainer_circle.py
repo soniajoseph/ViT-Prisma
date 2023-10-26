@@ -5,7 +5,7 @@ from vit_prisma.models.base_vit import BaseViT  # Assuming you have a ViT model 
 
 from vit_prisma.configs.CircleConfig import GlobalConfig
 from vit_prisma.training.trainer import train
-from vit_prisma.dataloaders.circle import get_datasets
+from vit_prisma.dataloaders.circle import CircleDataset
 
 class TestTrainingFunction(unittest.TestCase):
 
@@ -13,7 +13,7 @@ class TestTrainingFunction(unittest.TestCase):
         def setUp(self):
 
             transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-            self.train_dataset, self.val_dataset = get_datasets(split_ratio=.98, model_type='transformer')
+            self.train_dataset, self.val_dataset = CircleDataset('train'), CircleDataset('test')
 
             self.config = GlobalConfig()
 
