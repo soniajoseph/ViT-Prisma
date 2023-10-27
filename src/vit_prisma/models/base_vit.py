@@ -35,7 +35,6 @@ class BaseViT(nn.Module):
         self.pre_head_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
         self.head = nn.Linear(hidden_dim, self.config.classification.num_classes)
 
-
         self.init_weights()
 
     def init_weights(self):

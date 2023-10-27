@@ -5,6 +5,7 @@ disent
 # Added
 data/*
 **slurm**
+*slurm*
 my_draft/*
 my_draft
 scripts

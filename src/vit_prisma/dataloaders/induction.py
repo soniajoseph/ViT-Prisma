@@ -29,7 +29,7 @@ class InductionDataset(Dataset):
         image = self.images[idx][np.newaxis, :, :]
         label = self.labels[idx]
         # meta_data = self.metadata[idx]
-        image = torch.from_numpy(image)
+        image = torch.from_numpy(image).float()
         if self.transform:
             image = self.transform(image)
         return image, label
