@@ -7,7 +7,7 @@ setup(
     author='Sonia Joseph',
     author_email='soniamollyjoseph@gmail.com',
     description='A Vision Transformer library for mechanistic interpretability.',
-    long_description=open('README.md').read(),
+    long_description=open('docs/README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/soniajoseph/vit-prisma',
     packages=find_packages(where='src'),

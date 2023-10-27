@@ -1,3 +1,17 @@
+# Other repos
+beta-tcvae
+disent
+
+# Added
+data/*
+**slurm**
+*slurm*
+my_draft/*
+my_draft
+scripts
+*.vscode
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -81,6 +95,8 @@ venv.bak/
 /site
 
 
+
+
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -98,11 +114,7 @@ results/
 # Config files
 configs/
 
-# Added
-data/*
-**slurm**
-my_draft/*
-scripts
+
 
 
 # Directories to keep, but ignore contents
