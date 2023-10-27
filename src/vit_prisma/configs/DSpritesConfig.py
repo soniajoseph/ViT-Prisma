@@ -51,7 +51,7 @@ class TrainingConfig:
     warmup_steps: int = 10
     weight_decay: float = 0.01
     max_grad_norm = 1.0
-    device: str = 'mps'
+    device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
     scheduler_step: int = 200
