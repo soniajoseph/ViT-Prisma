@@ -16,8 +16,6 @@ def object_to_dict(obj):
     else:
         raise TypeError(f"Object of type {type(obj)} is not serializable to JSON")
 
-
-
 # Function to save config to a JSON file
 def save_config_to_file(config, file_path):
     with open(file_path, 'w') as f:

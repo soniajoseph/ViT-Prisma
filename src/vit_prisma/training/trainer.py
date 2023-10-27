@@ -51,8 +51,11 @@ def train(
     steps = 0
 
     scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.training.warmup_steps, step_size=config.training.scheduler_step, gamma=config.training.scheduler_gamma)
+
     if config.training.early_stopping:
         early_stopping = EarlyStopping(patience=config.training.early_stopping_patience, verbose=True)
+    else: 
+        early_stopping = None
 
     if checkpoint_path and os.path.exists(checkpoint_path):
         checkpoint = torch.load(checkpoint_path)
@@ -98,7 +101,7 @@ def train(
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'epoch': epoch
-                }, os.path.join(os.path.join(config.saving.parent_dir, config.saving.save_dir), f"model_{steps}.pth"))
+                }, os.path.join(os.path.join(config.saving.parent_dir, config.saving.save_dir), f"model_{num_samples}.pth"))
             
             if hasattr(config.training, 'max_steps') and config.training.max_steps and steps >= config.training.max_steps:
                 break
@@ -106,11 +109,11 @@ def train(
             steps += 1
             num_samples += len(labels)
 
-        # implement early stopping
-        early_stopping(test_acc)
-        if config.training.early_stopping and early_stopping.early_stop:
-            print("Stopping training due to early stopping!")
-            break
+        if config.training.early_stopping:
+            early_stopping(train_acc)
+            if early_stopping.early_stop:
+                print("Stopping training due to early stopping!")
+                break
 
     if config.logging.use_wandb:
         wandb.finish()

@@ -52,7 +52,7 @@ class TrainingConfig:
     optimizer_name: str = "AdamW"
     scheduler_step: int = 1000
     scheduler_gamma: float = .8
-    early_stopping: bool = True
+    early_stopping: bool = False
     early_stopping_patience: int = 2
 
 @dataclass
@@ -68,7 +68,7 @@ class SavingConfig:
     parent_dir: str = "/network/scratch/s/sonia.joseph/vit_prisma/induction/1_layer_attn_only"
     save_dir: str = 'checkpoints'
     save_checkpoints: bool = True
-    save_cp_frequency: int = 1024 
+    save_cp_frequency: int = 10
 
 class ClassificationConfig:
     num_classes: int = 4
