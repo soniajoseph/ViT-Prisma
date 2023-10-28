@@ -135,26 +135,24 @@ def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, 
 
     plt.show()
 
-def generate_random_string(length=10):
-    '''
-    Helper function to generate canvas IDs for javascript figures.
-    '''
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
-
 def plot_javascript(attn_head, image):
     '''
     Attention head is full 50x50 matrix
     Image is 3x224x224
     '''
 
+    ATTN_SCALING = 20
+    IMG_SCALING = 2
+
     num_patches = len(attn_head) - 1 # -1 without CLS token
     image_size = len(image[-1])
-    patch_size = int(image_size // np.sqrt(num_patches))
+    patch_size = int(image_size // np.sqrt(num_patches)) 
+    num_patch_width = image_size // patch_size
 
     print("num patches", num_patches)
     print("image_size", image_size)
     print("patch_size", patch_size)
+    print("num_patch_width", num_patch_width)
 
     canvas_img_id = generate_random_string()
     canvas_attn_id = generate_random_string()
@@ -162,6 +160,13 @@ def plot_javascript(attn_head, image):
     cifar_image = image.numpy()
     cifar_image = (cifar_image - cifar_image.min()) / (cifar_image.max() - cifar_image.min()) * 255
     cifar_image = cifar_image.astype('uint8')
+
+    # if grayscale, make 3 channels
+    print("Shape bfore", cifar_image.shape)
+    if cifar_image.shape[0] == 1:
+        cifar_image = np.stack([cifar_image[0], cifar_image[0], cifar_image[0]], axis=0)
+        print(cifar_image.shape)
+
 
     # Reshape to (224, 224, 3) to make it channel-last
     cifar_image = np.transpose(cifar_image, (1, 2, 0))
@@ -187,15 +192,12 @@ def plot_javascript(attn_head, image):
     # Convert to JSON (if needed)
     attn_head_json = json.dumps(normalized_attn_head[1:, 1:].tolist())
 
-
     # HTML and JavaScript code to render the patches on a canvas
-
-    ATTN_SCALING = 8
 
     html_code = f"""
     <div style="display: flex;">
         <canvas id="{canvas_attn_id}" width="{num_patches*ATTN_SCALING}" height="{num_patches*ATTN_SCALING}" style="width:{num_patches*ATTN_SCALING+20}px; height:{num_patches*ATTN_SCALING+20}px;"></canvas>
-        <canvas id="{canvas_img_id}" width="{image_size}" height="{image_size}" style="width:{image_size}px; height:{image_size}px;"></canvas>
+        <canvas id="{canvas_img_id}" width="{image_size}" height="{image_size}" style="width:{image_size*IMG_SCALING+20}px; height:{image_size*IMG_SCALING+20}px;"></canvas>
     </div>
     <script>
 
@@ -255,7 +257,7 @@ def plot_javascript(attn_head, image):
         var lastHighlightedCol = null;
         var lastHighlightedColSecond = null;
 
-        var matrixColorsImg = Array({num_patches}).fill().map(() => Array({num_patches}).fill('')); // cifar image
+        var matrixColorsImg = Array({num_patch_width}).fill().map(() => Array({num_patch_width}).fill('')); // cifar image
         var matrixColorsAttn = Array({num_patches**2}).fill().map(() => Array({num_patches**2}).fill('')); // attention head
 
         // PLOT CIFAR on canvasImg
@@ -295,9 +297,6 @@ def plot_javascript(attn_head, image):
         var attn_head = JSON.parse('{attn_head_json}');
         var canvasAttn = document.getElementById('{canvas_attn_id}');
         var ctxAttn = {canvas_attn_id}.getContext('2d');
-
-
-
         for (let i = 0; i < {num_patches}; i++) {{
             for (let j = 0; j < {num_patches}; j++) {{
                 // var intensity = attn_head[i][j];
@@ -307,26 +306,25 @@ def plot_javascript(attn_head, image):
                 ctxAttn.fillStyle = color;
 
                 // ctxAttn.fillStyle = `rgba(${{255 * attn_head[i][j]}}, 0, 0, 1)`;
-                ctxAttn.fillRect(j * 8, i * 8, 8, 8);
+                ctxAttn.fillRect(j * {ATTN_SCALING}, i * {ATTN_SCALING}, {ATTN_SCALING}, {ATTN_SCALING});
                 // matrixColorsAttn[i][j] = `rgba(${{255 * attn_head[i][j]}}, 0, 0, 1)`;
                 matrixColorsAttn[i][j] = color;
             }}
         }}
 
-        // Add listeners for highlighted pixels
-
+    // Add listeners for highlighted pixels
     canvasAttn.addEventListener('mousemove', function(event) {{
-            const x = Math.floor(event.offsetY / 8);
-            const rowImg = Math.floor(x / {num_patches});
-            const colImg = x % {num_patches};
+            const x = Math.floor(event.offsetY / {ATTN_SCALING});
+            const rowImg = Math.floor(x / {num_patch_width});
+            const colImg = x % {num_patch_width};
 
-            const y = Math.floor(event.offsetX / 8);
-            const rowImgSecond = Math.floor(y / {num_patches});
-            const colImgSecond = y % {num_patches};
+            const y = Math.floor(event.offsetX / {ATTN_SCALING});
+            const rowImgSecond = Math.floor(y / {num_patch_width});
+            const colImgSecond = y % {num_patch_width};
 
         if (lastHighlightedCol !== null) {{
-            const prevrowImg = Math.floor(lastHighlightedCol / {num_patches});
-            const prevcolImg = lastHighlightedCol % {num_patches};
+            const prevrowImg = Math.floor(lastHighlightedCol / {num_patch_width});
+            const prevcolImg = lastHighlightedCol % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -336,13 +334,13 @@ def plot_javascript(attn_head, image):
 
             // Fill in attn matrix
             ctxAttn.fillStyle = matrixColorsAttn[lastHighlightedCol][lastHighlightedColSecond];
-            ctxAttn.fillRect(lastHighlightedColSecond * 8, lastHighlightedCol * 8, 8, 8);
+            ctxAttn.fillRect(lastHighlightedColSecond * {ATTN_SCALING}, lastHighlightedCol * {ATTN_SCALING}, {ATTN_SCALING}, {ATTN_SCALING});
 
         }}
 
         if (lastHighlightedColSecond !== null) {{
-            const prevrowImg = Math.floor(lastHighlightedColSecond / {num_patches});
-            const prevcolImg = lastHighlightedColSecond % {num_patches};
+            const prevrowImg = Math.floor(lastHighlightedColSecond / {num_patch_width});
+            const prevcolImg = lastHighlightedColSecond % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -362,15 +360,15 @@ def plot_javascript(attn_head, image):
         ctxImg.fillRect(colImgSecond * {patch_size}, rowImgSecond * {patch_size}, {patch_size}, {patch_size});  // Second highlighted pixel
 
         ctxAttn.fillStyle = 'white';
-        ctxAttn.fillRect(y * 8, x * 8, 8, 8);
+        ctxAttn.fillRect(y * {ATTN_SCALING}, x * {ATTN_SCALING}, {ATTN_SCALING}, {ATTN_SCALING});
 
         }}, {{ passive: true }});
 
         canvasAttn.addEventListener('mouseout', function() {{
             if (lastHighlightedCol !== null) {{
 
-                const prevrowImg = Math.floor(lastHighlightedCol / {num_patches});
-                const prevcolImg = lastHighlightedCol % {num_patches};
+                const prevrowImg = Math.floor(lastHighlightedCol / {num_patch_width});
+                const prevcolImg = lastHighlightedCol % {num_patch_width};
 
                 if (matrixColorsImg[prevrowImg] && matrixColorsImg[prevrowImg][prevcolImg]) {{
 
@@ -383,13 +381,13 @@ def plot_javascript(attn_head, image):
 
                     // Fill in attn matrix
                     ctxAttn.fillStyle = matrixColorsAttn[lastHighlightedCol][lastHighlightedColSecond];
-                    ctxAttn.fillRect(lastHighlightedColSecond * 8, lastHighlightedCol * 8, 8, 8);
+                    ctxAttn.fillRect(lastHighlightedColSecond * {ATTN_SCALING}, lastHighlightedCol * {ATTN_SCALING}, {ATTN_SCALING}, {ATTN_SCALING});
                 }}
             }}
 
             if (lastHighlightedColSecond !== null) {{
-                const prevrowImg = Math.floor(lastHighlightedColSecond / {num_patches});
-                const prevcolImg = lastHighlightedColSecond % {num_patches};
+                const prevrowImg = Math.floor(lastHighlightedColSecond / {num_patch_width});
+                const prevcolImg = lastHighlightedColSecond % {num_patch_width};
 
                 if (matrixColorsImg[prevrowImg] && matrixColorsImg[prevrowImg][prevcolImg]) {{
                     // Fill in rectangle for img
@@ -401,7 +399,7 @@ def plot_javascript(attn_head, image):
 
                     // Fill in attn matrix
                     ctxAttn.fillStyle = matrixColorsAttn[lastHighlightedCol][lastHighlightedColSecond];
-                    ctxAttn.fillRect(lastHighlightedColSecond * 8, lastHighlightedCol * 8, 8, 8);
+                    ctxAttn.fillRect(lastHighlightedColSecond * {ATTN_SCALING}, lastHighlightedCol * {ATTN_SCALING}, {ATTN_SCALING}, {ATTN_SCALING});
                 }}
 
             }}
@@ -411,9 +409,15 @@ def plot_javascript(attn_head, image):
 
         }}, {{ passive: true }});
 
-
-
     </script>
     """
 
     return html_code
+
+import string, random, json
+def generate_random_string(length=10):
+    '''
+    Helper function to generate canvas IDs for javascript figures.
+    '''
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
