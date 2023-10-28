@@ -83,10 +83,10 @@ def train(
                     "test_loss": test_loss,
                 }
                 if config.training.loss_fn_name == "MSE":
-                    train_acc = calculate_accuracy(model, train_loader, config.training.device)
-                    test_acc = calculate_accuracy(model, test_loader, config.training.device)
                     tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Test loss: {test_loss:.6f}")
                 else:
+                    train_acc = calculate_accuracy(model, train_loader, config.training.device)
+                    test_acc = calculate_accuracy(model, test_loader, config.training.device)
                     tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}")
                     log_dict.update({
                                         "train_acc": train_acc, 
