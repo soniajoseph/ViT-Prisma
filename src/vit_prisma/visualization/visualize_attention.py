@@ -54,7 +54,7 @@ def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, 
         for j in range(n_heads): # Head
 
             # Get Data
-            data = total_activations[i][0,j,:,:]
+            data = total_activations[i][idx,j,:,:]
 
             # Plot the imshow plot in the corresponding subplot
             if graph_type == "histogram_graph":
