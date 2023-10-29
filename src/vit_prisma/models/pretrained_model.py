@@ -1,19 +1,60 @@
 import torch.nn as nn
-from transformers import ViTModel, AutoImageProcessor
+from transformers import ViTForImageClassification, AutoImageProcessor
 
 
 class PretrainedModel(nn.Module):
-    def __init__(self, pretrained_model: str, config):
+    def __init__(self, pretrained_model_name: str, config):
         super().__init__()
-        self.pretrained_model = pretrained_model
-        self.image_processor = AutoImageProcessor.from_pretrained(pretrained_model)
+        self.pretrained_model_name = pretrained_model_name
         self.n_classes = config.classification.num_classes
-        self.net = ViTModel.from_pretrained(pretrained_model)
-        self.classifier = nn.Linear(self.net.config.hidden_size, self.n_classes)
-        
+
+        self.image_processor = AutoImageProcessor.from_pretrained(pretrained_model_name)
+        self.model = ViTForImageClassification.from_pretrained(pretrained_model_name)
+
+        self.vit = self.model.vit
+
+        if config is None or self.n_classes == self.model.classifier.out_features:
+            self.classifier = self.model.classifier
+        else:
+            print(f"Initializing new classifier head for finetuning with shape: ({self.model.classifier.in_features, self.n_classes})")
+            self.classifier = nn.Linear(self.model.classifier.in_features, self.n_classes)
 
     def forward(self, x):
         x = self.image_processor(x, return_tensors="pt").pixel_values
-        x = self.net(x).last_hidden_state[:, 0, :]
+        x = self.vit(x).last_hidden_state[:, 0, :]
         x = self.classifier(x)
+        
         return x
+    
+    def convert_hf_model_config(self):
+        hf_config = self.vit.config
+        prisma_config = {
+            'image_config': {
+                'image_size': hf_config.image_size,
+                'patch_size': hf_config.patch_size,
+                'n_channels': hf_config.num_channels,
+            },
+            'transformer_config': {
+                'hidden_dim': hf_config.hidden_size,
+                'num_heads': hf_config.num_attention_heads,
+                'num_layers': hf_config.num_hidden_layers,
+                'mlp_dim': hf_config.intermediate_size,
+                'activation_name': hf_config.hidden_act,
+            },
+            'layer_norm_config': {
+                'qknorm': None,
+                'layer_norm_eps': hf_config.layer_norm_eps,
+            },
+            'dropout_config': {
+                'patch': hf_config.hidden_dropout_prob,
+                'position': hf_config.hidden_dropout_prob,
+                'attention': hf_config.attention_probs_dropout_prob,
+                'proj': None,
+                'mlp': None,
+            },
+            'classification_config': {
+                'num_classes': self.classifier.out_features,
+            },
+        }
+
+        return prisma_config
