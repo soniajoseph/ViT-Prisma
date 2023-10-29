@@ -12,6 +12,7 @@ from vit_prisma.utils.saving_utils import save_config_to_file
 import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses
+from sklearn.model_selection import train_test_split
 
 
 
@@ -19,9 +20,13 @@ def train(
         model,
         config,
         train_dataset,
-        val_dataset,
+        val_dataset=None,
         checkpoint_path=None,
 ):
+    if val_dataset is None:
+        train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2)
+        print(f"Split train dataset into train and val with {len(train_dataset)} and {len(val_dataset)}.")
+        
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
         wandb.init(project=config.logging.wandb_project_name)
@@ -72,16 +77,21 @@ def train(
                 model.eval()
                 logs = {}
                 train_loss = calculate_loss(model, train_loader, loss_fn, config.training.device)
-                train_acc = calculate_accuracy(model, train_loader, config.training.device)
                 test_loss = calculate_loss(model, test_loader, loss_fn, config.training.device)
-                test_acc = calculate_accuracy(model, test_loader, config.training.device)
-                tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}")
                 log_dict = {
-                "train_loss": train_loss,
-                "train_acc": train_acc,
-                "test_loss": test_loss,
-                "test_acc": test_acc,
+                    "train_loss": train_loss,
+                    "test_loss": test_loss,
                 }
+                if config.training.loss_fn_name == "MSE":
+                    tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Test loss: {test_loss:.6f}")
+                else:
+                    train_acc = calculate_accuracy(model, train_loader, config.training.device)
+                    test_acc = calculate_accuracy(model, test_loader, config.training.device)
+                    tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}")
+                    log_dict.update({
+                                        "train_acc": train_acc, 
+                                        "test_acc": test_acc
+                                     })
                 if config.logging.use_wandb:
                     wandb.log(log_dict, step=num_samples) # Record number of samples
                 model.train() # set model back to train mode

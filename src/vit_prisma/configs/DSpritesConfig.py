@@ -4,8 +4,8 @@ import torch.nn as nn
 
 @dataclass
 class ImageConfig:
-    image_size: int = 32
-    patch_size: int = 1
+    image_size: int = 64
+    patch_size: int = 8
     n_channels: int = 1
 
 @dataclass
@@ -59,17 +59,17 @@ class LoggingConfig:
     log_frequency: int = 1
     print_every: int = 0
     use_wandb: bool = True
-    wandb_project_name = 'circle_test'
+    wandb_project_name = 'dsprites'
 
 @dataclass
 class SavingConfig:
     parent_dir: str = "/network/scratch/s/sonia.joseph/vit_prisma"
     save_dir: str = 'checkpoints'
-    save_checkpoints: bool = False
+    save_checkpoints: bool = True
     save_cp_frequency: int = 10
 
 class ClassificationConfig:
-    num_classes: int = 60
+    num_classes: int = 3
     global_pool: bool = False
 
 @dataclass
