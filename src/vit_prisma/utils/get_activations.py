@@ -114,3 +114,59 @@ def get_activations(net,layer,data_loader,use_cuda=True, max_count=0, test_run=F
     handle.remove()
     activations_np = np.vstack(activations)     # assuming first dimension is num_examples: batches x batch_size x <feat_dims> --> num_examples x <feat_dims>
     return activations_np
+
+
+class timmCustomAttention(nn.Module):
+    '''
+    Custom attention layer for timm models.
+    '''
+
+    def __init__(
+            self,
+            dim,
+            num_heads=8,
+            qkv_bias=False,
+            qk_norm=False,
+            attn_drop=0.,
+            proj_drop=0.,
+            norm_layer=nn.LayerNorm,
+    ):
+        super().__init__()
+        assert dim % num_heads == 0, 'dim should be divisible by num_heads'
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim ** -0.5
+
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.q_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
+        self.k_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+        self.attn_scores = nn.Identity()
+        self.attn_pattern = nn.Identity()  # Initialize attn_pattern
+
+
+    def forward(self, x):
+        B, N, C = x.shape
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv.unbind(0)
+        q, k = self.q_norm(q), self.k_norm(k)
+
+        q = q * self.scale
+
+        attn_scores = q @ k.transpose(-2, -1)
+        attn_scores = self.attn_scores(attn_scores)
+
+        attn_pattern = attn_scores.softmax(dim=-1)
+        attn_pattern = self.attn_pattern(attn_pattern) # For hook function
+
+        attn = self.attn_drop(attn_pattern)
+
+        x = attn @ v
+
+        x = x.transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x
