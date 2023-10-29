@@ -5,7 +5,7 @@ import torch.nn as nn
 @dataclass
 class ImageConfig:
     image_size: int = 32
-    patch_size: int = 8
+    patch_size: int = 2
     n_channels: int = 1
 
 @dataclass
@@ -41,7 +41,7 @@ class InitializationConfig:
 @dataclass
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
-    lr: float = 5e-4
+    lr: float = 1e-3
     num_epochs: int = 50000
     batch_size: int = 64 # set to -1 to denote whole batch
     warmup_steps: int = 10
@@ -50,7 +50,7 @@ class TrainingConfig:
     device: str = 'cuda'
     seed: int = 0
     optimizer_name: str = "AdamW"
-    scheduler_step: int = 200
+    scheduler_step: int = 1000
     scheduler_gamma: float = .8
     early_stopping: bool = False
     early_stopping_patience: int = 2
@@ -68,7 +68,7 @@ class SavingConfig:
     parent_dir: str = "/network/scratch/s/sonia.joseph/vit_prisma/induction/1_layer_attn_only"
     save_dir: str = 'checkpoints'
     save_checkpoints: bool = True
-    save_cp_frequency: int = 200
+    save_cp_frequency: int = 10
 
 class ClassificationConfig:
     num_classes: int = 4
