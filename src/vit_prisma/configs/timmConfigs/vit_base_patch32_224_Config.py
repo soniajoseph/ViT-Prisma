@@ -4,15 +4,15 @@ import torch.nn as nn
 
 @dataclass
 class ImageConfig:
-    image_size: int = 32
-    patch_size: int = 8
-    n_channels: int = 1
+    image_size: int = 224
+    patch_size: int = 32
+    n_channels: int = 3
 
 @dataclass
 class TransformerConfig:
-    hidden_dim: int = 128
-    num_heads: int = 4
-    num_layers: int = 1
+    hidden_dim: int = 768
+    num_heads: int = 12
+    num_layers: int = 12
     block_fn = TransformerBlock
     mlp_dim: int = hidden_dim * 4  # Use a computed default
     activation_name: str = 'GELU'
