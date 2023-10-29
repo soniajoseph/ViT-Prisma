@@ -125,7 +125,7 @@ def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, 
     else:
         plt.suptitle(f'Attention Scores for Image Idx {idx} (Colorbar per Image, not Global)', fontsize=20, y=.98)
 
-    plt.tight_layout()
+    # plt.tight_layout()
     # save_path = './figures/attn_pattern_imshow_log_globalcolor.png'
     # save_path = './figures/attn_pattern_imshow_log.png'
     # if save_figure:
