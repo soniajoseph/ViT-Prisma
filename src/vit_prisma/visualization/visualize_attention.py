@@ -10,7 +10,7 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, idx=0, 
+def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, idx=0, figsize = (20, 20),
     global_min_max=False, global_normalize=False, fourier_transform_local=False, fourier_transform_global=False, graph_type = "imshow_graph", cmap='viridis'):
 
     log_transform = False
@@ -40,7 +40,7 @@ def plot_attn_heads(total_activations, n_heads = 4, n_layers = 1, img_shape=32, 
                 matrix = np.expand_dims(total_data[idx,:,:,:], axis=0)
                 total_activations.append(matrix)
 
-    fig, axes = plt.subplots(n_layers, n_heads, figsize=(10, 5))
+    fig, axes = plt.subplots(n_layers, n_heads, figsize=figsize)
     total_data_dict = {}
 
     is_1d_axes = len(axes.shape) == 1
