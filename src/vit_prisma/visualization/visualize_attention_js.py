@@ -43,7 +43,13 @@ def normalize_attn_head(attn_head):
     normalized_attn_head = (attn_head - min_val) / (max_val - min_val)
     return normalized_attn_head
 
-def plot_javascript(attn_head, image, ATTN_SCALING=20):
+def plot_javascript(attn_head, image, ATTN_SCALING=20, cls_token=True):
+
+    # if not cls_token:
+    #     attn_head = attn_head[1:, 1:]
+    #     offset = 0
+    # else:
+    #     offset = 1
 
     num_patches = len(attn_head) 
     image_size = len(image[-1]) 
@@ -60,38 +66,35 @@ def plot_javascript(attn_head, image, ATTN_SCALING=20):
     flattened_patches = flatten_into_patches(image, patch_size, image_size)
     normalized_attn_head = normalize_attn_head(attn_head)
     patches_json = json.dumps(flattened_patches)
+
+    if not cls_token:
+        normalized_attn_head = normalized_attn_head[1:, 1:]
+        num_patches = len(normalized_attn_head)
+
     attn_head_json = json.dumps(normalized_attn_head.tolist())
 
     html_code = generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canvas_attn_id, 
-    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING)
+    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING, cls_token=cls_token)
     return html_code
 
-FUNCTION_DEFINITIONS = """
-function patchToImageData(patch, width, height) {{
-            var imgData = new ImageData(width, height);
-            var data = imgData.data;
-            for (let p = 0, q = 0; p < patch.length; p += 3, q += 4) {{
-                data[q] = patch[p];
-                data[q + 1] = patch[p + 1];
-                data[q + 2] = patch[p + 2];
-                data[q + 3] = 255;
+def patch_to_img():
+    return f"""
+    function patchToImageData(patch, width, height) {{
+                var imgData = new ImageData(width, height);
+                var data = imgData.data;
+                for (let p = 0, q = 0; p < patch.length; p += 3, q += 4) {{
+                    data[q] = patch[p];
+                    data[q + 1] = patch[p + 1];
+                    data[q + 2] = patch[p + 2];
+                    data[q + 3] = 255;
+                }}
+                return imgData;
             }}
-            return imgData;
-        }}
 
-"""
-
-
-def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canvas_attn_id, 
-    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING):
-    html_code = f"""
-    <div style="display: flex;">
-        <canvas id="{canvas_attn_id}" width="{num_patches*ATTN_SCALING}" height="{num_patches*ATTN_SCALING}" style="width:{num_patches*ATTN_SCALING+20}px; height:{num_patches*ATTN_SCALING+20}px;"></canvas>
-        <canvas id="{canvas_img_id}" width="{image_size}" height="{image_size}" style="width:{image_size+20}px; height:{image_size+20}px;"></canvas>
-    </div>
-    <script>
-        {FUNCTION_DEFINITIONS}
-        function getColor(intensity) {{
+    """
+def get_color():
+    return f"""
+    function getColor(intensity) {{
             const viridisColorMap = [
                 {{pos: 0, rgb: [68, 1, 84]}} ,
                 {{pos: 0.1, rgb: [72, 34, 115]}},
@@ -120,12 +123,35 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
             return `rgba(253, 231, 37, 1.0)`;
         }}
 
+    """
+
+
+    
+def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canvas_attn_id, 
+    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING, cls_token=True):
+    html_code = f"""
+    <div style="display: flex;">
+        <canvas id="{canvas_attn_id}" width="{num_patches*ATTN_SCALING}" height="{num_patches*ATTN_SCALING}" style="width:{num_patches*ATTN_SCALING+20}px; height:{num_patches*ATTN_SCALING+20}px;"></canvas>
+        <canvas id="{canvas_img_id}" width="{image_size}" height="{image_size}" style="width:{image_size+20}px; height:{image_size+20}px;"></canvas>
+    </div>
+    <script>
+        {patch_to_img()}
+        {get_color()}
+
         var colorTokenA = 'rgba(0, 128, 128, 0.8)'; //teal
         var colorTokenB = 'rgba(255, 105, 180, 0.7)'; //pink
 
         var lastHighlightedCol = null;
         var lastHighlightedColSecond = null;
         var isEntireImageHighlighted = false;
+
+        if ({"true" if cls_token else "false"}) {{
+            var offset = 1;
+            var clsToken = true;
+        }} else {{
+            var offset = 0;
+            var clsToken = false;
+        }} 
 
         var matrixColorsImg = Array({num_patch_width}).fill().map(() => Array({num_patch_width}).fill('')); // cifar image
         var matrixColorsAttn = Array({num_patches**2}).fill().map(() => Array({num_patches**2}).fill('')); // attention head
@@ -180,8 +206,8 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
     canvasAttn.addEventListener('mousemove', function(event) {{
 
               if (lastHighlightedCol !== null) {{
-            const prevrowImg = Math.floor((lastHighlightedCol - 1) / {num_patch_width});
-            const prevcolImg = (lastHighlightedCol - 1) % {num_patch_width};
+            const prevrowImg = Math.floor((lastHighlightedCol - offset) / {num_patch_width});
+            const prevcolImg = (lastHighlightedCol - offset) % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -196,8 +222,8 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
         }}
 
         if (lastHighlightedColSecond !== null) {{
-            const prevrowImg = Math.floor((lastHighlightedColSecond - 1) / {num_patch_width});
-            const prevcolImg = (lastHighlightedColSecond - 1) % {num_patch_width};
+            const prevrowImg = Math.floor((lastHighlightedColSecond - offset) / {num_patch_width});
+            const prevcolImg = (lastHighlightedColSecond - offset) % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -208,25 +234,25 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
         }}
 
             var x = Math.floor(event.offsetY / {ATTN_SCALING});
-            if (x === 0) {{
+            if (x === 0 && clsToken) {{
                 lastHighlightedCol = null;
                 return;
             }}
-            const rowImg = Math.floor((x - 1) / {num_patch_width});
-            const colImg = (x - 1) % {num_patch_width};
+            const rowImg = Math.floor((x - offset) / {num_patch_width});
+            const colImg = (x - offset) % {num_patch_width};
 
             var y = Math.floor(event.offsetX / {ATTN_SCALING});
-            if (y === 0) {{
+            if (y === 0 && clsToken) {{
                 lastHighlightedColSecond = null;
                 return;
             }}
 
-            const rowImgSecond = Math.floor((y - 1) / {num_patch_width});
-            const colImgSecond = (y - 1) % {num_patch_width};
+            const rowImgSecond = Math.floor((y - offset) / {num_patch_width});
+            const colImgSecond = (y - offset) % {num_patch_width};
 
         if (lastHighlightedCol !== null) {{
-            const prevrowImg = Math.floor((lastHighlightedCol - 1) / {num_patch_width});
-            const prevcolImg = (lastHighlightedCol - 1) % {num_patch_width};
+            const prevrowImg = Math.floor((lastHighlightedCol - offset) / {num_patch_width});
+            const prevcolImg = (lastHighlightedCol - offset) % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -241,8 +267,8 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
         }}
 
         if (lastHighlightedColSecond !== null) {{
-            const prevrowImg = Math.floor((lastHighlightedColSecond - 1) / {num_patch_width});
-            const prevcolImg = (lastHighlightedColSecond - 1) % {num_patch_width};
+            const prevrowImg = Math.floor((lastHighlightedColSecond - offset) / {num_patch_width});
+            const prevcolImg = (lastHighlightedColSecond - offset) % {num_patch_width};
             var originalPatch = matrixColorsImg[prevrowImg][prevcolImg];
             var imgData = patchToImageData(originalPatch, {patch_size}, {patch_size});
 
@@ -270,8 +296,8 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
 
             if (lastHighlightedCol !== null) {{
 
-                const prevrowImg = Math.floor((lastHighlightedCol - 1)/ {num_patch_width});
-                const prevcolImg = (lastHighlightedCol - 1) % {num_patch_width};
+                const prevrowImg = Math.floor((lastHighlightedCol - offset)/ {num_patch_width});
+                const prevcolImg = (lastHighlightedCol - offset) % {num_patch_width};
 
                 if (matrixColorsImg[prevrowImg] && matrixColorsImg[prevrowImg][prevcolImg]) {{
 
@@ -289,8 +315,8 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
             }}
 
             if (lastHighlightedColSecond !== null) {{
-                const prevrowImg = Math.floor((lastHighlightedColSecond - 1) / {num_patch_width});
-                const prevcolImg = (lastHighlightedColSecond - 1) % {num_patch_width};
+                const prevrowImg = Math.floor((lastHighlightedColSecond - offset) / {num_patch_width});
+                const prevcolImg = (lastHighlightedColSecond - offset) % {num_patch_width};
 
                 if (matrixColorsImg[prevrowImg] && matrixColorsImg[prevrowImg][prevcolImg]) {{
                     // Fill in rectangle for img
@@ -318,3 +344,4 @@ def generate_html_and_js_code(patches_json, attn_head_json, canvas_img_id, canva
     """
 
     return html_code
+
