@@ -1,6 +1,6 @@
 # Usage Guide
 
-The Prisma Project is a framework that facilitates training Vision Transformers (ViTs) in various configurations, with synthetically generated datasets that would be best suited for mechanistic interpretability. The library also allows loading pretrained models from huggingface and timm which can further be finetuned with datasets using the trainer built into the framework.
+The Prisma Project is a framework that facilitates training Vision Transformers (ViTs) in various configurations, with synthetically generated datasets suited for mechanistic interpretability. The library also allows loading pretrained models from huggingface and timm, which can further be finetuned using the trainer built into the framework.
 
 ## Installing Repo
 
