@@ -20,8 +20,10 @@ git clone https://github.com/soniajoseph/ViT-Prisma
 cd ViT-Prisma
 pip install -e .
 ```
-## Usage guidelines
+## How do I use this repo?
 Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
+
+
 
 # What's in the repo?
 
