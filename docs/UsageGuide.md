@@ -45,6 +45,19 @@ config = InductionConfig.GlobalConfig()
 model = base_vit.BaseViT(config)
 ```
 
+### Using pretrained models
+
+```python
+from vit_prisma.models.pretrained_model import PretrainedModel
+from vit_prisma.configs import InductionConfig
+
+config = InductionConfig.GlobalConfig()
+
+hf_model = PretrainedModel('google/vit-base-patch16-224-in21k', config)
+
+timm_model = PretrainedModel('vit_base_patch32_224', config, is_timm=True)
+```
+
 ### Datasets
 
 The framework also has a few datasets that can be synthetically generated, and cached. 
