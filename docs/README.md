@@ -12,6 +12,19 @@ ViT Prisma is an open-source mechanistic interpretability library for Vision Tra
 
 We welcome new contributers. Check out our contributing guidelines [here](CONTRIBUTING.md).
 
+## Installing Repo
+
+To install as an editable repo:
+```
+git clone https://github.com/soniajoseph/ViT-Prisma
+cd ViT-Prisma
+pip install -e .
+```
+## Usage guidelines
+Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
+
+# What's in the repo?
+
 ## ViT Mice 🐭
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
@@ -46,7 +59,6 @@ Include frequent checkpoints throughout training, which will help other research
 ## ViT Prisms 🌈
 Our "Prisms" are the interpretability tools for ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
 
-
 ## ViT Training Code 🚀
 
 This repo includes training code to easily train ViTs from scratch or finetune existing models.
@@ -54,15 +66,6 @@ This repo includes training code to easily train ViTs from scratch or finetune e
 _To do_
 * Add hook functions to all transformers to easily retrieve activations
 
-## Installing Repo
-
-To install as an editable repo:
-
-```
-git clone https://github.com/soniajoseph/ViT-Prisma
-cd ViT-Prisma
-pip install -e .
-```
 ## Errors 💰
 If you point out a conceptual error in this code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-20 per bug depending on the bug's severity.
 
