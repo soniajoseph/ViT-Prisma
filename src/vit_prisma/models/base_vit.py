@@ -63,3 +63,19 @@ class BaseViT(nn.Module):
             x = x[:, 0]
         x = self.pre_head_norm(x)
         return x if pre_logits else self.head(x)
+
+    def get_activations(self, images: torch.Tensor):
+        
+        activations = {}
+
+        def save_activation(name):
+            def hook(model, input, output):
+                activations[name] = output.detach()
+            return hook
+        
+        for name, layer in self.named_modules():
+            layer.register_forward_hook(save_activation(name))
+        
+        self.forward(images)
+
+        return activations
