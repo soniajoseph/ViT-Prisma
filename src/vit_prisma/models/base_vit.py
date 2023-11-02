@@ -73,9 +73,15 @@ class BaseViT(nn.Module):
                 activations[name] = output.detach()
             return hook
         
+        active_hooks = []
+
         for name, layer in self.named_modules():
-            layer.register_forward_hook(save_activation(name))
+            active_hook = layer.register_forward_hook(save_activation(name))
+            active_hooks.append(active_hook)
         
         self.forward(images)
+
+        for hook in active_hooks:
+            hook.remove()
 
         return activations
