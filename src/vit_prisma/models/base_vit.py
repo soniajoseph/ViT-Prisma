@@ -3,8 +3,9 @@ import torch.nn as nn
 from vit_prisma.models.layers.transformer_block import TransformerBlock
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
+from vit_prisma.models.prisma_net import PrismaNet
 
-class BaseViT(nn.Module):
+class BaseViT(PrismaNet):
     """
     Base vision model.
     Based on 'An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale' https://arxiv.org/abs/2010.11929.
@@ -63,25 +64,3 @@ class BaseViT(nn.Module):
             x = x[:, 0]
         x = self.pre_head_norm(x)
         return x if pre_logits else self.head(x)
-
-    def get_activations(self, images: torch.Tensor):
-        
-        activations = {}
-
-        def save_activation(name):
-            def hook(model, input, output):
-                activations[name] = output.detach()
-            return hook
-        
-        active_hooks = []
-
-        for name, layer in self.named_modules():
-            active_hook = layer.register_forward_hook(save_activation(name))
-            active_hooks.append(active_hook)
-        
-        self.forward(images)
-
-        for hook in active_hooks:
-            hook.remove()
-
-        return activations
