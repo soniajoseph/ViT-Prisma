@@ -1,9 +1,9 @@
 import torch.nn as nn
 from transformers import ViTForImageClassification, AutoImageProcessor
 import timm
+from vit_prisma.models.prisma_net import PrismaNet
 
-
-class PretrainedModel(nn.Module):
+class PretrainedModel(PrismaNet):
     '''
     Wrapper class for pretrained models from huggingface and timm, 
     which can be used for finetuning with the trainer available in the Prisma project.

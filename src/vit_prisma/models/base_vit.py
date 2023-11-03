@@ -3,8 +3,9 @@ import torch.nn as nn
 from vit_prisma.models.layers.transformer_block import TransformerBlock
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
+from vit_prisma.models.prisma_net import PrismaNet
 
-class BaseViT(nn.Module):
+class BaseViT(PrismaNet):
     """
     Base vision model.
     Based on 'An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale' https://arxiv.org/abs/2010.11929.

@@ -50,21 +50,21 @@ class InductionDataset(Dataset):
 
 ## Functionality to generate dataset ##
 
-def draw_circle(image, center_row, center_col, radius=2):
+def draw_circle(image, center_row, center_col, radius=2, im_size=32):
         """Draw a circle on the given image."""
         for r in range(center_row-radius, center_row+radius+1):
             for c in range(center_col-radius, center_col+radius+1):
-                if (r - center_row)**2 + (c - center_col)**2 <= radius**2 and 0 <= r < 32 and 0 <= c < 32:
+                if (r - center_row)**2 + (c - center_col)**2 <= radius**2 and 0 <= r < im_size and 0 <= c < im_size:
                     image[r, c] = 1
         return image
 
-def draw_line(image, center_row, center_col, line_length=4):
+def draw_line(image, center_row, center_col, line_length=4, im_size=32):
     for i in range(-line_length // 2, line_length // 2 + 1):
-        if 0 <= center_row + i < 32 and 0 <= center_col < 32:
+        if 0 <= center_row + i < im_size and 0 <= center_col < im_size:
             image[center_row + i, center_col] = 1
     return image
 
-def draw_x(image, center_row, center_col, x_length=5):
+def draw_x(image, center_row, center_col, x_length=5, im_size=32):
     # Drawing the X centered around the center_col
 # Drawing the X centered around the start_col
     for i in range(x_length):
@@ -73,9 +73,9 @@ def draw_x(image, center_row, center_col, x_length=5):
     return image
 
 
-def draw_diagonal(image, center_row, center_col, line_length=4):
+def draw_diagonal(image, center_row, center_col, line_length=4, im_size=32):
     for i in range(-line_length // 2, line_length // 2 + 1):
-        if 0 <= center_row + i < 32 and 0 <= center_col + i < 32:
+        if 0 <= center_row + i < im_size and 0 <= center_col + i < im_size:
             image[center_row + i, center_col + i] = 1
 
     return image
