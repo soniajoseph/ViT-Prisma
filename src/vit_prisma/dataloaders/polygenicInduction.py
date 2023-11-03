@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 import torch
 import cv2
+from vit_prisma.dataloaders.induction import draw_circle, draw_line, draw_x, draw_diagonal
 
 class PolygenicInductionDataset(Dataset):
     def __init__(self, train_or_test, dir_path = '../data/PolygenicInduction', use_metadata=False, transform=None):
@@ -51,44 +52,14 @@ class PolygenicInductionDataset(Dataset):
 
 ## Functionality to generate dataset ##
 
-def draw_circle(image, center_row, center_col, radius=2):
-        """Draw a circle on the given image."""
-        for r in range(center_row-radius, center_row+radius+1):
-            for c in range(center_col-radius, center_col+radius+1):
-                if (r - center_row)**2 + (c - center_col)**2 <= radius**2 and 0 <= r < 64 and 0 <= c < 64:
-                    image[r, c] = 1
-        return image
-
-def draw_line(image, center_row, center_col, line_length=4):
-    for i in range(-line_length // 2, line_length // 2 + 1):
-        if 0 <= center_row + i < 64 and 0 <= center_col < 64:
-            image[center_row + i, center_col] = 1
-    return image
-
-def draw_x(image, center_row, center_col, x_length=5):
-    # Drawing the X centered around the center_col
-# Drawing the X centered around the start_col
-    for i in range(x_length):
-        image[center_row - x_length // 2 + i, center_col - x_length // 2 + i] = 1
-        image[center_row - x_length // 2 + i, center_col + x_length // 2 - i] = 1
-    return image
-
-
-def draw_diagonal(image, center_row, center_col, line_length=4):
-    for i in range(-line_length // 2, line_length // 2 + 1):
-        if 0 <= center_row + i < 64 and 0 <= center_col + i < 64:
-            image[center_row + i, center_col + i] = 1
-
-    return image
-
 def plot_four_objects(A, B, C, D, Ax, Ay, Bx, By, Cx, Cy, Dx, Dy, vertical=False):  
 
     image = np.zeros((64, 64))
     
-    A(image, Ax, Ay)
-    B(image, Bx, By)
-    C(image, Cx, Cy)
-    D(image, Dx, Dy)
+    A(image, Ax, Ay, im_size=64)
+    B(image, Bx, By, im_size=64)
+    C(image, Cx, Cy, im_size=64)
+    D(image, Dx, Dy, im_size=64)
 
     if vertical:
         image = image.T
