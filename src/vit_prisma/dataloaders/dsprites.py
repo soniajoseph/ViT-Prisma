@@ -6,7 +6,7 @@ import os
 
 
 class DSpritesDataset(Dataset):
-    def __init__(self, data_path):
+    def __init__(self, data_path= '/network/scratch/s/sonia.joseph/datasets/dsprites.npz'):
         # Load the dataset
         data = np.load(data_path, allow_pickle=True, encoding='latin1')
 
@@ -30,7 +30,6 @@ def train_test_dataset(dataset, test_split=0.25):
     datasets['test'] = Subset(dataset, val_idx)
     return datasets
 
-data_path = '/network/scratch/s/sonia.joseph/datasets/dsprites.npz' # path to the dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz data
 
 # Example to load the data with train and test split
 ## dsprites_dataset = DSpritesDataset(data_path)
