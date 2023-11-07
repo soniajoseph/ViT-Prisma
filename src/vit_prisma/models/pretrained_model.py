@@ -28,11 +28,11 @@ class PretrainedModel(PrismaNet):
                 print(f"Initializing new classifier head for finetuning with shape: ({self.model.classifier.in_features, self.n_classes})")
                 self.classifier = nn.Linear(self.model.classifier.in_features, self.n_classes)
     
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         try:
-            return self._modules.get('model').__getattr__(name)
+            return super().__getattr__(name)
         except AttributeError:
-            raise AttributeError(f"'{type(self).__name__}' does not have '{name}'")
+            return getattr(self.model_, name)
 
     def forward(self, x):
         if self.is_timm:
