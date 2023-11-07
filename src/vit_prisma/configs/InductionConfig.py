@@ -62,6 +62,7 @@ class LoggingConfig:
     print_every: int = 0
     use_wandb: bool = True
     wandb_project_name = 'induction_test'
+    wandb_team_name = 'perceptual-alignment'
 
 @dataclass
 class SavingConfig:

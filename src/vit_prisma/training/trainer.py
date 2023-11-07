@@ -29,7 +29,10 @@ def train(
         
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
-        wandb.init(project=config.logging.wandb_project_name)
+        if config.logging.wandb_team_name is None:
+            wandb.init(project=config.logging.wandb_project_name)
+        else:
+            wandb.init(entity=config.logging.wandb_team_name, project=config.logging.wandb_project_name)
         sweep_values = wandb.config._items # get sweep values
         update_dataclass_from_dict(config, sweep_values)
         wandb.config.update(dataclass_to_dict(config))
