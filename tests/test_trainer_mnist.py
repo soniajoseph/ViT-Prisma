@@ -19,10 +19,13 @@ class TestTrainingFunction(unittest.TestCase):
             self.config = GlobalConfig()
 
             # Define a simple model
-            self.model = BaseViT(self.config)
+            self.model_function = BaseViT
 
         def test_train_function(self):
-            trained_model = train(self.model, self.config, self.train_dataset, self.val_dataset)
+            self.config.logging.wandb_team_name = 'perceptual-alignment'
+            self.config.training.early_stopping = False
+
+            trained_model = train(self.model_function, self.config, self.train_dataset, self.val_dataset)
             self.assertIsInstance(trained_model, type(self.model))
 
 if __name__ == '__main__':

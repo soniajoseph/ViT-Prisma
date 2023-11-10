@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 
 
 def train(
-        model,
+        model_function,
         config,
         train_dataset,
         val_dataset=None,
@@ -41,6 +41,7 @@ def train(
     save_config_to_file(config, os.path.join(config.saving.parent_dir, "config.json"))
 
     set_seed(config.training.seed)
+    model = model_function(config)
     model.train()
     model.to(config.training.device)
     optimizer = optimizer_dict[config.training.optimizer_name](model.parameters(), lr = config.training.lr, weight_decay = config.training.weight_decay)
