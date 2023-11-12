@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 
 
 def train(
-        model,
+        model_function,
         config,
         train_dataset,
         val_dataset=None,
@@ -29,7 +29,10 @@ def train(
         
     # Replace config with wandb values if they exist (esp if in hyperparam sweep)
     if config.logging.use_wandb:
-        wandb.init(project=config.logging.wandb_project_name)
+        if config.logging.wandb_team_name is None:
+            wandb.init(project=config.logging.wandb_project_name)
+        else:
+            wandb.init(entity=config.logging.wandb_team_name, project=config.logging.wandb_project_name)
         sweep_values = wandb.config._items # get sweep values
         update_dataclass_from_dict(config, sweep_values)
         wandb.config.update(dataclass_to_dict(config))
@@ -38,6 +41,7 @@ def train(
     save_config_to_file(config, os.path.join(config.saving.parent_dir, "config.json"))
 
     set_seed(config.training.seed)
+    model = model_function(config)
     model.train()
     model.to(config.training.device)
     optimizer = optimizer_dict[config.training.optimizer_name](model.parameters(), lr = config.training.lr, weight_decay = config.training.weight_decay)
