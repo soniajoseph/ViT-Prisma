@@ -20,6 +20,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(hidden_dim, hidden_dim) if self.config.transformer.attn_hidden_layer else nn.Identity()
         self.proj_dropout = nn.Dropout(self.config.dropout.proj) if self.config.dropout.proj > 0 else nn.Identity()
         
+
         self._log(f"Attention layer initialized with config {self.config}")
 
     def _log(self, msg):
@@ -42,3 +43,9 @@ class Attention(nn.Module):
         x = self.proj_dropout(x)
         self._log(f"Attention output size is {x.shape}") 
         return x
+    
+    def forward_attn_ablation(self, layer_idx, head_idx):
+        self._log(f"Ablating layer {layer_idx}, head {head_idx}")
+        
+        
+        
