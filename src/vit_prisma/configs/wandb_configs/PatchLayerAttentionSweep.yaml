@@ -1,0 +1,36 @@
+program: /home/sjoseph/projects/def-tyrell-ab/sjoseph/yash/ViT-Prisma/run_scripts/train_dsprites.py
+project: dsprites
+
+name: patch-layer-attention-sweep
+description: Sweep over different patch_size, num_layers and attention_only 
+
+early_terminate:
+  max_iter: 50000
+  s: 2
+  type: hyperband
+
+method: grid
+
+metric:
+  goal: minimize
+  name: test_loss
+
+parameters:
+  image:
+    parameters:
+      patch_size:
+        values:
+          - 4
+          - 8
+  transformer:
+    parameters:
+      attention_only:
+        values:
+          - true
+          - false
+      num_layers:
+        values:
+          - 1
+          - 2
+          - 3
+          - 4

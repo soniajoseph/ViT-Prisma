@@ -12,7 +12,7 @@ We conducted experiments with Mice ViTs using the following configurations:
 - Scheduler Step Size: 200
 - Scheduler Gamma: 0.8
 
-For each attention layer setting, we analyzed two variants: an attention-only model and a model combining attention with the MLP module. We didn't apply any dropout or layer normalization for this experiment to make it simple to understand. The goal was to evaluate performance across different attention layer configurations in a clear and concise manner.
+For each attention layer setting, we analyzed two variants: an attention-only model and a model combining attention with the MLP module. We didn't apply any dropout or layer normalization for this experiment to make it simple to understand.
 
 ## Table of Results
 Below table descirbe the accuracy of Mice ViTs with different configuration.
