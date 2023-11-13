@@ -73,6 +73,10 @@ def train(
         start_epoch = checkpoint['epoch'] + 1
         print(f"Loaded checkpoint from epoch {checkpoint['epoch']}")
 
+    #create dir for checkoint if it doesn't exist
+    if os.path.exists(config.saving.parent_dir) and not os.path.exists(os.path.join(config.saving.parent_dir, config.saving.save_dir)):
+        os.makedirs(os.path.join(config.saving.parent_dir, config.saving.save_dir))
+
     num_samples = 0
 
     for epoch in tqdm(range(1, config.training.num_epochs + 1)):
