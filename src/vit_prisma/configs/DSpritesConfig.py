@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from vit_prisma.models.layers.transformer_block import TransformerBlock
 import torch.nn as nn
+from datetime import datetime
 
 @dataclass
 class ImageConfig:
@@ -10,9 +11,9 @@ class ImageConfig:
 
 @dataclass
 class TransformerConfig:
-    hidden_dim: int = 128
-    num_heads: int = 4
-    num_layers: int = 1
+    hidden_dim: int = 512
+    num_heads: int = 8
+    num_layers: int = 4
     block_fn = TransformerBlock
     mlp_dim: int = hidden_dim * 4  # Use a computed default
     activation_name: str = 'GELU'
@@ -42,8 +43,8 @@ class InitializationConfig:
 class TrainingConfig:
     loss_fn_name: str = "CrossEntropy"
     lr: float = 1e-4 
-    num_epochs: int = 50000
-    batch_size: int = 128 # set to -1 to denote whole batch
+    num_epochs: int = 10
+    batch_size: int = 512 # set to -1 to denote whole batch
     warmup_steps: int = 10
     weight_decay: float = 0.01
     max_grad_norm = 1.0
@@ -52,21 +53,24 @@ class TrainingConfig:
     optimizer_name: str = "AdamW"
     scheduler_step: int = 200
     scheduler_gamma: float = 0.8
-
+    early_stopping: bool = True
+    early_stopping_patience: int = 3
+    
 @dataclass
 class LoggingConfig:
     log_dir: str = 'logs'
-    log_frequency: int = 1
-    print_every: int = 0
+    log_frequency: int = 100
+    print_every: int = 100
     use_wandb: bool = True
     wandb_project_name = 'dsprites'
 
 @dataclass
 class SavingConfig:
-    parent_dir: str = "/network/scratch/s/sonia.joseph/vit_prisma"
-    save_dir: str = 'checkpoints'
+    parent_dir: str = "/scratch/sjoseph/yash/dsprites"
+    run_id: str = datetime.now().strftime('%Y%m%d_%H%M%S')  # Default to current timestamp, will be updated if wandb logging is on
+    save_dir: str = f'checkpoints/{run_id}'  # Incorporate run_id into the save directory
     save_checkpoints: bool = True
-    save_cp_frequency: int = 10
+    save_cp_frequency: int = 50
 
 class ClassificationConfig:
     num_classes: int = 3
