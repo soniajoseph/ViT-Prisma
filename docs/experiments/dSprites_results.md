@@ -1,0 +1,24 @@
+## dSprites Results
+The dSprites dataset consists of 2D shapes generated procedurally based on six independent latent factors: color, shape, scale, rotation, and the x and y positions of a sprite. Our specific focus was on the task of shape classification within the dSprites dataset, which encompasses a total of three distinct shapes. We train different mice vits for this task and presented the result below.
+
+## Training Details
+We conducted experiments with Mice ViTs using the following configurations:
+
+- Number of Attention Layers: Varied from 1 to 4
+- Number of Attention Heads: 8
+- Training Batch Size: 512
+- Image Patch Size: 8
+- Learning Rate: 1e-4
+- Scheduler Step Size: 200
+- Scheduler Gamma: 0.8
+
+For each attention layer setting, we analyzed two variants: an attention-only model and a model combining attention with the MLP module. We didn't apply any dropout or layer normalization for this experiment to make it simple to understand. The goal was to evaluate performance across different attention layer configurations in a clear and concise manner.
+
+## Table of Results
+Below table descirbe the accuracy of Mice ViTs with different configuration.
+| **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
+|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
+| **1**         | 0.535             | 0.459             | [AttentionOnly](attention_only_model_link_1) , [Attention+MLP](attention_mlp_model_link_1) |
+| **2**         | 0.996             | 0.685             | [AttentionOnly](attention_only_model_link_2) , [Attention+MLP](attention_mlp_model_link_2) |
+| **3**         | 1.000             | 0.774             | [AttentionOnly](attention_only_model_link_3) , [Attention+MLP](attention_mlp_model_link_3) |
+| **4**         | 1.000             | 0.991             | [AttentionOnly](attention_only_model_link_4) , [Attention+MLP](attention_mlp_model_link_4) |
