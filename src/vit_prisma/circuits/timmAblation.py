@@ -58,7 +58,37 @@ class timmAblation(torch.nn.Module):
 
             block.attn.qkv.weight.data[:, start_idx:end_idx] = cache['qkv_weight']
             block.attn.qkv.bias.data[start_idx:end_idx] = cache['qkv_bias']
-    
+            
+    def ablate_attn_layer(self, block_idx):
+        block = self.model.blocks[block_idx]
+        attn = block.attn
+
+        # Save the original weights and biases
+        self.ablation_cache[('attn', block_idx)] = {
+            'qkv_weight': attn.qkv.weight.data.clone(),
+            'qkv_bias': attn.qkv.bias.data.clone(),
+            'proj_weight': attn.proj.weight.data.clone(),
+            'proj_bias': attn.proj.bias.data.clone()
+        }
+
+        # Set the weights and biases of qkv and proj to zero
+        attn.qkv.weight.data.fill_(0)
+        attn.qkv.bias.data.fill_(0)
+        attn.proj.weight.data.fill_(0)
+        attn.proj.bias.data.fill_(0)
+        
+    def restore_attn_layer(self, block_idx):
+        if ('attn', block_idx) in self.ablation_cache:
+            block = self.model.blocks[block_idx]
+            attn = block.attn
+            cache = self.ablation_cache[('attn', block_idx)]
+
+            # Restore the original weights and biases
+            attn.qkv.weight.data = cache['qkv_weight']
+            attn.qkv.bias.data = cache['qkv_bias']
+            attn.proj.weight.data = cache['proj_weight']
+            attn.proj.bias.data = cache['proj_bias']
+
 
     def forward(self, x):
         return self.model(x)

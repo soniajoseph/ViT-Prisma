@@ -20,7 +20,7 @@ import argparse
 
 from vit_prisma.circuits.timmAblation import timmAblation
 
-def main(imagenet_path, save_dir, run_all = False, layer_idx=None, head_idx=None, skip_exists=None):
+def main(imagenet_path, save_dir, run_all = False, layer_idx=None, head_idx=None, skip_exists=None, ablate_layer=None, vanilla=False):
     # Setup basic logging
     logging.basicConfig(level=logging.INFO)
 
@@ -32,7 +32,7 @@ def main(imagenet_path, save_dir, run_all = False, layer_idx=None, head_idx=None
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
    
-    imagenet_data = datasets.ImageFolder(imagenet_path, tr ansform=data_transforms)
+    imagenet_data = datasets.ImageFolder(imagenet_path, transform=data_transforms)
     data_loader = DataLoader(imagenet_data, batch_size=64, shuffle=False)
     logging.info(f"ImageNet dataset loaded and preprocessed. Total datapoints: {len(imagenet_data)}")
 
@@ -41,21 +41,34 @@ def main(imagenet_path, save_dir, run_all = False, layer_idx=None, head_idx=None
     # 2. Load a pre-trained model from timm
     model_name = 'vit_base_patch32_224'
 
-    model = timmAblation(model_name)
-        
     if run_all:
-        run_all_layers(data_loader, model_name, save_dir, skip_exists)
-    else:
-        run_one(data_loader, model_name, save_dir, layer_idx, head_idx)
+        logging.info("Running all layers..")
+        if ablate_layer:
+            run_all_full_layer(data_loader, model_name, save_dir, skip_exists=skip_exists)
+        else:
+            run_all_layers(data_loader, model_name, save_dir, skip_exists=skip_exists)
         
-def run_one(data_loader, model_name, save_dir, layer_idx, head_idx):
+    else:
+        logging.info("Running one layer...")
+        run_one(data_loader, model_name, save_dir, layer_idx, head_idx, vanilla=vanilla)
+        
+def run_one(data_loader, model_name, save_dir, layer_idx, head_idx=None, vanilla=None):
+    
     model = timmAblation(model_name)
     logging.info(f"On layer {layer_idx}, head {head_idx}")
     model.eval()
     model = model.cuda()
 
     # Ablate model
-    model.ablate_attn_head(layer_idx, head_idx) 
+    if vanilla: # Don't ablate anything
+        save_name = f'unablated'
+    elif head_idx == None: # ablate layer-by-layer
+        model.ablate_attn_layer(layer_idx)
+        save_name = f'layer{layer_idx}_head{head_idx}'
+    else: # ablate head by head
+        model.ablate_attn_head(layer_idx, head_idx) 
+        save_name = f'layer{layer_idx}_head{head_idx}'
+
 
     correct_predictions = 0
     total_predictions = 0
@@ -63,7 +76,7 @@ def run_one(data_loader, model_name, save_dir, layer_idx, head_idx):
     # Determine the output size of your model
     output_size = model(torch.randn(1, 3, 224, 224).cuda()).shape[1]
 
-    save_path = os.path.join(save_dir, f'layer{layer_idx}_head{head_idx}')
+    save_path = os.path.join(save_dir, save_name)
     os.makedirs(save_path, exist_ok=True)
 
     # Open an HDF5 file to save logits and labels
@@ -105,21 +118,27 @@ def run_one(data_loader, model_name, save_dir, layer_idx, head_idx):
         acc_file.write(f"Accuracy for Layer {layer_idx}, Head {head_idx}: {total_accuracy:.4f}")
     del model
     
-def run_all_layers(data_loader, model, save_dir, num_layers=12, num_heads=12, skip_exists=True):
+def run_all_full_layer(data_loader, model_name, save_dir, num_layers=12, skip_exists=True):
     for layer_idx in range(num_layers):
+        run_one(data_loader, model_name, save_dir, layer_idx, head_idx=None)
+
+    
+def run_all_layers(data_loader, model_name, save_dir, num_layers=12, num_heads=12, skip_exists=True):
+    for layer_idx in range(num_layers):
+        print('layer_idx', layer_idx)
         for head_idx in range(num_heads):
             # Construct the directory path for the current layer and head index
-            if attn:
-            else:
-                save_path = os.path.join(save_dir, f'layer{layer_idx}_h')
+            
+            save_path = os.path.join(save_dir, f'layer{layer_idx}_head{head_idx}')
 
             # Check if the directory already exists
             if skip_exists and os.path.exists(save_path):
                 # If skipping is enabled and the directory exists, log a message and skip this configuration
                 logging.info(f"Skipping Layer {layer_idx}, Head {head_idx} as directory already exists.")
                 continue
-            
+   
             run_one(data_loader, model_name, save_dir, layer_idx, head_idx)
+                    
 
 
 if __name__ == "__main__":
@@ -129,11 +148,13 @@ if __name__ == "__main__":
     parser.add_argument("--run_all", action='store_true', help="run all")
     parser.add_argument("--layer_idx", type=int, help="")
     parser.add_argument("--head_idx", type=int, help="")
-    parser.add_argument("--skip_exists", action='store_true', help="Skip processing if directory already exists.", default=True)
-    
+    parser.add_argument("--skip_exists", action='store_true', help="Skip processing if directory already exists.", default=False)
+    parser.add_argument("--ablate_layer", action='store_true', help="Skip processing if directory already exists.", default=False)
+    parser.add_argument("--vanilla", action='store_true', help="Skip processing if directory already exists.", default=False)
+
 
     args = parser.parse_args()
-    main(args.imagenet_path, args.save_dir, args.run_all, args.layer_idx, args.head_idx, args.skip_exists)
+    main(args.imagenet_path, args.save_dir, args.run_all, args.layer_idx, args.head_idx, args.skip_exists, args.ablate_layer, args.vanilla)
     
     #  imagenet_path = '/network/datasets/imagenet.var/imagenet_torchvision/val/'
     # save_dir = '/network/scratch/s/sonia.joseph/imagenet_logits'
