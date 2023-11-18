@@ -47,7 +47,7 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
 * Modular Arithmetic Mice (full and attention-only)
      * Smallest possible full model that can do task on induction dataset
 * [dSprites](https://github.com/google-deepmind/dsprites-dataset) Mice
-     * Smallest possible model that can recognize shapes
+     * Smallest possible model that can recognize shapes. Checkpoints [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
      * Smallest possible model that can recognize size
      * Smallest possible model that can recognize position
      * Smallest possible model that can do all of the above with minimal fine-tuning 
