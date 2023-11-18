@@ -16,9 +16,9 @@ For each attention layer setting, we analyzed two variants: an attention-only mo
 
 ## Table of Results
 Below table descirbe the accuracy of Mice ViTs with different configuration.
-| **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
-|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
-| **1**         | 0.535             | 0.459             | [AttentionOnly](attention_only_model_link_1) , [Attention+MLP](attention_mlp_model_link_1) |
-| **2**         | 0.996             | 0.685             | [AttentionOnly](attention_only_model_link_2) , [Attention+MLP](attention_mlp_model_link_2) |
-| **3**         | 1.000             | 0.774             | [AttentionOnly](attention_only_model_link_3) , [Attention+MLP](attention_mlp_model_link_3) |
-| **4**         | 1.000             | 0.991             | [AttentionOnly](attention_only_model_link_4) , [Attention+MLP](attention_mlp_model_link_4) |
+| **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
+|:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
+| **tiny** | **1**         | 0.535             | 0.459             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-tiny-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-tiny-Attention-and-MLP) |
+| **base** | **2**         | 0.996             | 0.685             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-base-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-base-Attention-and-MLP) |
+| **small**| **3**         | 1.000             | 0.774             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-small-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-small-Attention-and-MLP) |
+| **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
