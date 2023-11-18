@@ -91,7 +91,7 @@ You will be able to use any other dataset with the framework, for ease of use, y
 
  config = InductionConfig.GlobalConfig()
 
- model = base_vit.BaseViT(config)
+ model_function = BaseViT
 
- trainer.train(model, config, train_dataset)
+ trainer.train(model_function, config, train_dataset)
  ```
