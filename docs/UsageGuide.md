@@ -82,7 +82,7 @@ You will be able to use any other dataset with the framework, for ease of use, y
  The trainer has built in support for wandb experiment tracking. Make sure to set up wandb on your localhost, and configure the tracking attributes in the Prisma config object.
 
  ```python
- from vit_prisma.models import base_vit
+ from vit_prisma.models.base_vit import BaseViT
  from vit_prisma.configs import InductionConfig
  from vit_prisma.training import trainer
  from vit_prisma.dataloaders.induction import InductionDataset
