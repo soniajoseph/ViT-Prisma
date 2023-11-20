@@ -4,6 +4,7 @@ from vit_prisma.models.layers.transformer_block import TransformerBlock
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 from vit_prisma.models.prisma_net import PrismaNet
+from vit_prisma.training.prisma_types import Masking, Objective
 
 class BaseViT(PrismaNet):
     """
@@ -16,6 +17,7 @@ class BaseViT(PrismaNet):
 
         self.logger = logger
         self.config = config
+        self.objective = config.training.objective
 
         self.config.transformer.activation_fn = activation_dict[self.config.transformer.activation_name]
 
@@ -34,7 +36,10 @@ class BaseViT(PrismaNet):
         block_fn = self.config.transformer.block_fn if hasattr(self.config.transformer, 'block_fn') else TransformerBlock
         self.blocks = nn.Sequential(*[block_fn(self.config) for _ in range(self.config.transformer.num_layers)])
         self.pre_head_norm = nn.LayerNorm(hidden_dim, eps=layer_norm) if layer_norm > 0 else nn.Identity()
-        self.head = nn.Linear(hidden_dim, self.config.classification.num_classes)
+        if self.objective == Objective.GENERATION:
+            self.head = nn.Linear(hidden_dim, self.config.image.image_size**2)
+        elif self.objective == Objective.CLASSIFICATION:
+            self.head = nn.Linear(hidden_dim, self.config.classification.num_classes)
 
         self.init_weights()
 
@@ -63,4 +68,12 @@ class BaseViT(PrismaNet):
         else:  # CLS token
             x = x[:, 0]
         x = self.pre_head_norm(x)
-        return x if pre_logits else self.head(x)
+        if pre_logits:
+            return x
+        else:
+            if self.config.training.objective == Objective.GENERATION and self.config.mask.mask_type == Masking.RANDOM:
+                x = self.head(x).view(-1, self.config.image.image_size, self.config.image.image_size)
+                return x
+            elif self.config.training.objective == Objective.CLASSIFICATION:
+                x = self.head(x)
+                return x
