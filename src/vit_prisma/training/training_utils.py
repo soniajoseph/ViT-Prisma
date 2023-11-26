@@ -27,9 +27,14 @@ def calculate_loss(net, data_loader, loss_fn, device, N=2000, batch_size=50):
         for items in islice(data_loader, N // batch_size):
             x, labels, *extras = items
             logits = net(x.to(device))
-            total += loss_fn(logits, labels.to(device)).item()
+            if isinstance(loss_fn, nn.MSELoss):
+                x = x.squeeze(1)
+                x = x.to(device)
+                total += loss_fn(logits, x).item()
+            else:
+                total += loss_fn(logits, labels.to(device)).item()
             points += len(labels)
-        return total / points
+        return total if isinstance(loss_fn, nn.MSELoss) else total / points
     
 def set_seed(seed):
     torch.manual_seed(seed)

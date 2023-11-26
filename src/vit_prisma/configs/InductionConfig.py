@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from vit_prisma.models.layers.transformer_block import TransformerBlock
 import torch.nn as nn
+import torch
+from vit_prisma.training.prisma_types import Masking, Objective
 
 @dataclass
 class ImageConfig:
@@ -33,6 +35,11 @@ class DropoutConfig:
     mlp: float = 0.0
 
 @dataclass
+class MaskConfig:
+    mask_type: Masking = Masking.RANDOM
+    mask_prob: float = 0.25
+
+@dataclass
 class InitializationConfig:
     weight_type: str = 'he'
     cls_std: float = 1e-6
@@ -40,14 +47,15 @@ class InitializationConfig:
 
 @dataclass
 class TrainingConfig:
-    loss_fn_name: str = "CrossEntropy"
+    objective: Objective = Objective.GENERATION
+    loss_fn_name: str = "MSE"
     lr: float = 5e-4
     num_epochs: int = 50000
-    batch_size: int = 64 # set to -1 to denote whole batch
+    batch_size: int = -1 # set to -1 to denote whole batch
     warmup_steps: int = 10
     weight_decay: float = 0.01
     max_grad_norm = 1.0
-    device: str = 'cuda'
+    device: str = 'cuda' if torch.cuda.is_available() else 'mps'
     seed: int = 0
     optimizer_name: str = "AdamW"
     scheduler_step: int = 200
@@ -78,6 +86,7 @@ class ClassificationConfig:
 @dataclass
 class GlobalConfig:
     image: ImageConfig = ImageConfig()
+    mask: MaskConfig = MaskConfig()
     transformer: TransformerConfig = TransformerConfig()
     layernorm: LayerNormConfig = LayerNormConfig()
     dropout: DropoutConfig = DropoutConfig()

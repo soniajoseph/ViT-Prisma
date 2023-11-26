@@ -13,6 +13,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import dataclasses
 from sklearn.model_selection import train_test_split
+from vit_prisma.training.prisma_types import Masking, Objective
 
 
 
@@ -22,6 +23,7 @@ def train(
         train_dataset,
         val_dataset=None,
         checkpoint_path=None,
+        test_image_ix=None,
 ):
     if val_dataset is None:
         train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2)
@@ -89,8 +91,21 @@ def train(
                 log_dict = {
                     "train_loss": train_loss,
                     "test_loss": test_loss,
+                    'learning_rate': scheduler.get_lr()[0],
                 }
                 if config.training.loss_fn_name == "MSE":
+                    if test_image_ix == None:
+                        test_image_ix = torch.randint(0, len(val_dataset), (1,)).item()
+                    test_image, *_ = val_dataset[test_image_ix]
+                    test_image = test_image.unsqueeze(0)
+                    test_image_reconstruction = model(test_image.to(config.training.device))[0] 
+                    test_image_reconstruction = wandb.Image(
+                        test_image_reconstruction,
+                        caption=f'Epoch {epoch} | Step {steps}',
+                    )
+                    log_dict.update({
+                        "test_image_reconstruction": test_image_reconstruction,
+                    })
                     tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Test loss: {test_loss:.6f}")
                 else:
                     train_acc = calculate_accuracy(model, train_loader, config.training.device)
@@ -107,7 +122,11 @@ def train(
             images, labels = images.to(config.training.device), labels.to(config.training.device)
             optimizer.zero_grad()
             y = model(images)
-            loss = loss_fn(y, labels)
+            if config.training.objective == Objective.GENERATION:
+                images = images.squeeze(1)
+                loss = loss_fn(y, images)
+            else:
+                loss = loss_fn(y, labels)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.training.max_grad_norm) if config.training.max_grad_norm is not None else None
             optimizer.step()
