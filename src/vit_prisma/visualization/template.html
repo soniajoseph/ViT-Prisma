@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+    <div style="display: flex; justify-content: center; align-items: center;">
+        <label for="attnHeadSelector">Select Attention Head:</label>
+        <select id="attnHeadSelector"> </select>
+    </div>
+    <div style="display: flex;">
+
+        <canvas id="{{ canvas_attn_id }}" width="{{ num_patches * ATTN_SCALING }}" height="{{ num_patches * ATTN_SCALING }}" style="width:{{ num_patches * ATTN_SCALING  }}px; height:{{ num_patches * ATTN_SCALING  }}px;"></canvas>
+        <canvas id="{{ canvas_img_id }}" width="{{ image_size }}" height="{{ image_size }}" style="width:{{ image_size + 20 }}px; height:{{ image_size + 20 }}px;"></canvas>
+    </div>
+
+    <script>
+        var CANVAS_ATTN_ID = "{{ canvas_attn_id }}";
+        var CANVAS_IMG_ID = "{{ canvas_img_id }}";
+        var ATTN_HEAD_SELECTOR_ID = "attnHeadSelector";
+        var IMAGE_SIZE = {{ image_size }};
+        var PATCH_SIZE = {{ patch_size }};
+        var NUM_PATCH_WIDTH = {{ num_patch_width }};
+        var NUM_PATCHES = {{ num_patches }};
+        var ATTN_SCALING = {{ ATTN_SCALING }};
+        var CLS_TOKEN = {{ "true" if cls_token else "false" }};
+        var PATCHES_JSON = "{{ patches_json }}";
+        var ATTN_HEAD_JSON = "{{ list_of_attn_head_json }}";
+    </script>
+    <script>{{get_color_js}}</script>
+    <script>{{patch_to_img_js}}</script>
+    <script>{{main_visualize_js}}</script>
+</body>
+</html>
