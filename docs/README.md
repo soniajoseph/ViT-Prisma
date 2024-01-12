@@ -33,11 +33,11 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 **Part Three:** Code to train your own vision transformers.
 
-# Part One: Mechanistic Interpretability Tooling
+## Part One: Mechanistic Interpretability Tooling
 
 _Coming soon._
 
-# Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
+## Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
 **Categories of ViT Mice** 
@@ -69,7 +69,7 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
 
-# Part Three: ViT Training Code 🚀
+## Part Three: ViT Training Code 🚀
 
 This repo includes training code to easily train ViTs from scratch or finetune existing models. See our [Usage Guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md) for more information.
 
