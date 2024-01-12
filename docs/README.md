@@ -5,6 +5,7 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
+Welcome to ViT Prisma, the mother of vision and multimodal mechanistic interpretability research.
 
 ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by Sonia Joseph.
 
@@ -27,7 +28,15 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 # What's in the repo?
 
-## ViT Mice 🐭
+**Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _Coming soon_
+**Part Two:** Open source mini trainsformers (ViT "mice"). _In progress._
+**Part Three:** Code to train your own vision transformers.
+
+# Part One: Mechanistic Interpretability Tooling
+
+_Coming soon._
+
+# Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
 **Categories of ViT Mice** 
@@ -58,15 +67,10 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
-## ViT Prisms 🌈
-Our "Prisms" are the interpretability tools for ViTs. By viewing a ViT through different prisms, we can uncover different aspects of its operation, from attention patterns to feature visualizations and more.
 
-## ViT Training Code 🚀
+# Part Thhree: ViT Training Code 🚀
 
 This repo includes training code to easily train ViTs from scratch or finetune existing models.
-
-_To do_
-* Add hook functions to all transformers to easily retrieve activations
 
 ## Errors 💰
 If you point out a conceptual error in this code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-20 per bug depending on the bug's severity.
