@@ -25,11 +25,12 @@ pip install -e .
 Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
 
 
-
 # What's in the repo?
 
 **Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _Coming soon_
+
 **Part Two:** Open source mini trainsformers (ViT "mice"). _In progress._
+
 **Part Three:** Code to train your own vision transformers.
 
 # Part One: Mechanistic Interpretability Tooling
@@ -68,9 +69,9 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
 
-# Part Thhree: ViT Training Code 🚀
+# Part Three: ViT Training Code 🚀
 
-This repo includes training code to easily train ViTs from scratch or finetune existing models.
+This repo includes training code to easily train ViTs from scratch or finetune existing models. See our [Usage Guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md) for more information.
 
 ## Errors 💰
 If you point out a conceptual error in this code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-20 per bug depending on the bug's severity.
