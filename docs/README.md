@@ -11,7 +11,7 @@ ViT Prisma is an open-source mechanistic interpretability library for Vision Tra
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi) [and more coming soon]
 
-We welcome new contributers. Check out our contributing guidelines [here](CONTRIBUTING.md).
+We welcome new contributors. Check out our contributing guidelines [here](CONTRIBUTING.md).
 
 ## Installing Repo
 
@@ -29,7 +29,7 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 **Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _Coming soon_
 
-**Part Two:** Open source mini trainsformers (ViT "mice"). _In progress._
+**Part Two:** Open source mini transformers (ViT "mice"). _In progress._
 
 **Part Three:** Code to train your own vision transformers.
 
