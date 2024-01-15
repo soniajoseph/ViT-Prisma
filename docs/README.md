@@ -48,7 +48,7 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
 1. **Toy Data Mice:** Trained on controlled, synthetic datasets to understand specific behaviors or to isolate certain aspects of the learning process.
 2. **In-the-Wild Mice:** Trained on naturalistic, real-world data reminiscent of models in-production.
  
-### ImageNet1-k classification
+### ImageNet-1k classification
 
 *Coming soon.*
 
