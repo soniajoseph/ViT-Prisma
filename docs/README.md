@@ -5,8 +5,6 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
-Welcome to ViT Prisma, the mother of vision and multimodal mechanistic interpretability research.
-
 ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by Sonia Joseph.
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi) [and more coming soon]
@@ -41,33 +39,22 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 * [Attention Head Demo Notebook](https://colab.research.google.com/drive/1xyNa2ghlALC7SejHNJYmAHc9wBYWUhZJ#scrollTo=MyKK6W1ltsKk)
 
 
+<img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
+
 # Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
 **Categories of ViT Mice** 
 1. **Toy Data Mice:** Trained on controlled, synthetic datasets to understand specific behaviors or to isolate certain aspects of the learning process.
 2. **In-the-Wild Mice:** Trained on naturalistic, real-world data reminiscent of models in-production.
-
-**To do to train** 
-1-4 layer, attention-only, and full-attention versions of each.
-* ImageNet-1k Mice
-   * Attention-only
-     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
-   * Full-attention
-     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
-* Induction Mice (full and attention-only)
-     * Smallest possible full model that can do task on induction dataset
-* Modular Arithmetic Mice (full and attention-only)
-     * Smallest possible full model that can do task on induction dataset
-* dSprites
-    * Smallest possible model that can recognize size.
-    * Smallest possible model that can recognize position.
  
-### dSprites
+### ImageNet1-k classification
 
-Original dataset is [here]((https://github.com/google-deepmind/dsprites-dataset).
+*Coming soon.*
 
-#### Shape Classification
+### dSprites Shape Classification
+
+Original dataset is [here](https://github.com/google-deepmind/dsprites-dataset). 
 
 Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
 
@@ -80,9 +67,21 @@ Full results and training setup are [here](https://github.com/soniajoseph/ViT-Pr
 | **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
 
 
+### To do: to train
+
+1-4 layer, attention-only, and full-attention versions of each.
+* ImageNet-1k Mice (reconstruction loss)
+   * Attention-only
+     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
+   * Full-attention
+     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
+* dSprites
+    * Smallest possible model that can recognize size.
+    * Smallest possible model that can recognize position.
+
 ## Guidelines for training + uploading models
 
-Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including loss and accuracy curves, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. Links to the wandb training info are also welcome.
+Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including links to loss and accuracy curves on weights and biases, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. 
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
