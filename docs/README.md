@@ -33,24 +33,23 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 **Part Three:** Code to train your own vision transformers.
 
-## Part One: Mechanistic Interpretability Tooling
+# Part One: Mechanistic Interpretability Tooling
 
-_Coming soon._
+*Coming soon.*
 
 **Attention head visualization code**
-* [*Attention Head Demo Notebook*](https://colab.research.google.com/drive/1xyNa2ghlALC7SejHNJYmAHc9wBYWUhZJ#scrollTo=MyKK6W1ltsKk)
+* [Attention Head Demo Notebook](https://colab.research.google.com/drive/1xyNa2ghlALC7SejHNJYmAHc9wBYWUhZJ#scrollTo=MyKK6W1ltsKk)
 
 
-## Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
+# Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
 **Categories of ViT Mice** 
 1. **Toy Data Mice:** Trained on controlled, synthetic datasets to understand specific behaviors or to isolate certain aspects of the learning process.
 2. **In-the-Wild Mice:** Trained on naturalistic, real-world data reminiscent of models in-production.
 
-**List of Mice** 
-
-_To train_ (1-4 layer, attention-only, and full-attention versions of each)
+**To do to train** 
+1-4 layer, attention-only, and full-attention versions of each.
 * ImageNet-1k Mice
    * Attention-only
      * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
@@ -60,11 +59,18 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
      * Smallest possible full model that can do task on induction dataset
 * Modular Arithmetic Mice (full and attention-only)
      * Smallest possible full model that can do task on induction dataset
+* dSprites
+    * Smallest possible model that can recognize size.
+    * Smallest possible model that can recognize position.
  
-### [dSprites]((https://github.com/google-deepmind/dsprites-dataset)
+### dSprites]
+
+Original dataset is [here]((https://github.com/google-deepmind/dsprites-dataset).
 
 *Shape Classification*
-_Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
+
+Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
+
 ## Table of Results
 | **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
 |:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
@@ -74,23 +80,17 @@ _Full results and training setup are [here](https://github.com/soniajoseph/ViT-P
 | **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
 
 
-_To train_
- * Smallest possible model that can recognize shapes. 
- * Smallest possible model that can recognize size
- * Smallest possible model that can recognize position
- * Smallest possible model that can do all of the above with minimal fine-tuning 
-
-**Guidelines for training + uploading models**
+## Guidelines for training + uploading models
 
 Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including loss and accuracy curves, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. Links to the wandb training info are also welcome.
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
-## Part Three: ViT Training Code 🚀
+# Part Three: ViT Training Code 🚀
 
 This repo includes training code to easily train ViTs from scratch or finetune existing models. See our [Usage Guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md) for more information.
 
-## Errors 💰
+# Errors 💰
 If you point out a conceptual error in this code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-20 per bug depending on the bug's severity.
 
 # Citation
