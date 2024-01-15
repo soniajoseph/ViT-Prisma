@@ -25,7 +25,7 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 # What's in the repo?
 
-**Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _Coming soon_
+**Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _In progress._
 
 **Part Two:** Open source mini transformers (ViT "mice"). _In progress._
 
