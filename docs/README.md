@@ -56,7 +56,7 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
 
 Original dataset is [here](https://github.com/google-deepmind/dsprites-dataset). 
 
-Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
+Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md). These models were trained by Yash Vadi.
 
 **Table of Results**
 | **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
