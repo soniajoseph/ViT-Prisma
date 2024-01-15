@@ -37,6 +37,10 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 
 _Coming soon._
 
+**Attention head visualization code**
+* [*Attention Head Demo Notebook*](https://colab.research.google.com/drive/1xyNa2ghlALC7SejHNJYmAHc9wBYWUhZJ#scrollTo=MyKK6W1ltsKk)
+
+
 ## Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
 ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
@@ -56,18 +60,31 @@ _To train_ (1-4 layer, attention-only, and full-attention versions of each)
      * Smallest possible full model that can do task on induction dataset
 * Modular Arithmetic Mice (full and attention-only)
      * Smallest possible full model that can do task on induction dataset
-* [dSprites](https://github.com/google-deepmind/dsprites-dataset) Mice
-     * Smallest possible model that can recognize shapes. Checkpoints [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
-     * Smallest possible model that can recognize size
-     * Smallest possible model that can recognize position
-     * Smallest possible model that can do all of the above with minimal fine-tuning 
+ 
+### [dSprites]((https://github.com/google-deepmind/dsprites-dataset)
+
+*Shape Classification*
+_Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
+## Table of Results
+| **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
+|:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
+| **tiny** | **1**         | 0.535             | 0.459             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-tiny-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-tiny-Attention-and-MLP) |
+| **base** | **2**         | 0.996             | 0.685             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-base-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-base-Attention-and-MLP) |
+| **small**| **3**         | 1.000             | 0.774             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-small-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-small-Attention-and-MLP) |
+| **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
+
+
+_To train_
+ * Smallest possible model that can recognize shapes. 
+ * Smallest possible model that can recognize size
+ * Smallest possible model that can recognize position
+ * Smallest possible model that can do all of the above with minimal fine-tuning 
 
 **Guidelines for training + uploading models**
 
 Upload your trained models to Huggingface. Follow the [Huggingface guidelines](https://huggingface.co/docs/hub/models-uploading) and also create a model card. Document as much of the training process as possible including loss and accuracy curves, dataset (and order of training data), hyperparameters, optimizer, learning rate schedule, hardware, and other details that may be relevant. Links to the wandb training info are also welcome.
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
-
 
 ## Part Three: ViT Training Code 🚀
 
