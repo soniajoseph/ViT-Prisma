@@ -63,15 +63,15 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
     * Smallest possible model that can recognize size.
     * Smallest possible model that can recognize position.
  
-### dSprites]
+### dSprites
 
 Original dataset is [here]((https://github.com/google-deepmind/dsprites-dataset).
 
-*Shape Classification*
+#### Shape Classification
 
 Full results and training setup are [here](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/experiments/dSprites_results.md).
 
-## Table of Results
+**Table of Results**
 | **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
 |:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
 | **tiny** | **1**         | 0.535             | 0.459             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-tiny-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-tiny-Attention-and-MLP) |
