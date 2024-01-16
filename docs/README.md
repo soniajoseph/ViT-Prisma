@@ -50,7 +50,16 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
  
 ### ImageNet-1k classification
 
-*Coming soon.*
+The detailed training logs and metrics can be found [here](https://wandb.ai/vit-prisma/Imagenet/overview?workspace=user-yash-vadi). These models were trained by Yash Vadi.
+
+## Table of Results
+Below table describe the accuracy `[ <Acc> | <Top5 Acc> ]` of Mice ViTs with different configurations.
+| **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
+|:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
+| **tiny** | **1**         | 0.16 \| 0.33             |  0.11 \| 0.25             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-tiny-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-tiny-Attention-and-MLP) |
+| **base** | **2**         | 0.23 \| 0.44             |  0.16 \| 0.34             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-base-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-base-Attention-and-MLP) |
+| **small**| **3**         | 0.28 \| 0.51            | 0.17 \| 0.35             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-small-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-small-Attention-and-MLP) |
+| **medium**|**4**         | 0.33 \| 0.56             | 0.17 \| 0.36             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-medium-Attention-and-MLP) |
 
 ### dSprites Shape Classification
 
