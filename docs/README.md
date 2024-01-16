@@ -53,7 +53,9 @@ ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mic
 The detailed training logs and metrics can be found [here](https://wandb.ai/vit-prisma/Imagenet/overview?workspace=user-yash-vadi). These models were trained by Yash Vadi.
 
 **Table of Results**
-Below table describe the accuracy `[ <Acc> | <Top5 Acc> ]` of Mice ViTs with different configurations.
+
+Accuracy `[ <Acc> | <Top5 Acc> ]`
+
 | **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
 |:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
 | **tiny** | **1**         | 0.16 \| 0.33             |  0.11 \| 0.25             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-tiny-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-tiny-Attention-and-MLP) |
