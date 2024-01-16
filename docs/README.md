@@ -5,7 +5,7 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
-ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by [Sonia Joseph](https://twitter.com/soniajoseph).
+ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_).
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi) [and more coming soon]
 
