@@ -42,13 +42,13 @@ Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/U
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
 # Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
-ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are often used in scientific experiments for the nimble size and ease of iteration, ViT Mice serve a similar purpose to provide insights about their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
+ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are used in scientific experiments for their small size, ViT Mice serve a similar purpose to illuminate their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
 **Categories of ViT Mice** 
 1. **Toy Data Mice:** Trained on controlled, synthetic datasets to understand specific behaviors or to isolate certain aspects of the learning process.
 2. **In-the-Wild Mice:** Trained on naturalistic, real-world data reminiscent of models in-production.
  
-### ImageNet-1k classification
+### ImageNet-1k classification training checkpoints
 
 The detailed training logs and metrics can be found [here](https://wandb.ai/vit-prisma/Imagenet/overview?workspace=user-yash-vadi). These models were trained by Yash Vadi.
 
@@ -63,7 +63,7 @@ Accuracy `[ <Acc> | <Top5 Acc> ]`
 | **small**| **3**         | 0.28 \| 0.51            | 0.17 \| 0.35             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-small-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-small-Attention-and-MLP) |
 | **medium**|**4**         | 0.33 \| 0.56             | 0.17 \| 0.36             | [AttentionOnly](https://huggingface.co/IamYash/ImageNet-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/ImageNet-medium-Attention-and-MLP) |
 
-### dSprites Shape Classification
+### dSprites Shape Classification training checkpoints
 
 Original dataset is [here](https://github.com/google-deepmind/dsprites-dataset). 
 
