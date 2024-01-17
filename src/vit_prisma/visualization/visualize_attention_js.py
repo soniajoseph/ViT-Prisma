@@ -2,7 +2,7 @@ import numpy as np
 import string, random, json
 import torch
 import os
-
+from typing import List
 from jinja2 import Template
 
 def convert_to_3_channels(image):
@@ -40,45 +40,62 @@ def normalize_attn_head(attn_head):
     normalized_attn_head = (attn_head - min_val) / (max_val - min_val)
     return normalized_attn_head
 
-def plot_javascript(list_of_attn_heads, image, ATTN_SCALING=20, cls_token=True):
+
+# prep data to send to javascript
+class AttentionHeadImageJSInfo:
+
+    def __init__(self, attn_head, image, name="No Name", cls_token=True):
+
+        normalized_ah = normalize_attn_head(attn_head)
+        if not cls_token:
+            normalized_ah = normalized_ah[1:, 1:]
+
+        image_size = image.shape[-1]
+        assert image_size == image.shape[-2], "images are assumed to be square"
+
+        patch_size = int(image_size // np.sqrt(len(normalized_ah) - 1))
+        image = prepare_image(image)
+        flattened_patches = flatten_into_patches(image, patch_size, image_size)
+
+        self.patches = flattened_patches
+        self.image_size = image_size
+        self.attn_head = normalized_ah.tolist()
+        self.name = name
+
+
+
+def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN_SCALING=20, cls_token=True):
 
     if type(list_of_attn_heads) != list:
         list_of_attn_heads = [list_of_attn_heads]
+    if type(list_of_images) != list:
+        list_of_images = [list_of_images]
 
-    num_patches = len(list_of_attn_heads[0])
-    for ah in list_of_attn_heads:
-        assert num_patches == len(ah), "all attention heads must be same length"
+    if list_of_names is None:
+        for i in range(len(list_of_attn_heads)):
+            list_of_images.append(f"Attention Head {i+1}")
 
-    image_size = len(image[-1]) 
-    patch_size = int(image_size // np.sqrt(num_patches-1)) 
-    num_patch_width = image_size // (patch_size-1)
-    print("num_patches", num_patches)
-    print("patch_size", patch_size)
+    assert len(list_of_attn_heads) == len(list_of_images), "Must provide an image for each attention head"
+    assert len(list_of_attn_heads) == len(list_of_names), "Must provide a name for each attention head"
 
-    canvas_img_id = generate_random_string()
-    canvas_attn_id = generate_random_string()
-    image = prepare_image(image)
-    flattened_patches = flatten_into_patches(image, patch_size, image_size)
-    patches_json = json.dumps(flattened_patches)
+    attn_head_image_js_infos = []
+    for attn_head, image, name in zip(list_of_attn_heads, list_of_images, list_of_names):
+        attn_head_image_js_infos.append(AttentionHeadImageJSInfo(attn_head, image, name=name, cls_token=True))
 
-    list_of_normalized_attn_heads = []
-    for ah in list_of_attn_heads:
-        normalized_ah = normalize_attn_head(ah)
-        if not cls_token:
-            normalized_ah = normalized_ah[1:, 1:]
-            num_patches = len(normalized_ah)
-        list_of_normalized_attn_heads.append(normalized_ah)
-    list_of_attn_head_json = json.dumps([ah.tolist() for ah in list_of_normalized_attn_heads])
-    html_code = generate_html_and_js_code(patches_json, list_of_attn_head_json, canvas_img_id, canvas_attn_id,
-    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING, cls_token=cls_token)
+    attn_heads_json = json.dumps([info.attn_head for info in attn_head_image_js_infos])
+    patches_json = json.dumps([info.patches for info in attn_head_image_js_infos])
+    image_sizes_json = json.dumps([info.image_size for info in attn_head_image_js_infos])
+    names_json = json.dumps([info.name for info in attn_head_image_js_infos])
+
+    html_code = generate_html_and_js_code(attn_heads_json, patches_json,image_sizes_json, names_json, ATTN_SCALING, cls_token=cls_token)
     return html_code
-
-
-
-
     
-def generate_html_and_js_code(patches_json, list_of_attn_head_json, canvas_img_id, canvas_attn_id,
-    image_size, patch_size, num_patch_width, num_patches, ATTN_SCALING, cls_token=True):
+def generate_html_and_js_code(attn_heads_json, patches_json, image_sizes_json, names_json, ATTN_SCALING, cls_token=True,  canvas_img_id=None, canvas_attn_id=None):
+
+    if canvas_img_id is None:
+        canvas_img_id = generate_random_string()
+    if canvas_attn_id is None:
+        canvas_attn_id = generate_random_string()
 
     template_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,19 +114,37 @@ def generate_html_and_js_code(patches_json, list_of_attn_head_json, canvas_img_i
         main_visualize_js = main_js,
         patch_to_img_js = patch_to_img_js,
         get_color_js = get_color_js,
-        canvas_attn_id=canvas_attn_id,
-        canvas_img_id=canvas_img_id,
-        image_size=image_size,
-        patch_size = patch_size,
-        num_patch_width = num_patch_width,
-        num_patches=num_patches,
+
+        attn_heads_json=attn_heads_json,
+        patches_json=patches_json,
+        image_sizes_json=image_sizes_json,
+        names_json = names_json,
+
         ATTN_SCALING=ATTN_SCALING,
         cls_token = cls_token,
-        patches_json = patches_json,
-        list_of_attn_head_json = list_of_attn_head_json
+
+        canvas_attn_id = canvas_attn_id,
+        canvas_img_id = canvas_img_id
     )
 
     return html_code
+
+
+# get layer 0 activations from running the model on the sample image.
+def _get_layer_0_activations(model, image):
+    layer_0_activations = None
+
+    def hook_fn(m,i,o):
+        nonlocal layer_0_activations
+        layer_0_activations = i[0][0].cpu().numpy()
+
+    handle = model.blocks[0].attn.attn_scores.register_forward_hook(hook_fn)
+    model.eval()
+    with torch.no_grad():
+        model(torch.from_numpy(np.expand_dims(image,axis=0)).cuda())
+    handle.remove()
+
+    return layer_0_activations
 
 def main_example():
     import webbrowser
@@ -120,7 +155,8 @@ def main_example():
     cur_folder = os.path.dirname(os.path.abspath(__file__))
 
     # load sample image
-    sample_image = np.load(os.path.join(cur_folder, "sample_cifar10_image.npy"))
+    sample_image_0 = np.load(os.path.join(cur_folder, "sample_cifar10_image_0.npy"))
+    sample_image_10 = np.load(os.path.join(cur_folder, "sample_cifar10_image_10.npy"))
 
     # Load original model
     orig_model = timm.create_model('vit_base_patch32_224', pretrained=True)
@@ -132,28 +168,19 @@ def main_example():
 
     # Reset attention with pretrained weights from original model.
     model.load_state_dict(orig_model.state_dict())
-
-    ## get layer 0 activations from running the model on the sample image.
-    layer_0_sample_image_activations = None
-    def hook_fn(m,i,o):
-        nonlocal layer_0_sample_image_activations
-        layer_0_sample_image_activations = i[0][0].cpu().numpy()
-    handle = model.blocks[0].attn.attn_scores.register_forward_hook(hook_fn)
     model = model.cuda()
-    model.eval()
-    with torch.no_grad():
-        model(torch.from_numpy(np.expand_dims(sample_image,axis=0)).cuda())
-    handle.remove()
 
+    layer_0_sample_image_0_activations = _get_layer_0_activations(model, sample_image_0)
+
+    layer_0_sample_image_10_activations = _get_layer_0_activations(model, sample_image_10)
     # plot attention head 3 and 1 ("corner head")
 
-    attn_head_1 = layer_0_sample_image_activations[3]
+    attn_head_1 = layer_0_sample_image_0_activations[3]
+    attn_head_2 = layer_0_sample_image_10_activations[1]
 
-    attn_head_2 = layer_0_sample_image_activations[1]
+    html_code = plot_javascript([attn_head_1, attn_head_2], [sample_image_0,sample_image_10], list_of_names=["Generic", "Corner"], ATTN_SCALING=8, cls_token=True)
 
-    html_code = plot_javascript([attn_head_1, attn_head_2], image=sample_image, ATTN_SCALING=8, cls_token=True)
-
-    temp_path =  os.path.join(cur_folder, 'temp.html')
+    temp_path = os.path.join(cur_folder, 'temp.html')
     with open(temp_path, 'w') as f:
         f.write(html_code)
     webbrowser.open('file://' + temp_path)
