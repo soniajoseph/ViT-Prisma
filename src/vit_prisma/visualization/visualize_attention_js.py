@@ -72,6 +72,7 @@ def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN
         list_of_images = [list_of_images]
 
     if list_of_names is None:
+        list_of_names = []
         for i in range(len(list_of_attn_heads)):
             list_of_names.append(f"Attention Head {i+1}")
 
