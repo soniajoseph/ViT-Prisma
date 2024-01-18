@@ -73,7 +73,7 @@ def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN
 
     if list_of_names is None:
         for i in range(len(list_of_attn_heads)):
-            list_of_images.append(f"Attention Head {i+1}")
+            list_of_names.append(f"Attention Head {i+1}")
 
     assert len(list_of_attn_heads) == len(list_of_images), "Must provide an image for each attention head"
     assert len(list_of_attn_heads) == len(list_of_names), "Must provide a name for each attention head"
