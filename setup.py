@@ -27,6 +27,6 @@ setup(
             # Other development dependencies...
         ],
     },
-    keywords='vision-transformer, machine-learning, mechanistic interpretability',
+    keywords='vision-transformer, clip, multimodal, machine-learning, mechanistic interpretability',
     zip_safe=False,
 )
