@@ -1,4 +1,4 @@
-function getColor(intensity, colorMapName='deep') {
+function getColor(intensity, colorMapName='viridis') {
 
     const colorMaps = {
         deep: [
