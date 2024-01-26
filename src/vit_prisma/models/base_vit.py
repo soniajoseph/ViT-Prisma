@@ -64,3 +64,4 @@ class BaseViT(PrismaNet):
             x = x[:, 0]
         x = self.pre_head_norm(x)
         return x if pre_logits else self.head(x)
+
