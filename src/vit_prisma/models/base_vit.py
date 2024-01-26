@@ -48,8 +48,13 @@ class HookedViT(HookedRootModule):
                 for block_index in range(self.cfg.transformer.num_layers)
             ]
         )
+        # Note: Check layer normalization
+        self.ln_final = LayerNorm(self.cfg)
+        self.head = nn.Linear(self.cfg.d_model, self.cfg.n_classes)
+        self.setup()
 
-        # Note: Check layer normaization
+
+
 
 
 

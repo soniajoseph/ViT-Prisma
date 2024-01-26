@@ -22,6 +22,7 @@ class TransformerConfig:
 
 @dataclass
 class LayerNormConfig:
+    final_layer_norm = True # check this 
     qknorm: bool = False
     layer_norm_eps: float = 0.0
 
@@ -39,39 +40,6 @@ class InitializationConfig:
     cls_std: float = 1e-6
     pos_std: float = 0.02
 
-# @dataclass
-# class TrainingConfig:
-#     loss_fn_name: str = "CrossEntropy"
-#     lr: float = 1e-4 
-#     num_epochs: int = 10
-#     batch_size: int = 512 # set to -1 to denote whole batch
-#     warmup_steps: int = 10
-#     weight_decay: float = 0.01
-#     max_grad_norm = 1.0
-#     device: str = 'cuda'
-#     seed: int = 0
-#     optimizer_name: str = "AdamW"
-#     scheduler_step: int = 200
-#     scheduler_gamma: float = 0.8
-#     early_stopping: bool = True
-#     early_stopping_patience: int = 3
-    
-# @dataclass
-# class LoggingConfig:
-#     log_dir: str = 'logs'
-#     log_frequency: int = 100
-#     print_every: int = 100
-#     use_wandb: bool = True
-#     wandb_project_name = 'dsprites'
-
-# @dataclass
-# class SavingConfig:
-#     parent_dir: str = "/scratch/sjoseph/yash/dsprites"
-#     run_id: str = datetime.now().strftime('%Y%m%d_%H%M%S')  # Default to current timestamp, will be updated if wandb logging is on
-#     save_dir: str = f'checkpoints/{run_id}'  # Incorporate run_id into the save directory
-#     save_checkpoints: bool = True
-#     save_cp_frequency: int = 50
-
 class ClassificationConfig:
     num_classes: int = 3
     include_cls: bool = True
@@ -83,8 +51,5 @@ class GlobalConfig:
     layernorm: LayerNormConfig = LayerNormConfig()
     dropout: DropoutConfig = DropoutConfig()
     init: InitializationConfig = InitializationConfig()
-    # training: TrainingConfig = TrainingConfig()
-    # logging: LoggingConfig = LoggingConfig()
-    # saving: SavingConfig = SavingConfig()
     classification: ClassificationConfig = ClassificationConfig()
 
