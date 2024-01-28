@@ -31,17 +31,20 @@ class HookedViT(HookedRootModule):
             cfg = HookedTransformerConfig(**cfg)
         elif isinstance(cfg, str):
             raise ValueError(
-                "Please pass in a config dictionary or HookedTransformerConfig object. If you want to load a "
-                "pretrained model, use HookedTransformer.from_pretrained() instead."
+                "Please pass in a config dictionary or HookedViT object. If you want to load a "
+                "pretrained model, use HookedViT.from_pretrained() instead."
             )
         self.cfg = cfg
 
+        # Patch embeddings
         self.embed = PatchEmbedding(self.cfg)
         self.hook_embed = HookPoint()
 
+        # Position embeddings
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
 
+        # Blocks
         self.blocks = nn.ModuleList(
             [
                 TransformerBlock(self.cfg, block_index)
@@ -59,8 +62,10 @@ class HookedViT(HookedRootModule):
         else:
             raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
 
+        # Final classification head
         self.head = nn.Linear(self.cfg.d_model, self.cfg.n_classes)
 
+        # Initialize weights
         self.init_weights()
 
         # Set up HookPoints
@@ -76,9 +81,32 @@ class HookedViT(HookedRootModule):
             ],
     ) -> Union[
         None,
-        Float[]
+        Float[torch.Tensor, "batch pos d_vocab"],
+        Loss,
+        Tuple[Float[torch.Tensor, "batch pos d_vocab"], Loss],
+    ]:
+        
+        # Embedding
+        x = self.embed(input)
+        self.hook_embed(x)
 
+        # Position embedding
+        x = self.pos_embed(x)
+        self.hook_pos_embed(x)
 
+        # Blocks
+        for block in self.blocks:
+            residual = block(x)
+
+        # Final layer norm
+        x = self.ln_final(residual)
+
+        if self.config.classification.type == 'gaap':  # GAAP
+            x = x.mean(dim=1)
+        elif self.config.classification.type == 'cls':  # CLS token
+            x = x[:, 0]
+            
+        return x if self.cfg.return_type == 'pre_logits' else self.head(x)
 
     # def __init__(self, config, logger=None):
     #     super(BaseViT, self).__init__()

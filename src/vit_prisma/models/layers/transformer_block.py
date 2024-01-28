@@ -96,11 +96,6 @@ class TransformerBlock(nn.Module):
         return resid_post
 
 
-
-
-
-
-
     # def __init__(self, config, logger=None):
     #     super(TransformerBlock, self).__init__()
     #     self.logger = logger
