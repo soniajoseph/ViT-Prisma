@@ -141,7 +141,87 @@ class Attention(nn.Module):
 
     def calculate_qkv_matrices(
             self,
-            
+            query_input: Union[
+                Float[torch.Tensor, "batch pos d_model"],
+                Float[torch.Tensor, "batch pos head_index d_model"],
+            ],
+            key_input: Union[
+                Float[torch.Tensor, "batch pos d_model"],
+                Float[torch.Tensor, "batch pos head_index d_model"],
+            ],
+            value_input: Union[
+                Float[torch.Tensor, "batch pos d_model"],
+                Float[torch.Tensor, "batch pos head_index d_model"],
+            ]
+    ) -> Tuple[
+        Float[torch.Tensor, "batch pos head_index d_head"],
+        Float[torch.Tensor, "batch pos head_index d_head"],
+        Float[torch.Tensor, "batch pos head_index d_head"],
+    ]:
+        """
+        Calculate the Q, K, V matrices for the attention layer. This is done by multiplying the input by the weight matrices and adding the biases.
+
+        Returns a tuple of (Q, K, V) matrices, each of shape [batch, pos, head_index, d_head]
+        """
+        q = self.hook_q(
+            einsum(
+                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                query_input,
+                self.W_Q,
+            )
+            + self.b_Q
+        )
+        k = self.hook_k(
+            einsum(
+                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                key_input,
+                self.W_K,
+            )
+            + self.b_K
+        )
+        v = self.hook_v(
+            einsum(
+                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                value_input,
+                self.W_V,
+            )
+            + self.b_V
+        )
+        return q, k, v
+    
+    def calculate_attn_scores(
+            self,
+            q: Float[torch.Tensor, "batch pos head_index d_head"],
+            k: Float[torch.Tensor, "batch pos head_index d_head"],
+    ) -> Float[torch.Tensor, "batch head_index query_pos key_pos"]:
+        """
+        Calculate the attention scores for the attention layer. This is done by multiplying the Q and K matrices together, and dividing by the square root of the dimension of the key vectors.
+
+        Returns a tensor of shape [batch, head_index, query_pos, key_pos]
+        """
+        attn_scores = einsum(
+            "batch query_pos head_index d_head, batch key_pos head_index d_head -> batch head_index query_pos key_pos",
+            q,
+            k,
+        )
+        attn_scores = attn_scores / self.attn_scale
+        return attn_scores
+    
+    def calculate_z_scores(
+            self,
+            v: Float[torch.Tensor, "batch key_pos head_index d_head"],
+            pattern: Float[torch.Tensor, "batch head_index query_pos key_pos"],
+    ) -> Float[torch.Tensor, "batch query_pos head_index d_head"]:
+        z = self.hook_z(
+            einsum(
+                "batch key_pos head_index d_head, \
+                batch head_index query_pos key_pos -> \
+                batch query_pos head_index d_head",
+                v,
+                pattern,
+            )
+        )
+        return z
 
     # def __init__(self, config, logger = None):
     #     super().__init__()
