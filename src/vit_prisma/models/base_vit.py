@@ -48,13 +48,36 @@ class HookedViT(HookedRootModule):
                 for block_index in range(self.cfg.transformer.num_layers)
             ]
         )
-        # Note: Check layer normalization
-        self.ln_final = LayerNorm(self.cfg)
+
+        # Final layer norm
+        if self.cfg.normalization_type == "LN":
+            self.ln_final = LayerNorm(self.cfg)
+        elif self.cfg.normalization_type == "LNPre":
+            self.ln_final = LayerNormPre(self.cfg)
+        elif self.cfg.normalization_type is None:
+            self.ln_final = nn.Identity()
+        else:
+            raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
 
         self.head = nn.Linear(self.cfg.d_model, self.cfg.n_classes)
 
+        self.init_weights()
+
         # Set up HookPoints
         self.setup()
+
+    def forward(
+            self,
+            input: Union[
+                str,
+                List[str],
+                Int[torch.Tensor, "batch pos"],
+                Float[torch.Tensor, "batch pos d_model"],
+            ],
+    ) -> Union[
+        None,
+        Float[]
+
 
 
     # def __init__(self, config, logger=None):
@@ -84,16 +107,16 @@ class HookedViT(HookedRootModule):
 
     #     self.init_weights()
 
-    # def init_weights(self):
-    #     if not self.config.classification.global_pool:
-    #         nn.init.normal_(self.cls_token, std=self.config.init.cls_std)
-    #     nn.init.trunc_normal_(self.position_embedding, std=self.config.init.pos_std)   
-    #     if self.config.init.weight_type == 'he':
-    #         for m in self.modules():
-    #             if isinstance(m, nn.Linear):
-    #                 nn.init.kaiming_normal_(m.weight, nonlinearity=initialization_dict[self.config.transformer.activation_name])
-    #                 if m.bias is not None:
-    #                     nn.init.constant_(m.bias, 0)
+    def init_weights(self):
+        if not self.config.classification.global_pool:
+            nn.init.normal_(self.cls_token, std=self.config.init.cls_std)
+        nn.init.trunc_normal_(self.position_embedding, std=self.config.init.pos_std)   
+        if self.config.init.weight_type == 'he':
+            for m in self.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.kaiming_normal_(m.weight, nonlinearity=initialization_dict[self.config.transformer.activation_name])
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
 
     # def forward(self, x, pre_logits: bool = False):
     #     x = self.patch_embedding(x)
