@@ -7,7 +7,7 @@ from vit_prisma.models.layers.position_embeddding import PosEmbedding
 
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 from vit_prisma.models.prisma_net import PrismaNet
-from vit_prisma.models.hook_points import HookedRootModule
+from src.vit_prisma.prisma.hook_points import HookedRootModule
 
 class HookedViT(HookedRootModule):
     """
