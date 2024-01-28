@@ -50,12 +50,11 @@ class HookedViT(HookedRootModule):
         )
         # Note: Check layer normalization
         self.ln_final = LayerNorm(self.cfg)
+
         self.head = nn.Linear(self.cfg.d_model, self.cfg.n_classes)
+
+        # Set up HookPoints
         self.setup()
-
-
-
-
 
 
     # def __init__(self, config, logger=None):

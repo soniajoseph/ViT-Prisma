@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import einops
+
 class PosEmbedding(nn.Module):
 
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):
