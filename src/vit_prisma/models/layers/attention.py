@@ -1,6 +1,7 @@
 import torch.nn as nn
 import logging
-from vit_prisma.models.hook_points import HookedPoint
+from vit_prisma.models.hook_points import HookPoint
+from vit_prisma.models.configs.inference_configs import HookedViTConfig
 
 class Attention(nn.Module):
 
