@@ -60,7 +60,7 @@ class HookedViT(HookedRootModule):
         self.blocks = nn.ModuleList(
             [
                 TransformerBlock(self.cfg, block_index)
-                for block_index in range(self.cfg.transformer.num_layers)
+                for block_index in range(self.cfg.n_layers)
             ]
         )
 

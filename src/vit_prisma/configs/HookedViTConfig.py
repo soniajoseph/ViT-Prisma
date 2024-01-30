@@ -1,42 +1,67 @@
 from dataclasses import dataclass
 import torch.nn as nn
-from datetime import datetime
+import torch
+
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class HookedViTConfig:
 
-    # Image arguments
-    image_size: int = 64
-    patch_size: int = 8
-    n_channels: int = 1
+    n_layers: int
+    d_model: int
+    d_head: int
+    model_name: str = "custom"
+    n_heads: int = -1
+    d_mlp: Optional[int] = None
+    act_fn: Optional[str] = None
+    d_vocab: int = -1
+    eps: float = 1e-5
+    use_attn_result: bool = False
+    use_attn_scale: bool = True
+    use_split_qkv_input: bool = False
+    use_hook_mlp_in: bool = False
+    use_attn_in: bool = False
+    use_local_attn: bool = False
+    original_architecture: Optional[str] = None
+    from_checkpoint: bool = False
+    checkpoint_index: Optional[int] = None
+    checkpoint_label_type: Optional[str] = None
+    checkpoint_value: Optional[int] = None
+    tokenizer_name: Optional[str] = None
+    window_size: Optional[int] = None
+    attn_types: Optional[List] = None
+    init_mode: str = "gpt2"
+    normalization_type: Optional[str] = "LN"
+    device: Optional[str] = None
+    n_devices: int = 1
+    attention_dir: str = "causal"
+    attn_only: bool = False
+    seed: Optional[int] = None
+    initializer_range: float = -1.0
+    init_weights: bool = True
+    scale_attn_by_inverse_layer_idx: bool = False
+    positional_embedding_type: str = "standard"
+    final_rms: bool = False
+    d_vocab_out: int = -1
+    parallel_attn_mlp: bool = False
+    rotary_dim: Optional[int] = None
+    n_params: Optional[int] = None
+    use_hook_tokens: bool = False
+    gated_mlp: bool = False
+    default_prepend_bos: bool = True
+    dtype: torch.dtype = torch.float32
+    tokenizer_prepends_bos: Optional[bool] = None
+    n_key_value_heads: Optional[int] = None
+    post_embedding_ln: bool = False
+    rotary_base: int = 10000
+    trust_remote_code: bool = False
+    rotary_adjacent_pairs: bool = False
 
-    # Transformer arguments
-    d_model: int = 512
-    num_heads: int = 8
-    num_layers: int = 4
-    mlp_dim: int = d_model * 4  # Use a computed default
-    activation_name: str = 'GELU'
-    attention_only: bool = False
-    attn_hidden_layer: bool = True
+    # Image related
+    n_channels: int = 3
+    patch_size: int = 32
+    image_size: int = 224
 
-    # Layernorm arguments
-    final_layer_norm = True # check this 
-    qknorm: bool = False
-    layer_norm_eps: float = 0.0
-
-    # Dropout arguments
-    patch: float = 0.0
-    position: float = 0.0
-    attention: float = 0.0
-    proj: float = 0.0
-    mlp: float = 0.0
-
-    # Initialization arguments
-    weight_type: str = 'he'
-    cls_std: float = 1e-6
-    pos_std: float = 0.02
-
-    # Classification arguments
-    num_classes: int = 3
+    # Classification related
     include_cls: bool = True
-
