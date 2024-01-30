@@ -4,6 +4,16 @@ from typing import Dict, Optional, Tuple, Union
 from jaxtyping import Float, Int
 import torch.nn.functional as F
 
+# activation_dict ={
+#     "ReLU": torch.nn.ReLU,
+#     "LeakyReLU": torch.nn.LeakyReLU,
+#     "gelu_new": gelu_new,
+#     "gelu_fast": gelu_fast,
+#     "solu": solu,
+#     "Linear": torch.nn.Identity,
+# }
+
+
 def gelu_new(
     input: Float[torch.Tensor, "batch pos d_mlp"]
 ) -> Float[torch.Tensor, "batch pos d_mlp"]:

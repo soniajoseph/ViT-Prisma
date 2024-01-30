@@ -17,6 +17,7 @@ from vit_prisma.configs import HookedViTConfig
 
 from vit_prisma.prisma.activation_cache import ActivationCache
 
+
 from typing import Union, Dict, List, Tuple
 
 from jaxtyping import Float, Int
@@ -47,6 +48,9 @@ class HookedViT(HookedRootModule):
                 "pretrained model, use HookedViT.from_pretrained() instead."
             )
         self.cfg = cfg
+
+        # ClS token
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.cfg.d_model))
 
         # Patch embeddings
         self.embed = PatchEmbedding(self.cfg)
@@ -83,49 +87,49 @@ class HookedViT(HookedRootModule):
         # Set up HookPoints
         self.setup()
 
-    def forward(
-            self,
-            input: Union[
-                str,
-                List[str],
-                Int[torch.Tensor, "batch pos"],
-                Float[torch.Tensor, "batch pos d_model"],
-            ],
-    ) -> Union[
-        None,
-        Float[torch.Tensor, "batch n_classes"],
-    ]:
-        
+    def forward(self, input):
+
+
+        batch_size, seq_length = input.size(0), input.size(1)
+
         # Embedding
         embed = self.hook_embed(self.embed(input))
 
-        # Position embedding
-        pos_embed = self.hook_pos_embed(self.pos_embed(x))
+        if self.cfg.classification_type == 'cls':
+            cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
+            embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
+            input = torch.cat([cls_tokens.new_zeros(batch_size, 1), input], dim=1)  # Adding to raw input for pos_embed
+        
+        # Position embeddings
+        pos_embed = self.hook_pos_embed(self.pos_embed(input))
 
-        residual = embed + pos_embed
+        # Combine embeddings with positional embeddings
+        full_embeddings = embed + pos_embed
 
         # Blocks
         for block in self.blocks:
-            residual = block(residual)
+            residual = block(full_embeddings)
 
         # Final layer norm
         x = self.ln_final(residual)
 
-        if self.config.classification_type == 'gaap':  # GAAP
+        if self.cfg.classification_type == 'gaap':  # GAAP
             x = x.mean(dim=1)
-        elif self.config.classification_type == 'cls':  # CLS token
+        elif self.cfg.classification_type == 'cls':  # CLS token
             x = x[:, 0]
             
         return x if self.cfg.return_type == 'pre_logits' else self.head(x)
 
     def init_weights(self):
         if self.cfg.classification_type == 'cls':
-            nn.init.normal_(self.cls_token, std=self.config.init.cls_std)
-        nn.init.trunc_normal_(self.position_embedding, std=self.config.init.pos_std)   
-        if self.config.init.weight_type == 'he':
-            for m in self.modules():
-                if isinstance(m, nn.Linear):
-                    nn.init.kaiming_normal_(m.weight, nonlinearity=initialization_dict[self.cfg.activation_name])
+            nn.init.normal_(self.cls_token, std=self.cfg.cls_std)
+        # nn.init.trunc_normal_(self.position_embedding, std=self.cfg.pos_std)   
+        if self.cfg.weight_type == 'he':
+            for m in self.modules(): 
+                if isinstance(m, PosEmbedding):
+                    nn.init.normal_(m.W_pos, std=self.cfg.pos_std)
+                elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
                     if m.bias is not None:
                         nn.init.constant_(m.bias, 0)
 

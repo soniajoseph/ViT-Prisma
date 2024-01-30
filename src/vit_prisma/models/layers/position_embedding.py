@@ -20,7 +20,7 @@ class PosEmbedding(nn.Module):
         self.cfg = cfg
 
         num_patches = (self.cfg.image_size // self.cfg.patch_size)**2
-        token_length = num_patches + 1 if self.cfg.include_cls else num_patches
+        token_length = num_patches + 1 if self.cfg.classification_type == 'cls' else num_patches
 
         self.W_pos = nn.Parameter(
             torch.empty(token_length, self.cfg.d_model, dtype=self.cfg.dtype)

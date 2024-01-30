@@ -12,9 +12,9 @@ class HookedViTConfig:
     d_model: int
     d_head: int
     model_name: str = "custom"
-    n_heads: int = -1
+    n_heads: int = 4
     d_mlp: Optional[int] = None
-    act_fn: Optional[str] = None
+    activation_name: Optional[str] = None
     d_vocab: int = -1
     eps: float = 1e-5
     use_attn_result: bool = False
@@ -58,10 +58,20 @@ class HookedViTConfig:
     trust_remote_code: bool = False
     rotary_adjacent_pairs: bool = False
 
+    # Initialization
+    weight_type: str = 'he'
+    cls_std: float = 1e-6
+    pos_std: float = 0.02
+
     # Image related
     n_channels: int = 3
     patch_size: int = 32
     image_size: int = 224
 
     # Classification related
-    include_cls: bool = True
+    classification_type: str = 'cls'
+    n_classes: int = 10
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]):
+        return cls(**config_dict)

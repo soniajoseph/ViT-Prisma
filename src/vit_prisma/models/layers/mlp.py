@@ -22,7 +22,7 @@ class MLP(nn.Module):
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):
         super().__init__()
         
-        if isinstance(cfg, HookedViTConfig):
+        if not isinstance(cfg, HookedViTConfig):
             cfg = HookedViTConfig.from_dict(cfg)
         
         self.cfg = cfg
