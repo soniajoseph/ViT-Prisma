@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-from typing import Dict, Optional, Tuple, Union, Float
+from typing import Dict, Optional, Tuple, Union
+from jaxtyping import Float, Int
 import torch.nn.functional as F
 
 def gelu_new(

@@ -1,7 +1,10 @@
 
-from typing import Dict, Optional, Tuple, Union, Float, Int, Callable, Sequence, List
+from typing import Dict, Optional, Tuple, Union, Callable, Sequence, List
+
+from jaxtyping import Float, Int
+
 import torch.nn as nn 
-from vit_prisma.prisma.hook_points import HookPoint
+from vit_prisma.prisma.hook_point import HookPoint
 
 import logging
 

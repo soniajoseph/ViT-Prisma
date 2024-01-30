@@ -2,16 +2,18 @@ import torch.nn as nn
 import torch
 
 import logging
-from src.vit_prisma.prisma.hook_points import HookPoint
-from vit_prisma.models.configs.inference_configs import HookedViTConfig
+from vit_prisma.prisma import HookPoint
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-from typing import Union, Dict, Optional, Float, List, Tuple
+from typing import Union, Dict, Optional, List, Tuple
+
+from jaxtyping import Float, Int
 
 import numpy as np
 
 import einops
 
-from vit_prisma.prisma.factored_matrix import FactoredMatrix
+from vit_prisma.prisma import FactoredMatrix
 import fancy_einsum as einsum
 
 import torch.nn.functional as F

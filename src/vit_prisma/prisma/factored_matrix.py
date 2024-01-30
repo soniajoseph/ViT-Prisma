@@ -1,4 +1,7 @@
-from typing import Float, Union, Tuple, List, Float
+from typing import Union, Tuple, List
+
+from jaxtyping import Float
+
 import torch
 
 from functools import lru_cache
@@ -78,7 +81,7 @@ class FactoredMatrix:
         elif isinstance(other, FactoredMatrix):
             return other.A @ (other.B @ self)
 
-    def __mul__(self, scalar: Union[int, float, torch.Tensor]) -> FactoredMatrix:
+    def __mul__(self, scalar: Union[int, float, torch.Tensor]):
         """
         Left scalar multiplication. Scalar multiplication distributes over matrix multiplication, so we can just multiply one of the factor matrices by the scalar.
         """
@@ -88,7 +91,7 @@ class FactoredMatrix:
             ), f"Tensor must be a scalar for use with * but was of shape {scalar.shape}. For matrix multiplication, use @ instead."
         return FactoredMatrix(self.A * scalar, self.B)
 
-    def __rmul__(self, scalar: Union[int, float, torch.Tensor]) -> FactoredMatrix:
+    def __rmul__(self, scalar: Union[int, float, torch.Tensor]):
         """
         Right scalar multiplication. For scalar multiplication from the right, we can reuse the __mul__ method.
         """
@@ -108,7 +111,7 @@ class FactoredMatrix:
         return self.B @ self.A
 
     @property
-    def T(self) -> FactoredMatrix:
+    def T(self):
         return FactoredMatrix(self.B.transpose(-2, -1), self.A.transpose(-2, -1))
 
     @lru_cache(maxsize=None)
@@ -162,7 +165,7 @@ class FactoredMatrix:
 
         return sequence
 
-    def __getitem__(self, idx: Union[int, Tuple]) -> FactoredMatrix:
+    def __getitem__(self, idx: Union[int, Tuple]):
         """Indexing - assumed to only apply to the leading dimensions."""
         if not isinstance(idx, tuple):
             idx = (idx,)
@@ -192,7 +195,7 @@ class FactoredMatrix:
     def __repr__(self):
         return f"FactoredMatrix: Shape({self.shape}), Hidden Dim({self.mdim})"
 
-    def make_even(self) -> FactoredMatrix:
+    def make_even(self):
         """
         Returns the factored form of (U @ S.sqrt().diag(), S.sqrt().diag() @ Vh) where U, S, Vh are the SVD of the matrix. This is an equivalent factorisation, but more even - each half has half the singular values, and orthogonal rows/cols
         """
@@ -220,7 +223,7 @@ class FactoredMatrix:
         """
         return self.U * self.S[..., None, :]
 
-    def unsqueeze(self, k: int) -> FactoredMatrix:
+    def unsqueeze(self, k: int):
         return FactoredMatrix(self.A.unsqueeze(k), self.B.unsqueeze(k))
 
     @property

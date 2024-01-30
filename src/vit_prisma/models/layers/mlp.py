@@ -1,8 +1,10 @@
 import torch.nn as nn
-from src.vit_prisma.prisma.hook_points import HookPoint
-from vit_prisma.models.configs.inference_configs import HookedViTConfig
+from vit_prisma.prisma.hook_point import HookPoint
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-from typing import Dict, Optional, Tuple, Union, Float
+from typing import Dict, Optional, Tuple, Union
+
+from jaxtyping import Float, Int
 
 import torch
 import torch.nn.functional as F

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from vit_prisma.models.layers.transformer_block import TransformerBlock
 import torch.nn as nn
 from datetime import datetime
 
@@ -14,7 +13,6 @@ class TransformerConfig:
     hidden_dim: int = 512
     num_heads: int = 8
     num_layers: int = 4
-    block_fn = TransformerBlock
     mlp_dim: int = hidden_dim * 4  # Use a computed default
     activation_name: str = 'GELU'
     attention_only: bool = False

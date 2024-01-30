@@ -5,12 +5,15 @@ https://github.com/neelnanda-io/TransformerLens/blob/main/transformer_lens/Activ
 Same functionality here but no logit attribution (def logit_attrs) due to no Unembed matrix in ViTs.
 """
 
-from typing import Dict, Iterator, List, Optional, Tuple, Union, Float
+from typing import Dict, Iterator, List, Optional, Tuple, Union
+
+from jaxtyping import Float, Int
+
 import torch
 import logging
 
-import utils.prisma_utils as utils
-from utils.prisma_utils import Slice, SliceInput
+import vit_prisma.utils.prisma_utils as utils
+from vit_prisma.utils.prisma_utils import Slice, SliceInput
 
 import einops
 from einops import rearrange, reduce, repeat
@@ -31,7 +34,7 @@ class ActivationCache:
         self.has_embed = "hook_embed" in self.cache_dict
         self.has_pos_embed = "hook_pos_embed" in self.cache_dict
 
-    def remove_batch_dim(self) -> ActivationCache:
+    def remove_batch_dim(self):
         """Remove the Batch Dimension (if a single batch item).
 
         Returns:

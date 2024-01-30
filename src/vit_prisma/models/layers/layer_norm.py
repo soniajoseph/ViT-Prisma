@@ -1,10 +1,12 @@
 import torch.nn as nn
 import torch
 
-from typing import Dict, Optional, Tuple, Union, Float
+from typing import Dict, Optional, Tuple, Union
 
-from src.vit_prisma.configs import HookedViTConfig
-from vit_prisma.prisma.hook_points import HookPoint
+from jaxtyping import Float, Int
+
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.prisma.hook_point import HookPoint
 
 class LayerNormPre(nn.Module):
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):

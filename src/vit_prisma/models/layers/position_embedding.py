@@ -3,9 +3,11 @@ import torch.nn as nn
 
 import einops
 
-from vit_prisma.models.configs import HookedViTConfig
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-from typing import Dict, Optional, Tuple, Union, Float, Int
+from typing import Dict, Optional, Tuple, Union
+
+from jaxtyping import Float, Int
 
 class PosEmbedding(nn.Module):
 
