@@ -9,7 +9,7 @@ class PatchEmbedding(nn.Module):
         self.config = config
         self.proj = nn.Conv2d(
             self.config.n_channels, 
-            self.config.hidden_dim, 
+            self.config.d_model, 
             kernel_size=self.config.patch_size, 
             stride=self.config.patch_size, 
             bias=False
