@@ -1,3 +1,9 @@
+
+from typing import List, Union, Dict, Callable, Tuple, Optional, Any
+from vit_prisma.prisma.lens_handle import LensHandle
+import torch.nn as nn
+
+
 class HookPoint(nn.Module):
     """
     A helper class to access intermediate activations in a PyTorch model (adapted from TransformerLens, which was inspired by Garcon).

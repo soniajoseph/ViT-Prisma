@@ -3,6 +3,11 @@ Reference:
 https://github.com/neelnanda-io/TransformerLens/blob/main/transformer_lens/ActivationCache.py
 """
 
+from typing import Dict, Iterator, List, Optional, Tuple, Union, Float
+import torch
+import logging
+
+
 class ActivationCache:
 
     def __init__(
