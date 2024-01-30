@@ -210,11 +210,8 @@ class Attention(nn.Module):
         if self.cfg.use_split_qkv_input or self.cfg.use_attn_in:
             qkv_einops_string = "batch pos head_index d_model"
         else:
-            print('using second option')
             qkv_einops_string = "batch pos d_model"
 
-        print('qshape', query_input.shape)
-        print('W_Q shape', self.W_Q.shape)
 
         q = self.hook_q(
             einsum(

@@ -69,10 +69,10 @@ class MLP(nn.Module):
     ) -> Float[torch.Tensor, "batch pos d_model"]:
         
         pre_act = self.hook_pre(
-              einsum("batch pos d_model, d_model mlp -> batch pos d_mlp", x, self.W_in)
+              einsum("batch pos d_model, d_model d_mlp -> batch pos d_mlp", x, self.W_in)
             + self.b_in
         )
-        if not self.cfg.act_fn.endswith("_ln"):
+        if not self.cfg.activation_name.endswith("_ln"):
               post_act = self.hook_post(self.act_fn(pre_act))
         else:
               mid_act = self.hook_mid(self.act_fn(pre_act))

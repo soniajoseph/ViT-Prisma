@@ -71,6 +71,7 @@ class HookedViTConfig:
     # Classification related
     classification_type: str = 'cls'
     n_classes: int = 10
+    return_type: str = 'pre_logits'
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]):

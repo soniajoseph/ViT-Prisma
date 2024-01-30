@@ -67,7 +67,6 @@ class HookedViT(HookedRootModule):
                 for block_index in range(self.cfg.n_layers)
             ]
         )
-
         # Final layer norm
         if self.cfg.normalization_type == "LN":
             self.ln_final = LayerNorm(self.cfg)
