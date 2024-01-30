@@ -87,23 +87,25 @@ class HookedViT(HookedRootModule):
         # Set up HookPoints
         self.setup()
 
-    def forward(self, input):
+    def forward(self,
+            input: Union[
+            str,
+            List[str],
+            Int[torch.Tensor, "batch pos"],
+            Float[torch.Tensor, "batch pos d_model"],
+        ],):
 
-
-        batch_size, seq_length = input.size(0), input.size(1)
+        batch_size = input.shape[0]
 
         # Embedding
         embed = self.hook_embed(self.embed(input))
 
+
         if self.cfg.classification_type == 'cls':
             cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
             embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
-            input = torch.cat([cls_tokens.new_zeros(batch_size, 1), input], dim=1)  # Adding to raw input for pos_embed
-        
-        # Position embeddings
-        pos_embed = self.hook_pos_embed(self.pos_embed(input))
 
-        # Combine embeddings with positional embeddings
+        pos_embed = self.hook_pos_embed(self.pos_embed(input))
         full_embeddings = embed + pos_embed
 
         # Blocks

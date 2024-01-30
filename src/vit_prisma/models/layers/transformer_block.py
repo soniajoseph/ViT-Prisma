@@ -80,14 +80,19 @@ class TransformerBlock(nn.Module):
             key_input = attn_in
             value_input = attn_in
         
-        attn_out = self.hook_attn_out(
-            self.attn(
+        attn_out = self.attn(
                 query_input = self.ln1(query_input),
                 key_input = self.ln1(key_input),
                 value_input = self.ln1(value_input),
             )
+
+        # Take hook fn
+        
+        attn_out = self.hook_attn_out(
+            attn_out
         )
-        if not self.cfg.attn_only:
+
+        if not self.cfg.attn_only: 
             resid_mid = self.hook_resid_mid(
                 resid_pre + attn_out
             )

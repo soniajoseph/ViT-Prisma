@@ -148,7 +148,6 @@ class HookedRootModule(nn.Module):
         bwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
         reset_hooks_end = True,
         clear_contexts = False,
-        **model_kwargs,
     ):
         if len(bwd_hooks) > 0 and reset_hooks_end:
             logging.warning(
@@ -157,7 +156,7 @@ class HookedRootModule(nn.Module):
         with self.hooks(
             fwd_hooks, bwd_hooks,reset_hooks_end, clear_contexts
         ) as hooked_model:
-            return hooked_model.forward(*model_args, **model_kwargs)
+            return hooked_model.forward(*model_args)
 
     def add_caching_hooks(
             self,
@@ -211,13 +210,12 @@ class HookedRootModule(nn.Module):
             incl_bwd = False,
             reset_hooks_end = True,
             clear_contexts = False,
-            **model_kwargs,
     ):
         cache_dict, fwd, bwd = self.get_caching_hooks(
             names_filter, incl_bwd, device, remove_batch_dim=remove_batch_dim
         )
         with self.hooks(fwd_hooks=fwd, bwd_hooks=bwd, reset_hooks_end=reset_hooks_end, clear_contexts=clear_contexts):
-            model_out = self(*model_args, **model_kwargs)
+            model_out = self(*model_args)
             if incl_bwd:
                 model_out.backward()
         return model_out, cache_dict

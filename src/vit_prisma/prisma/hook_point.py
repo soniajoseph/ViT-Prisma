@@ -69,36 +69,36 @@ class HookPoint(nn.Module):
         else :
             raise ValueError(f"Invalid dir {dir}. dir must be 'fwd' or 'bwd'")
 
-def remove_hooks(self, dir="fwd", including_permanent=False, level=None) -> None:
-    def _remove_hooks(handles: List[LensHandle]) -> List[LensHandle]:
-        output_handles = []
-        for handle in handles:
-            if including_permanent:
-                handle.hook.remove()
-            elif (not handle.is_permanent) and (level is None or handle.context_level == level):
-                handle.hook.remove()
-            else:
-                output_handles.append(handle)
-        return output_handles
-    
-    if dir == "fwd" or dir == "both":
-        self.fwd_hooks = _remove_hooks(self.fwd_hooks)
-    elif dir == "bwd" or dir == "both":
-        self.bwd_hooks = _remove_hooks(self.bwd_hooks)
-    else:
-        raise ValueError(f"Invalid direction {dir}. dir must be 'fwd', 'bwd', or 'both'")
+    def remove_hooks(self, dir="fwd", including_permanent=False, level=None) -> None:
+        def _remove_hooks(handles: List[LensHandle]) -> List[LensHandle]:
+            output_handles = []
+            for handle in handles:
+                if including_permanent:
+                    handle.hook.remove()
+                elif (not handle.is_permanent) and (level is None or handle.context_level == level):
+                    handle.hook.remove()
+                else:
+                    output_handles.append(handle)
+            return output_handles
+        
+        if dir == "fwd" or dir == "both":
+            self.fwd_hooks = _remove_hooks(self.fwd_hooks)
+        elif dir == "bwd" or dir == "both":
+            self.bwd_hooks = _remove_hooks(self.bwd_hooks)
+        else:
+            raise ValueError(f"Invalid direction {dir}. dir must be 'fwd', 'bwd', or 'both'")
 
-def clear_context(self):
-    del self.ctx
-    self.ctx = {}
+    def clear_context(self):
+        del self.ctx
+        self.ctx = {}
 
-def forward(self, x):
-    return x
+    def forward(self, x):
+        return x
 
-def layer(self):
-    # Returns the layer index if the name has the form 'blocks.{layer}.{...}'
-    # Helper function that's mainly useful on HookedTransformer
-    # If it doesn't have this form, raises an error -
-    split_name = self.name.split(".")
-    return int(split_name[1])
+    def layer(self):
+        # Returns the layer index if the name has the form 'blocks.{layer}.{...}'
+        # Helper function that's mainly useful on HookedTransformer
+        # If it doesn't have this form, raises an error -
+        split_name = self.name.split(".")
+        return int(split_name[1])
 

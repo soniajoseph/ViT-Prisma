@@ -15,7 +15,7 @@ from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu
 
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 
-import fancy_einsum as einsum
+from fancy_einsum import einsum
 
 class MLP(nn.Module):
 

@@ -14,7 +14,7 @@ import numpy as np
 import einops
 
 from vit_prisma.prisma import FactoredMatrix
-import fancy_einsum as einsum
+from fancy_einsum import einsum
 
 import torch.nn.functional as F
 
@@ -42,7 +42,7 @@ class Attention(nn.Module):
                 dtype = self.cfg.dtype
             )
         )
-        self.W_K = self.W_Q = nn.Parameter(
+        self.W_K = nn.Parameter(
             torch.empty(
                 self.cfg.n_heads,
                 self.cfg.d_model,
@@ -50,7 +50,7 @@ class Attention(nn.Module):
                 dtype = self.cfg.dtype
             )
         )
-        self.W_V = self.W_Q = nn.Parameter(
+        self.W_V = nn.Parameter(
             torch.empty(
                 self.cfg.n_heads,
                 self.cfg.d_model,
@@ -58,11 +58,11 @@ class Attention(nn.Module):
                 dtype = self.cfg.dtype
             )
         )
-        self.W_O = self.W_Q = nn.Parameter(
+        self.W_O = nn.Parameter(
             torch.empty(
                 self.cfg.n_heads,
-                self.cfg.d_model,
                 self.cfg.d_head,
+                self.cfg.d_model,
                 dtype = self.cfg.dtype
             )
         )
@@ -206,30 +206,43 @@ class Attention(nn.Module):
 
         Returns a tuple of (Q, K, V) matrices, each of shape [batch, pos, head_index, d_head]
         """
+
+        if self.cfg.use_split_qkv_input or self.cfg.use_attn_in:
+            qkv_einops_string = "batch pos head_index d_model"
+        else:
+            print('using second option')
+            qkv_einops_string = "batch pos d_model"
+
+        print('qshape', query_input.shape)
+        print('W_Q shape', self.W_Q.shape)
+
         q = self.hook_q(
             einsum(
-                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                f"{qkv_einops_string}, head_index d_model d_head \
+                -> batch pos head_index d_head",
                 query_input,
                 self.W_Q,
             )
             + self.b_Q
-        )
+        )  # [batch, pos, head_index, d_head]
         k = self.hook_k(
             einsum(
-                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                f"{qkv_einops_string}, head_index d_model d_head \
+                -> batch pos head_index d_head",
                 key_input,
                 self.W_K,
             )
             + self.b_K
-        )
+        )  # [batch, pos, head_index, d_head]
         v = self.hook_v(
             einsum(
-                "batch pos d_model, head_index d_model d_head -> batch pos head_index d_head",
+                f"{qkv_einops_string}, head_index d_model d_head \
+                -> batch pos head_index d_head",
                 value_input,
                 self.W_V,
             )
             + self.b_V
-        )
+        )  # [batch, pos, head_index, d_head]
         return q, k, v
     
     def calculate_attn_scores(
