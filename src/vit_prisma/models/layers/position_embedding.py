@@ -21,7 +21,7 @@ class PosEmbedding(nn.Module):
         token_length = num_patches + 1 if self.cfg.include_cls else num_patches
 
         self.W_pos = nn.Parameter(
-            torch.empty(token_length, self.cfg.d_model, dtype=cfg.dtype)
+            torch.empty(token_length, self.cfg.d_model, dtype=self.cfg.dtype)
         )
     
     def forward(
@@ -30,5 +30,5 @@ class PosEmbedding(nn.Module):
     ):
         pos_embed = self.W_pos
         batch_pos_embed = einops.repeat(pos_embed, "pos d_model -> batch pos d_model", batch=tokens.size(0))
-        return batch_pos_embed.clone()
+        return batch_pos_embed
 
