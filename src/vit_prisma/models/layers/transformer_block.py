@@ -1,10 +1,14 @@
+import torch
 import torch.nn as nn
+
 from vit_prisma.models.layers.attention import Attention
 from vit_prisma.models.layers.mlp import MLP
+from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 
-from vit_prisma.configs.inference_configs import HookedViTConfig
+from src.vit_prisma.configs import HookedViTConfig
+from vit_prisma.prisma.hook_points import HookPoint
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union, Float
 
 
 class TransformerBlock(nn.Module):

@@ -4,10 +4,15 @@ from vit_prisma.models.layers.transformer_block import TransformerBlock
 
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.models.layers.position_embeddding import PosEmbedding
+from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 from vit_prisma.models.prisma_net import PrismaNet
-from src.vit_prisma.prisma.hook_points import HookedRootModule
+from src.vit_prisma.prisma.hook_points import HookedRootModule, HookPoint
+
+from src.vit_prisma.configs import HookedViTConfig
+
+from typing import Union, Dict, List, Int, Float, Tuple
 
 class HookedViT(HookedRootModule):
     """
@@ -28,7 +33,7 @@ class HookedViT(HookedRootModule):
 
         super().__init__()
         if isinstance(cfg, Dict):
-            cfg = HookedTransformerConfig(**cfg)
+            cfg = HookedViTConfig(**cfg)
         elif isinstance(cfg, str):
             raise ValueError(
                 "Please pass in a config dictionary or HookedViT object. If you want to load a "
@@ -81,9 +86,7 @@ class HookedViT(HookedRootModule):
             ],
     ) -> Union[
         None,
-        Float[torch.Tensor, "batch pos d_vocab"],
-        Loss,
-        Tuple[Float[torch.Tensor, "batch pos d_vocab"], Loss],
+        Float[torch.Tensor, "batch n_classes"],
     ]:
         
         # Embedding

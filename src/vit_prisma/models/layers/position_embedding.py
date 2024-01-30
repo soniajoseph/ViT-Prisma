@@ -3,6 +3,10 @@ import torch.nn as nn
 
 import einops
 
+from vit_prisma.models.configs import HookedViTConfig
+
+from typing import Dict, Optional, Tuple, Union, Float, Int
+
 class PosEmbedding(nn.Module):
 
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):

@@ -1,11 +1,19 @@
+import torch.nn as nn
+import torch
+
+from typing import Dict, Optional, Tuple, Union, Float
+
+from src.vit_prisma.configs import HookedViTConfig
+from vit_prisma.prisma.hook_points import HookPoint
+
 class LayerNormPre(nn.Module):
-    def __init__(self, cfg: Union[Dict, HookedTransformerConfig]):
+    def __init__(self, cfg: Union[Dict, HookedViTConfig]):
         """LayerNormPre - the 'center and normalise' part of LayerNorm. Length is
         normally d_model, but is d_mlp for softmax. Not needed as a parameter. This
         should only be used in inference mode after folding in LayerNorm weights"""
         super().__init__()
         if isinstance(cfg, Dict):
-            cfg = HookedTransformerConfig.from_dict(cfg)
+            cfg = HookedViTConfig.from_dict(cfg)
         self.cfg = cfg
         self.eps = self.cfg.eps
 
@@ -37,7 +45,7 @@ class LayerNormPre(nn.Module):
 
 class LayerNorm(nn.Module):
     def __init__(
-        self, cfg: Union[Dict, HookedTransformerConfig], length: Optional[int] = None
+        self, cfg: Union[Dict, HookedViTConfig], length: Optional[int] = None
     ):
         """
         LayerNorm with optional length parameter
@@ -46,7 +54,7 @@ class LayerNorm(nn.Module):
         """
         super().__init__()
         if isinstance(cfg, Dict):
-            cfg = HookedTransformerConfig.from_dict(cfg)
+            cfg = HookedViTConfig.from_dict(cfg)
         self.cfg = cfg
         self.eps = self.cfg.eps
         if length is None:
