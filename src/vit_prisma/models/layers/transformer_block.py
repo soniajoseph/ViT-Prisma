@@ -2,6 +2,10 @@ import torch.nn as nn
 from vit_prisma.models.layers.attention import Attention
 from vit_prisma.models.layers.mlp import MLP
 
+from vit_prisma.configs.inference_configs import HookedViTConfig
+
+from typing import Dict, Optional, Tuple, Union
+
 
 class TransformerBlock(nn.Module):
     """
@@ -16,15 +20,15 @@ class TransformerBlock(nn.Module):
         
         self.cfg = cfg
 
-        if self.cfg.normalization_type = "LN":
+        if self.cfg.normalization_type == "LN":
             self.ln1 = LayerNorm(self.cfg)
             if not self.cfg.attn_only:
                 self.ln2 = LayerNorm(self.cfg)
-        elif self.cfg.normalization_type = "LNPre":
+        elif self.cfg.normalization_type == "LNPre":
             self.ln1 = LayerNormPre(self.cfg)
             if not self.cfg.attn_only:
                 self.ln2 = LayerNormPre(self.cfg)
-        elif self.cfg.normalization_Type is None:
+        elif self.cfg.normalization_type is None:
             self.ln1 = nn.Identity()
             if not self.cfg.attn_only:
                 self.ln2 = nn.Identity()
@@ -77,7 +81,6 @@ class TransformerBlock(nn.Module):
                 value_input = self.ln1(value_input),
             )
         )
-
         if not self.cfg.attn_only:
             resid_mid = self.hook_resid_mid(
                 resid_pre + attn_out
@@ -94,7 +97,6 @@ class TransformerBlock(nn.Module):
             resid_post = self.hook_resid_post(resid_pre + attn_out)
         
         return resid_post
-
 
     # def __init__(self, config, logger=None):
     #     super(TransformerBlock, self).__init__()

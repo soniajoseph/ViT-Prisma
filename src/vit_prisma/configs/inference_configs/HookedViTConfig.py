@@ -45,7 +45,7 @@ class ClassificationConfig:
     include_cls: bool = True
 
 @dataclass
-class GlobalConfig:
+class HookedViTConfig:
     image: ImageConfig = ImageConfig()
     transformer: TransformerConfig = TransformerConfig()
     layernorm: LayerNormConfig = LayerNormConfig()
