@@ -1,28 +1,28 @@
-import torch
-import torch.nn as nn
+# import torch
+# import torch.nn as nn
 
-class PrismaNet(nn.Module):
-    def __init__(self):
-        super().__init__()
+# class PrismaNet(nn.Module):
+#     def __init__(self):
+#         super().__init__()
 
-    def get_activations(self, images: torch.Tensor):
+#     def get_activations(self, images: torch.Tensor):
         
-        activations = {}
+#         activations = {}
 
-        def save_activation(name):
-            def hook(model, input, output):
-                activations[name] = output.detach()
-            return hook
+#         def save_activation(name):
+#             def hook(model, input, output):
+#                 activations[name] = output.detach()
+#             return hook
         
-        active_hooks = []
+#         active_hooks = []
 
-        for name, layer in self.named_modules():
-            active_hook = layer.register_forward_hook(save_activation(name))
-            active_hooks.append(active_hook)
+#         for name, layer in self.named_modules():
+#             active_hook = layer.register_forward_hook(save_activation(name))
+#             active_hooks.append(active_hook)
         
-        self.forward(images)
+#         self.forward(images)
 
-        for hook in active_hooks:
-            hook.remove()
+#         for hook in active_hooks:
+#             hook.remove()
 
-        return activations
+#         return activations

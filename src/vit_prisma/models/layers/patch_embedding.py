@@ -8,10 +8,10 @@ class PatchEmbedding(nn.Module):
         self.logger = logger
         self.config = config
         self.proj = nn.Conv2d(
-            self.config.image.n_channels, 
-            self.config.transformer.hidden_dim, 
-            kernel_size=self.config.image.patch_size, 
-            stride=self.config.image.patch_size, 
+            self.config.n_channels, 
+            self.config.hidden_dim, 
+            kernel_size=self.config.patch_size, 
+            stride=self.config.patch_size, 
             bias=False
         )
     

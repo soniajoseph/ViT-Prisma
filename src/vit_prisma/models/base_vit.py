@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
-from vit_prisma.models.layers.transformer_block import TransformerBlock
 
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.models.layers.position_embeddding import PosEmbedding
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
+from vit_prisma.models.layers.mlp import MLP
+from vit_prisma.models.layers.attention import Attention
+from vit_prisma.models.layers.transformer_block import TransformerBlock
 
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
-from vit_prisma.models.prisma_net import PrismaNet
+# from vit_prisma.models.prisma_net import PrismaNet
 from src.vit_prisma.prisma.hook_points import HookedRootModule, HookPoint
 
 from src.vit_prisma.configs import HookedViTConfig
@@ -24,7 +26,7 @@ class HookedViT(HookedRootModule):
 
     def __init__(
             self,
-            cfg: Union[HookedViTConfig, Dict],
+            cfg: HookedViTConfig,
             move_to_device: bool = True,
     ):
         """
@@ -90,16 +92,16 @@ class HookedViT(HookedRootModule):
     ]:
         
         # Embedding
-        x = self.embed(input)
-        self.hook_embed(x)
+        embed = self.hook_embed(self.embed(input))
 
         # Position embedding
-        x = self.pos_embed(x)
-        self.hook_pos_embed(x)
+        pos_embed = self.hook_pos_embed(self.pos_embed(x))
+
+        residual = embed + pos_embed
 
         # Blocks
         for block in self.blocks:
-            residual = block(x)
+            residual = block(residual)
 
         # Final layer norm
         x = self.ln_final(residual)
