@@ -2,6 +2,19 @@ import torch.nn as nn
 from src.vit_prisma.prisma.hook_points import HookPoint
 from vit_prisma.models.configs.inference_configs import HookedViTConfig
 
+from typing import Dict, Optional, Tuple, Union, Float
+
+import torch
+import torch.nn.functional as F
+
+import numpy as np
+
+from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu
+
+from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
+
+import fancy_einsum as einsum
+
 class MLP(nn.Module):
 
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):
@@ -28,8 +41,8 @@ class MLP(nn.Module):
         self.hook_pre = HookPoint()
         self.hook_post = HookPoint()
 
-    if self.cfg.activation_name == "relu":
-            self.act_fn = F.relu
+        if self.cfg.activation_name == "relu":
+                self.act_fn = F.relu
         elif self.cfg.activation_name == "gelu":
             self.act_fn = F.gelu
         elif self.cfg.activation_name == "silu":
@@ -47,8 +60,8 @@ class MLP(nn.Module):
             else:
                 self.ln = LayerNormPre(self.cfg)
 
-    else:
-        raise ValueError(f"Invalid activation function name: {self.cfg.activation_name}")
+        else:
+            raise ValueError(f"Invalid activation function name: {self.cfg.activation_name}")
     
     def forward(self, x: Float[torch.Tensor, "batch pos d_model"]
     ) -> Float[torch.Tensor, "batch pos d_model"]:

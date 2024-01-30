@@ -1,3 +1,10 @@
+from dataclasses import dataclass
+
+from typing import Optional
+
+import torch.utils.hooks as hooks
+
+
 @dataclass
 class LensHandle:
     """Dataclass that holds information about a PyTorch hook."""

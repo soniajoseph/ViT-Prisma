@@ -1,7 +1,22 @@
 import torch.nn as nn
+import torch
+
 import logging
 from src.vit_prisma.prisma.hook_points import HookPoint
 from vit_prisma.models.configs.inference_configs import HookedViTConfig
+
+from typing import Union, Dict, Optional, Float, List, Tuple
+
+import numpy as np
+
+import einops
+
+from vit_prisma.prisma.factored_matrix import FactoredMatrix
+import fancy_einsum as einsum
+
+import torch.nn.functional as F
+
+
 
 class Attention(nn.Module):
 
@@ -25,16 +40,41 @@ class Attention(nn.Module):
                 dtype = self.cfg.dtype
             )
         )
-        self.W_K = nn.Parameter(self.W_Q.clone())
-        self.W_V = nn.Parameter(self.W_Q.clone())
-        self.W_O = nn.Parameter(self.W_Q.clone())
+        self.W_K = self.W_Q = nn.Parameter(
+            torch.empty(
+                self.cfg.n_heads,
+                self.cfg.d_model,
+                self.cfg.d_head,
+                dtype = self.cfg.dtype
+            )
+        )
+        self.W_V = self.W_Q = nn.Parameter(
+            torch.empty(
+                self.cfg.n_heads,
+                self.cfg.d_model,
+                self.cfg.d_head,
+                dtype = self.cfg.dtype
+            )
+        )
+        self.W_O = self.W_Q = nn.Parameter(
+            torch.empty(
+                self.cfg.n_heads,
+                self.cfg.d_model,
+                self.cfg.d_head,
+                dtype = self.cfg.dtype
+            )
+        )
 
         # Initialize biases
         self.b_Q = nn.Parameter(
             torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
         )
-        self.b_K = nn.Parameter(self.b_Q.clone())
-        self.b_V = nn.Parameter(self.b_Q.clone())
+        self.b_K = nn.Parameter(
+            torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
+        )
+        self.b_V = nn.Parameter(
+            torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
+        )
         self.b_O = nn.Parameter(torch.zeros(self.cfg.d_model, dtype=self.cfg.dtype))
 
 
@@ -223,46 +263,3 @@ class Attention(nn.Module):
             )
         )
         return z
-
-    # def __init__(self, config, logger = None):
-    #     super().__init__()
-
-    #     self.logger = logger 
-    #     self.config = config
-
-    #     hidden_dim = self.config.transformer.hidden_dim
-
-    #     assert hidden_dim % self.config.transformer.num_heads == 0, "Embedding dimension must be divisible by number of heads"
-    #     self.head_dim = hidden_dim // self.config.transformer.num_heads
-    #     self.scale = self.head_dim ** -0.5
-    #     self.qkv = nn.Linear(hidden_dim, 3 * hidden_dim, bias=False)
-    #     self.q_norm, self.k_norm = nn.LayerNorm(self.head_dim) if self.config.layernorm.qknorm else nn.Identity(), nn.LayerNorm(self.head_dim) if self.config.layernorm.qknorm else nn.Identity()
-    #     self.attn_dropout = nn.Dropout(self.config.dropout.attention) if self.config.dropout.attention > 0 else nn.Identity()
-    #     self.proj = nn.Linear(hidden_dim, hidden_dim) if self.config.transformer.attn_hidden_layer else nn.Identity()
-    #     self.proj_dropout = nn.Dropout(self.config.dropout.proj) if self.config.dropout.proj > 0 else nn.Identity()
-        
-
-    #     self._log(f"Attention layer initialized with config {self.config}")
-
-    # def _log(self, msg):
-    #     if self.logger:
-    #         self.logger.info(msg)
-
-    # def forward(self, x):
-    #     self._log(f"Attention input size is {x.shape}") 
-    #     B, N, C = x.shape
-    #     qkv = self.qkv(x).reshape(B, N, 3, self.config.transformer.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
-    #     q, k, v = qkv.unbind(0)
-    #     q, k = self.q_norm(q), self.k_norm(k)
-    #     q = q * self.scale
-    #     attn = q @ k.transpose(-2, -1)
-    #     attn = attn.softmax(dim=-1)
-    #     self._log(f"Attention size after softmax is {attn.shape}") 
-    #     attn = self.attn_dropout(attn)
-    #     x = (attn @ v).transpose(1, 2).reshape(B, N, C)
-    #     x = self.proj(x)
-    #     x = self.proj_dropout(x)
-    #     self._log(f"Attention output size is {x.shape}") 
-    #     return x
-
-        

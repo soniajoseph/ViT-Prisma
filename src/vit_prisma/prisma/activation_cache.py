@@ -9,6 +9,16 @@ from typing import Dict, Iterator, List, Optional, Tuple, Union, Float
 import torch
 import logging
 
+import utils.prisma_utils as utils
+from utils.prisma_utils import Slice, SliceInput
+
+import einops
+from einops import rearrange, reduce, repeat
+import numpy as np
+from fancy_einsum import einsum
+from typing_extensions import Literal
+
+
 
 class ActivationCache:
 
@@ -369,7 +379,7 @@ class ActivationCache:
             else:
                 return components
         
-     def stack_head_results(
+    def stack_head_results(
         self,
         layer: int = -1,
         return_labels: bool = False,
