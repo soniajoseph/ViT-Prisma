@@ -73,6 +73,36 @@ class HookedViTConfig:
     n_classes: int = 10
     return_type: str = 'pre_logits'
 
+    # Logging related
+    log_dir: str = 'logs'
+    use_wandb: bool = True
+    wandb_team_name: str = 'perceptual-alignment'
+    wandb_project_name: str = None
+    log_frequency: int = 1
+    print_every: int = 0
+
+
+    # Training related
+    optimizer_name: str = "AdamW"
+    lr: float = 3e-4
+    weight_decay: float = 0.01
+    loss_fn_name: str = "CrossEntropy"
+    batch_size: int = 512
+    warmup_steps: int = 10
+    scheduler_step: int = 200
+    scheduler_gamma: float = .8
+    early_stopping: bool = False
+    early_stopping_patience: int = 2
+    num_epochs: int = 50
+    max_grad_norm = 1.0
+
+    # Saving related
+    parent_dir: str = "/Users/praneets/Downloads/working_dir"
+    save_dir: str = 'Checkpoints'
+    save_checkpoints: bool = True
+    save_cp_frequency: int = 5
+
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]):
         return cls(**config_dict)
