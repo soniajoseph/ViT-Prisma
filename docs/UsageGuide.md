@@ -23,7 +23,7 @@ By inspecting the HookedViTConfig config available in the framework, you can cre
 
 ## Hooked ViT
 
-The Hooked ViT part of the Prisma Project allows instantiating models in a flexible way with along with hooks to inspect the internals of a model during forward / backward passes, making it easier for mechanistic interpretability research with ViTs. The architecture is defined by the Prisma config object discussed in the previous section.
+The Hooked ViT part of the Prisma Project allows instantiating models in a flexible way along with hooks to inspect the internals of a model during forward / backward passes, making it easier for mechanistic interpretability research with ViTs. The architecture is defined by the Prisma config object discussed in the previous section.
 
 ### Instantiating the Base ViT 
 
