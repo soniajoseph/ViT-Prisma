@@ -4,7 +4,16 @@ from itertools import islice
 import numpy as np
 import random
 from vit_prisma.training.training_dictionary import loss_function_dict
+from abc import ABC, abstractmethod
 
+class PrismaCallback(ABC):
+    @abstractmethod
+    def on_epoch_end(self, epoch, net, val_loader, wandb_logger):
+        pass
+
+    @abstractmethod
+    def on_step_end(self, step, net, val_loader, wandb_logger):
+        pass
 
 def calculate_accuracy(net, data_loader, device, N=2000, batch_size=50):
     net.eval()

@@ -1,5 +1,5 @@
 import json
-
+import torch
 # Save config along with trainig files
 
 
@@ -13,6 +13,8 @@ def object_to_dict(obj):
     elif hasattr(obj, "__dict__"):  # for custom objects
         # Filter out methods or built-in functions
         return object_to_dict({k: v for k, v in obj.__dict__.items() if not callable(v)})
+    elif isinstance(obj, torch.dtype):
+        return str(obj)
     else:
         raise TypeError(f"Object of type {type(obj)} is not serializable to JSON")
 
