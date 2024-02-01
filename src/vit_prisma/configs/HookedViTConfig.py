@@ -11,10 +11,10 @@ class HookedViTConfig:
     n_layers: int
     d_model: int
     d_head: int
+    d_mlp: int
     model_name: str = "custom"
     n_heads: int = 4
-    d_mlp: Optional[int] = None
-    activation_name: Optional[str] = None
+    activation_name: str = "gelu"
     d_vocab: int = -1
     eps: float = 1e-5
     use_attn_result: bool = False
