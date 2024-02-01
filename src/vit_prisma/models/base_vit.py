@@ -1,5 +1,9 @@
+import logging
+
 import torch
 import torch.nn as nn
+
+from transformers import ViTForImageClassification
 
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding
 from vit_prisma.models.layers.position_embedding import PosEmbedding
@@ -17,10 +21,20 @@ from vit_prisma.configs import HookedViTConfig
 
 from vit_prisma.prisma.activation_cache import ActivationCache
 
+from vit_prisma.utils.prisma_utils import convert_pretrained_model_config
 
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict, List, Tuple, Optional, Literal
 
 from jaxtyping import Float, Int
+
+DTYPE_FROM_STRING = {
+    "float32": torch.float32,
+    "fp32": torch.float32,
+    "float16": torch.float16,
+    "fp16": torch.float16,
+    "bfloat16": torch.bfloat16,
+    "bf16": torch.bfloat16,
+}
 
 class HookedViT(HookedRootModule):
     """
@@ -166,3 +180,59 @@ class HookedViT(HookedRootModule):
         '''
         
         pass 
+
+    @classmethod
+    def from_pretrained(
+        cls, 
+        model_name: str,
+        fold_ln: Optional[bool] = True,
+        center_writing_weights: Optional[bool] = True,
+        center_unembed: Optional[bool] = True,
+        refactor_factored_attn_matrices: Optional[bool] = False,
+        checkpoint_index: Optional[int] = None,
+        checkpoint_value: Optional[int] = None,
+        hf_model: Optional[ViTForImageClassification] = None,
+        device: Optional[Union[str, torch.device]] = None,
+        n_devices: Optional[int] = 1,
+        move_to_device: Optional[bool] = True,
+        fold_value_biases: Optional[bool] = True,
+        default_prepend_bos: Optional[bool] = True,
+        default_padding_side: Optional[Literal["left", "right"]] = "right",
+        dtype="float32",
+        **from_pretrained_kwargs,
+    ) -> "HookedViT":
+        
+        assert not (
+            from_pretrained_kwargs.get("load_in_8bit", False)
+            or from_pretrained_kwargs.get("load_in_4bit", False)
+        ), "Quantization not supported"
+
+        if isinstance(dtype, str):
+            # Convert from string to a torch dtype
+            dtype = DTYPE_FROM_STRING[dtype]
+        if "torch_dtype" in from_pretrained_kwargs:
+            # For backwards compatibility with the previous way to do low precision loading
+            # This should maybe check the user did not explicitly set dtype *and* torch_dtype
+            dtype = from_pretrained_kwargs["torch_dtype"]
+
+        if (
+            (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+            or dtype == torch.float16
+        ) and device in ["cpu", None]:
+            logging.warning(
+                "float16 models may not work on CPU. Consider using a GPU or bfloat16."
+            )
+        
+        cfg = convert_pretrained_model_config(
+            model_name,
+            is_timm=True,
+        )
+
+        model = cls(cfg, move_to_device=False)
+
+        logging.warning(
+            'The model\'s computation graph is constructed, but the weights are not loaded. '
+        )
+
+        return model
+

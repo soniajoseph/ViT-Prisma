@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class HookedViTConfig:
 
-    n_layers: int
-    d_model: int
-    d_head: int
+    n_layers: int = None
+    d_model: int = None
+    d_head: int = None
     model_name: str = "custom"
     n_heads: int = 4
     d_mlp: Optional[int] = None
@@ -35,7 +35,7 @@ class HookedViTConfig:
     normalization_type: Optional[str] = "LN"
     device: Optional[str] = None
     n_devices: int = 1
-    attention_dir: str = "causal"
+    attention_dir: str = "bidirectional"
     attn_only: bool = False
     seed: Optional[int] = None
     initializer_range: float = -1.0

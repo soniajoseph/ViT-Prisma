@@ -2,6 +2,40 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
 import torch
 import numpy as np
 import re
+import json
+
+from transformers import AutoConfig
+import timm
+from vit_prisma.configs import HookedViTConfig
+
+def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedViTConfig:
+
+    if is_timm:
+        model = timm.create_model('vit_base_patch32_224')
+        hf_config = AutoConfig.from_pretrained(model.default_cfg['hf_hub_id'])
+    else:
+        hf_config = AutoConfig.from_pretrained(model)
+
+    pretrained_config = {
+                    'n_layers' : hf_config.num_hidden_layers,
+                    'd_model' : hf_config.hidden_size,
+                    'd_head' : hf_config.hidden_size // hf_config.num_attention_heads,
+                    'model_name' : hf_config._name_or_path,
+                    'n_heads' : hf_config.num_attention_heads,
+                    'd_mlp' : hf_config.intermediate_size,
+                    'activation_name' : hf_config.hidden_act,
+                    'eps' : hf_config.layer_norm_eps,
+                    'original_architecture' : hf_config.architecture,
+                    'attention_dir' : "bidirectional",
+                    'initializer_range' : hf_config.initializer_range,
+                    'n_channels' : hf_config.num_channels,
+                    'patch_size' : hf_config.patch_size,
+                    'image_size' : hf_config.image_size,
+                    'n_classes' : hf_config.num_classes,
+                    'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
+                }
+
+    return HookedViTConfig.HookedViTConfig.from_dict(pretrained_config)
 
 # Type alias
 SliceInput: Type = Optional[
