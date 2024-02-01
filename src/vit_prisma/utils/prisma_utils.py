@@ -128,7 +128,7 @@ def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedV
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
 
-    return HookedViTConfig.HookedViTConfig.from_dict(pretrained_config)
+    return HookedViTConfig.from_dict(pretrained_config)
 
 # Type alias
 SliceInput: Type = Optional[
