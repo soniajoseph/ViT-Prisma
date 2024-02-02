@@ -21,9 +21,9 @@ from vit_prisma.configs import HookedViTConfig
 
 from vit_prisma.prisma.activation_cache import ActivationCache
 
-from vit_prisma.utils.prisma_utils import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys, transpose
+from vit_prisma.prisma.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys, transpose
 from vit_prisma.utils import devices
-from vit_prisma.utils.FactoredMatrix import FactoredMatrix
+from vit_prisma.prisma import FactoredMatrix
 
 from typing import Union, Dict, List, Tuple, Optional, Literal
 
@@ -338,26 +338,6 @@ class HookedViT(HookedRootModule):
 
                     del state_dict[f"blocks.{l}.mlp.ln.w"]
 
-        # Fold ln_final into Unembed
-        if not self.cfg.final_rms and fold_biases:
-            # Dumb bug from my old SoLU training code, some models have RMSNorm instead of LayerNorm
-            # pre unembed.
-            state_dict[f"unembed.b_U"] = state_dict[f"unembed.b_U"] + (
-                state_dict[f"unembed.W_U"] * state_dict[f"ln_final.b"][:, None]
-            ).sum(dim=-2)
-            del state_dict[f"ln_final.b"]
-
-        state_dict[f"unembed.W_U"] = (
-            state_dict[f"unembed.W_U"] * state_dict[f"ln_final.w"][:, None]
-        )
-        del state_dict[f"ln_final.w"]
-
-        if center_weights:
-            # Center the weights that read in from the LayerNormPre
-            state_dict[f"unembed.W_U"] -= einops.reduce(
-                state_dict[f"unembed.W_U"], "d_model d_vocab -> 1 d_vocab", "mean"
-            )
-
         return state_dict
     
     def center_writing_weights(self, state_dict: Dict[str, torch.Tensor]):
@@ -392,23 +372,6 @@ class HookedViT(HookedRootModule):
                     state_dict[f"blocks.{l}.mlp.b_out"]
                     - state_dict[f"blocks.{l}.mlp.b_out"].mean()
                 )
-        return state_dict
-
-    def center_unembed(self, state_dict: Dict[str, torch.Tensor]):
-        """Center the unembedding weights W_U.
-
-        This is done by subtracting the mean of the weights from the weights themselves. This is
-        done in-place. As softmax is translation invariant, this changes the logits but not the log
-        probs, and makes the model logits (slightly) more interpretable - when trying to understand
-        how components contribute to the logits, we'll be less misled by components that just add
-        something to every logit.
-        """
-        state_dict["unembed.W_U"] = state_dict["unembed.W_U"] - state_dict[
-            "unembed.W_U"
-        ].mean(-1, keepdim=True)
-        state_dict["unembed.b_U"] = (
-            state_dict["unembed.b_U"] - state_dict["unembed.b_U"].mean()
-        )
         return state_dict
 
     def fold_value_biases(self, state_dict: Dict[str, torch.Tensor]):
@@ -542,7 +505,6 @@ class HookedViT(HookedRootModule):
         state_dict: Dict[str, torch.Tensor],
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
-        center_unembed: Optional[bool] = True,
         fold_value_biases: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,
     ):
@@ -561,9 +523,6 @@ class HookedViT(HookedRootModule):
             center_writing_weights (bool, optional): Whether to center weights writing to the
                 residual stream (ie set mean to be zero). Due to LayerNorm this doesn't change the
                 computation. Defaults to True.
-            center_unembed (bool, optional): Whether to center W_U (ie set mean to be zero).
-                Softmax is translation invariant so this doesn't affect log probs or loss, but does
-                change logits. Defaults to True.
             fold_value_biases (bool, optional): Whether to fold the value biases into the output
                 bias. Because attention patterns add up to 1, the value biases always have a
                 constant effect on a layer's output, and it doesn't matter which head a bias is
@@ -604,8 +563,6 @@ class HookedViT(HookedRootModule):
             else:
                 state_dict = self.center_writing_weights(state_dict)
 
-        if center_unembed:
-            state_dict = self.center_unembed(state_dict)
         if fold_value_biases:
             state_dict = self.fold_value_biases(state_dict)
         if refactor_factored_attn_matrices:
@@ -635,9 +592,6 @@ class HookedViT(HookedRootModule):
             self.ln_final.to(
                 devices.get_device_for_block_index(self.cfg.n_layers - 1, self.cfg)
             )
-        self.unembed.to(
-            devices.get_device_for_block_index(self.cfg.n_layers - 1, self.cfg)
-        )
         for i, block in enumerate(self.blocks):
             block.to(devices.get_device_for_block_index(i, self.cfg))
 
@@ -647,7 +601,6 @@ class HookedViT(HookedRootModule):
         model_name: str,
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
-        center_unembed: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,
         checkpoint_index: Optional[int] = None,
         checkpoint_value: Optional[int] = None,
@@ -698,7 +651,6 @@ class HookedViT(HookedRootModule):
             state_dict,
             fold_ln=fold_ln,
             center_writing_weights=center_writing_weights,
-            center_unembed=center_unembed,
             fold_value_biases=fold_value_biases,
             refactor_factored_attn_matrices=refactor_factored_attn_matrices,
         )
