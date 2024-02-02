@@ -1,3 +1,10 @@
+"""
+Reference:
+https://github.com/neelnanda-io/TransformerLens/blob/main/transformer_lens/loading_from_pretrained.py
+
+Preserves most of the original functionality with necessary modifications for ViTs and pretrained ViT models.
+"""
+
 import logging
 
 from transformers import AutoConfig
