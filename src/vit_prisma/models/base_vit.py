@@ -21,7 +21,9 @@ from vit_prisma.configs import HookedViTConfig
 
 from vit_prisma.prisma.activation_cache import ActivationCache
 
-from vit_prisma.prisma.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys, transpose
+from vit_prisma.prisma.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys
+from vit_prisma.utils.prisma_utils import transpose
+
 from vit_prisma.utils import devices
 from vit_prisma.prisma import FactoredMatrix
 
@@ -538,7 +540,7 @@ class HookedViT(HookedRootModule):
                 "With reduced precision, it is advised to use `from_pretrained_no_processing` instead of `from_pretrained`."
             )
 
-        state_dict = fill_missing_keys(state_dict)
+        state_dict = fill_missing_keys(self, state_dict)
         if fold_ln:
             if self.cfg.normalization_type in ["LN", "LNPre"]:
                 state_dict = self.fold_layer_norm(state_dict)
@@ -599,6 +601,7 @@ class HookedViT(HookedRootModule):
     def from_pretrained(
         cls, 
         model_name: str,
+        is_timm: bool = True,
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,
@@ -638,11 +641,11 @@ class HookedViT(HookedRootModule):
         
         cfg = convert_pretrained_model_config(
             model_name,
-            is_timm=True,
+            is_timm=is_timm,
         )
 
         state_dict = get_pretrained_state_dict(
-            model_name, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
+            model_name, is_timm, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
         )
 
         model = cls(cfg, move_to_device=False)

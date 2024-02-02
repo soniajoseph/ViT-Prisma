@@ -12,8 +12,7 @@ from torch import nn
 
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-from vit_prisma.models.base_vit import HookedViT
-
+from vit_prisma.prisma.hooked_root_module import HookedRootModule
 
 def get_device_for_block_index(
     index: int,
@@ -48,7 +47,7 @@ def move_to_and_update_config(
     # model: Union[
     #     HookedViT
     # ],
-    model: HookedViT,
+    model: "HookedViT",
     device_or_dtype: Union[torch.device, str, torch.dtype],
     print_details=True,
 ):
