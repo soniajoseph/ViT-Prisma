@@ -7,7 +7,7 @@
 
 ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_).
 
-*Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi) [and more coming soon]
+*Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi), [Rob Graham](https://github.com/themachinefan) [and more coming soon]
 
 We welcome new contributors. Check out our contributing guidelines [here](CONTRIBUTING.md).
 
