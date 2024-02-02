@@ -311,7 +311,7 @@ class HookedViT(HookedRootModule):
                         "mean",
                     )
 
-                if self.cfg.act_fn.startswith("solu"):
+                if self.cfg.activation_name.startswith("solu"):
                     # Fold ln3 into activation
                     if fold_biases:
                         state_dict[f"blocks.{l}.mlp.b_out"] = state_dict[
@@ -349,9 +349,9 @@ class HookedViT(HookedRootModule):
         W_out. This is done by subtracting the mean of the weights from the weights themselves. This
         is done in-place. See fold_layer_norm for more details.
         """
-        state_dict["embed.W_E"] = state_dict["embed.W_E"] - state_dict[
-            "embed.W_E"
-        ].mean(-1, keepdim=True)
+        # state_dict["embed.W_E"] = state_dict["embed.W_E"] - state_dict[
+        #     "embed.W_E"
+        # ].mean(-1, keepdim=True)
         if self.cfg.positional_embedding_type != "rotary":
             state_dict["pos_embed.W_pos"] = state_dict["pos_embed.W_pos"] - state_dict[
                 "pos_embed.W_pos"

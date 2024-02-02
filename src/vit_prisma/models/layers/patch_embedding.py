@@ -12,7 +12,7 @@ class PatchEmbedding(nn.Module):
             self.config.d_model, 
             kernel_size=self.config.patch_size, 
             stride=self.config.patch_size, 
-            bias=False
+            bias=True
         )
     
     def _log(self, stage, tensor):

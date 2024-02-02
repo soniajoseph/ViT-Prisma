@@ -30,8 +30,11 @@ def convert_timm_weigthts(
     new_state_dict = {}
     new_state_dict["cls_token"] = old_state_dict["cls_token"]
     new_state_dict["pos_embed.W_pos"] = old_state_dict["pos_embed"]
+    pos_embed_W_pos = old_state_dict["pos_embed"]
+    pos_embed_W_pos = pos_embed_W_pos.squeeze(0)
+    new_state_dict["pos_embed.W_pos"] = pos_embed_W_pos
     new_state_dict["embed.proj.weight"] = old_state_dict["patch_embed.proj.weight"]
-    # new_state_dict["embed.proj.bias"] = old_state_dict["patch_embed.proj.bias"] 
+    new_state_dict["embed.proj.bias"] = old_state_dict["patch_embed.proj.bias"] 
     new_state_dict["ln_final.w"] = old_state_dict["norm.weight"]
     new_state_dict["ln_final.b"] = old_state_dict["norm.bias"]
 
@@ -44,9 +47,9 @@ def convert_timm_weigthts(
 
         W = old_state_dict[f"{layer_key}.attn.qkv.weight"]
         W_Q, W_K, W_V = torch.tensor_split(W, 3, dim=0)
-        W_Q = einops.rearrange(W_Q, "(i h) m->i m h", h=cfg.n_heads)
-        W_K = einops.rearrange(W_K, "(i h) m->i m h", h=cfg.n_heads)
-        W_V = einops.rearrange(W_V, "(i h) m->i m h", h=cfg.n_heads)
+        W_Q = einops.rearrange(W_Q, "(i h) m->h m i", h=cfg.n_heads)
+        W_K = einops.rearrange(W_K, "(i h) m->h m i", h=cfg.n_heads)
+        W_V = einops.rearrange(W_V, "(i h) m->h m i", h=cfg.n_heads)
         new_state_dict[f"{layer_key}.attn.W_Q"] = W_Q
         new_state_dict[f"{layer_key}.attn.W_K"] = W_K
         new_state_dict[f"{layer_key}.attn.W_V"] = W_V
@@ -57,9 +60,9 @@ def convert_timm_weigthts(
 
         attn_bias = old_state_dict[f"{layer_key}.attn.qkv.bias"]
         b_Q, b_K, b_V = torch.tensor_split(attn_bias, 3, dim=0)
-        b_Q = einops.rearrange(b_Q, "(i h) -> i h", h=cfg.n_heads)
-        b_K = einops.rearrange(b_K, "(i h) -> i h", h=cfg.n_heads)
-        b_V = einops.rearrange(b_V, "(i h) -> i h", h=cfg.n_heads)
+        b_Q = einops.rearrange(b_Q, "(i h) -> h i", h=cfg.n_heads)
+        b_K = einops.rearrange(b_K, "(i h) -> h i", h=cfg.n_heads)
+        b_V = einops.rearrange(b_V, "(i h) -> h i", h=cfg.n_heads)
         new_state_dict[f"{layer_key}.attn.b_Q"] = b_Q
         new_state_dict[f"{layer_key}.attn.b_K"] = b_K
         new_state_dict[f"{layer_key}.attn.b_V"] = b_V
@@ -68,10 +71,16 @@ def convert_timm_weigthts(
         b_O = einops.rearrange(b_O, "m -> m")
         new_state_dict[f"{layer_key}.attn.b_O"] = b_O
 
-        new_state_dict[f"{layer_key}.mlp.W_in"] = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
         new_state_dict[f"{layer_key}.mlp.b_in"] = old_state_dict[f"{layer_key}.mlp.fc1.bias"]
-        new_state_dict[f"{layer_key}.mlp.W_out"] = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
         new_state_dict[f"{layer_key}.mlp.b_out"] = old_state_dict[f"{layer_key}.mlp.fc2.bias"]
+
+        mlp_W_in = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
+        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
+        new_state_dict[f"{layer_key}.mlp.W_in"] = mlp_W_in
+
+        mlp_W_out = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
+        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
+        new_state_dict[f"{layer_key}.mlp.W_out"] = mlp_W_out
 
     new_state_dict["head.weight"] = old_state_dict["head.weight"]
     new_state_dict["head.bias"] = old_state_dict["head.bias"]
