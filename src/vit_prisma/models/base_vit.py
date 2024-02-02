@@ -166,3 +166,54 @@ class HookedViT(HookedRootModule):
         '''
         
         pass 
+
+    def set_use_attn_result(self, use_attn_result: bool):
+        """Toggle whether to explicitly calculate and expose the result for each attention head.
+
+        Useful for interpretability but can easily burn through GPU memory.
+        """
+        self.cfg.use_attn_result = use_attn_result
+
+    def set_use_split_qkv_input(self, use_split_qkv_input: bool):
+        """
+        Toggles whether to allow editing of inputs to each attention head.
+        """
+        self.cfg.use_split_qkv_input = use_split_qkv_input
+
+    def set_use_hook_mlp_in(self, use_hook_mlp_in: bool):
+        """Toggles whether to allow storing and editing inputs to each MLP layer."""
+
+        assert not self.cfg.attn_only, "Can't use hook_mlp_in with attn_only model"
+        self.cfg.use_hook_mlp_in = use_hook_mlp_in
+
+    def set_use_attn_in(self, use_attn_in: bool):
+        """
+        Toggles whether to allow editing of inputs to each attention head.
+        """
+        self.cfg.use_attn_in = use_attn_in
+
+    def check_hooks_to_add(
+        self,
+        hook_point,
+        hook_point_name,
+        hook,
+        dir="fwd",
+        is_permanent=False,
+        prepend=False,
+    ) -> None:
+        if hook_point_name.endswith("attn.hook_result"):
+            assert (
+                self.cfg.use_attn_result
+            ), f"Cannot add hook {hook_point_name} if use_attn_result_hook is False"
+        if hook_point_name.endswith(("hook_q_input", "hook_k_input", "hook_v_input")):
+            assert (
+                self.cfg.use_split_qkv_input
+            ), f"Cannot add hook {hook_point_name} if use_split_qkv_input is False"
+        if hook_point_name.endswith("mlp_in"):
+            assert (
+                self.cfg.use_hook_mlp_in
+            ), f"Cannot add hook {hook_point_name} if use_hook_mlp_in is False"
+        if hook_point_name.endswith("attn_in"):
+            assert (
+                self.cfg.use_attn_in
+            ), f"Cannot add hook {hook_point_name} if use_attn_in is False"
