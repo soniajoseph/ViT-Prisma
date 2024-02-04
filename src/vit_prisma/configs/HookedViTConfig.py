@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class HookedViTConfig:
 
-    n_layers: int
-    d_model: int
-    d_head: int
-    d_mlp: int
+    n_layers: int = None
+    d_model: int = None
+    d_head: int = None
+    d_mlp: int = None
     model_name: str = "custom"
     n_heads: int = 4
     activation_name: str = "gelu"
@@ -33,9 +33,9 @@ class HookedViTConfig:
     attn_types: Optional[List] = None
     init_mode: str = "gpt2"
     normalization_type: Optional[str] = "LN"
-    device: Optional[str] = None
+    device: Optional[str] = 'cpu'
     n_devices: int = 1
-    attention_dir: str = "causal"
+    attention_dir: str = "bidirectional"
     attn_only: bool = False
     seed: Optional[int] = None
     initializer_range: float = -1.0

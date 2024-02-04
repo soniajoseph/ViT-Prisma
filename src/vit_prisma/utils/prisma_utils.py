@@ -1,7 +1,16 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
 import torch
+from jaxtyping import Float, Int
 import numpy as np
 import re
+import json
+import logging
+
+def transpose(tensor: Float[torch.Tensor, "... a b"]) -> Float[torch.Tensor, "... b a"]:
+    """
+    Utility to swap the last two dimensions of a tensor, regardless of the number of leading dimensions
+    """
+    return tensor.transpose(-1, -2)
 
 # Type alias
 SliceInput: Type = Optional[
