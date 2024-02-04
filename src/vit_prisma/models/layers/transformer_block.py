@@ -11,7 +11,25 @@ from vit_prisma.prisma.hook_point import HookPoint
 from typing import Dict, Optional, Tuple, Union
 
 from jaxtyping import Float, Int
+import einops
 
+
+
+def add_head_dimension(
+        tensor: Float[torch.Tensor, "batch pos d_model"],
+        n_heads:int,
+        clone_tensor=True,
+        # `einops.repeat` uses a view in torch, so we generally clone the tensor to avoid using shared storage for each head entry
+    ):
+        repeated_tensor = einops.repeat(
+            tensor,
+            "batch pos d_model -> batch pos n_heads d_model",
+            n_heads=n_heads,
+        )
+        if clone_tensor:
+            return repeated_tensor.clone()
+        else:
+                return repeated_tensor
 
 class TransformerBlock(nn.Module):
     """
@@ -66,7 +84,12 @@ class TransformerBlock(nn.Module):
     ) -> Float[torch.Tensor, "batch pos d_model"]:
         
         resid_pre = self.hook_resid_pre(resid_pre)
-        attn_in = resid_pre
+
+        if self.cfg.use_attn_in or self.cfg.use_split_qkv_input:
+            # We're adding a head dimension
+            attn_in = add_head_dimension(resid_pre, self.cfg.n_heads, clone_tensor=False)
+        else:
+            attn_in = resid_pre
 
         if self.cfg.use_attn_in:
             attn_in = self.hook_attn_in(attn_in.clone())

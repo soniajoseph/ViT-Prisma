@@ -73,8 +73,8 @@ class HookedRootModule(nn.Module):
         hook_point.add_hook(hook, dir=dir, is_permanent = is_permanent, level = level, prepend = prepend)
     
     def check_hooks_to_add(
-        self, hook_point, hook_point_name, hook, dir="fwd", is_permanent=False) -> None:
-        # ?? what is this doing?
+        self, hook_point, hook_point_name, hook, dir="fwd", is_permanent=False, prepend=False) -> None:
+        """Override this function to add checks on which hooks should be added (ex: see base_vit.py)"""
         pass 
     
     def add_hook(self, name, hook, dir="fwd", is_permanent=False, level=None, prepend=False) -> None:
