@@ -126,11 +126,11 @@ class HookedViT(HookedRootModule):
             embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
 
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
-        full_embeddings = embed + pos_embed
+        residual = embed + pos_embed
 
         # Blocks
         for block in self.blocks:
-            residual = block(full_embeddings)
+            residual = block(residual)
 
         # Final layer norm
         x = self.ln_final(residual)
