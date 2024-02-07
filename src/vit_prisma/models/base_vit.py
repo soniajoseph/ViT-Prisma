@@ -81,8 +81,6 @@ class HookedViT(HookedRootModule):
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
 
-        self.hook_total_embed = HookPoint()
-
         # Blocks
         self.blocks = nn.ModuleList(
             [
@@ -125,9 +123,10 @@ class HookedViT(HookedRootModule):
             cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
             embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
-        total_embed = embed + pos_embed
+        
+        residual = embed + pos_embed
 
-        residual = self.hook_total_embed(total_embed)
+        # residual = self.hook_total_embed(total_embed)
 
         for block in self.blocks:
             residual = block(residual)
