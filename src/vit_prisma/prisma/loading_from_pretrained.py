@@ -19,7 +19,7 @@ from typing import Dict
 
 import einops
 
-def convert_timm_weigthts(
+def convert_timm_weights(
         old_state_dict,
         cfg: HookedViTConfig,
 ):
