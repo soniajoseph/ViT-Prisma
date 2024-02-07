@@ -81,6 +81,8 @@ class HookedViT(HookedRootModule):
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
 
+        self.hook_total_embed = HookPoint()
+
         # Blocks
         self.blocks = nn.ModuleList(
             [
@@ -117,22 +119,19 @@ class HookedViT(HookedRootModule):
 
         batch_size = input.shape[0]
 
-        # Embedding
         embed = self.hook_embed(self.embed(input))
-
 
         if self.cfg.classification_type == 'cls':
             cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
             embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
-
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
-        residual = embed + pos_embed
+        total_embed = embed + pos_embed
 
-        # Blocks
+        residual = self.hook_total_embed(total_embed)
+
         for block in self.blocks:
             residual = block(residual)
 
-        # Final layer norm
         x = self.ln_final(residual)
 
         if self.cfg.classification_type == 'gaap':  # GAAP
