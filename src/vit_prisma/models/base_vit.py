@@ -126,8 +126,6 @@ class HookedViT(HookedRootModule):
         
         residual = embed + pos_embed
 
-        # residual = self.hook_total_embed(total_embed)
-
         for block in self.blocks:
             residual = block(residual)
 

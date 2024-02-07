@@ -81,8 +81,8 @@ class Attention(nn.Module):
 
 
         # Add hook points
-        self.hook_k = HookPoint()  # [batch, pos, head_index, d_head]
         self.hook_q = HookPoint()  # [batch, pos, head_index, d_head]
+        self.hook_k = HookPoint()  # [batch, pos, head_index, d_head]
         self.hook_v = HookPoint()  # [batch, pos, head_index, d_head]
         self.hook_z = HookPoint()  # [batch, pos, head_index, d_head]
         self.hook_attn_scores = HookPoint()  # [batch, head_index, query_pos, key_pos]
@@ -91,12 +91,13 @@ class Attention(nn.Module):
 
         self.layer_id = layer_id
 
-        # Note to Sonia: check this.
-        # attn_scale is a constant that we divide the attention scores by pre-softmax. I'm not entirely sure why it matters, but it's probably a mix of softmax not being scale invariant and numerical stability?
-        if self.cfg.use_attn_scale:
-            self.attn_scale = np.sqrt(self.cfg.d_head)
-        else:
-            self.attn_scale = 1.0
+        # # attn_scale is a constant that we divide the attention scores by pre-softmax. I'm not entirely sure why it matters, but it's probably a mix of softmax not being scale invariant and numerical stability?
+        # if self.cfg.use_attn_scale:
+        #     self.attn_scale = np.sqrt(self.cfg.d_head)
+        # else:
+        #     self.attn_scale = 1.0           
+
+        self.scale = self.cfg.d_head ** -0.5
 
     @property
     def OV(self) -> FactoredMatrix:
@@ -252,12 +253,12 @@ class Attention(nn.Module):
 
         Returns a tensor of shape [batch, head_index, query_pos, key_pos]
         """
+        q = q * self.scale
         attn_scores = einsum(
             "batch query_pos head_index d_head, batch key_pos head_index d_head -> batch head_index query_pos key_pos",
             q,
             k,
         )
-        attn_scores = attn_scores / self.attn_scale
         return attn_scores
     
     def calculate_z_scores(

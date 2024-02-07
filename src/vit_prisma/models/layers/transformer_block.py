@@ -29,7 +29,7 @@ def add_head_dimension(
         if clone_tensor:
             return repeated_tensor.clone()
         else:
-                return repeated_tensor
+            return repeated_tensor
 
 class TransformerBlock(nn.Module):
     """
@@ -93,6 +93,7 @@ class TransformerBlock(nn.Module):
 
         if self.cfg.use_attn_in:
             attn_in = self.hook_attn_in(attn_in.clone())
+
         
         if self.cfg.use_split_qkv_input:
             query_input = self.hook_q_input(attn_in.clone())
@@ -103,14 +104,18 @@ class TransformerBlock(nn.Module):
             key_input = attn_in
             value_input = attn_in
         
+        # attn_out = self.attn(
+        #     query_input = query_input,
+        #     key_input = key_input,
+        #     value_input = value_input,
+        # )
+        
         attn_out = self.attn(
                 query_input = self.ln1(query_input),
                 key_input = self.ln1(key_input),
                 value_input = self.ln1(value_input),
             )
-
-        # Take hook fn
-        
+                
         attn_out = self.hook_attn_out(
             attn_out
         )

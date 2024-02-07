@@ -16,7 +16,7 @@ class HookedViTConfig:
     n_heads: int = 4
     activation_name: str = "gelu"
     d_vocab: int = -1
-    eps: float = 1e-5
+    eps: float = 1e-6
     use_attn_result: bool = False
     use_attn_scale: bool = True
     use_split_qkv_input: bool = False

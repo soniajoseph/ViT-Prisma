@@ -186,7 +186,8 @@ def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedV
                     'n_heads' : hf_config.num_attention_heads,
                     'd_mlp' : hf_config.intermediate_size,
                     'activation_name' : hf_config.hidden_act,
-                    'eps' : hf_config.layer_norm_eps,
+                    'eps': 1e-6, # There is a bug here
+                    # 'eps' : hf_config.layer_norm_eps,
                     'original_architecture' : hf_config.architecture,
                     'initializer_range' : hf_config.initializer_range,
                     'n_channels' : hf_config.num_channels,
@@ -196,4 +197,4 @@ def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedV
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
 
-    return HookedViTConfig.from_dict(pretrained_config)
+    return HookedViTConfig.from_dict(pretrained_config) # Does this entirely override config or add to it? 
