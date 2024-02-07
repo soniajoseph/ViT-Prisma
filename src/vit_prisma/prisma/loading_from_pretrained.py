@@ -132,7 +132,7 @@ def get_pretrained_state_dict(
             param.requires_grad = False
 
         # state_dict = None # Conversion of state dict to HookedTransformer format       
-        state_dict = convert_timm_weigthts(hf_model.state_dict(), cfg)
+        state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
                 
         return state_dict
 
