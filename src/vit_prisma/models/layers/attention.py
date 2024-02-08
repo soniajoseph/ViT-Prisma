@@ -1,3 +1,7 @@
+"""
+Attention code from timm model
+"""
+
 import torch.nn as nn
 import torch
 
@@ -33,51 +37,54 @@ class Attention(nn.Module):
 
         self.cfg = cfg
 
-        # Initialize parameters
-        self.W_Q = nn.Parameter(
-            torch.empty(
-                self.cfg.n_heads,
-                self.cfg.d_model,
-                self.cfg.d_head,
-                dtype = self.cfg.dtype
-            )
-        )
-        self.W_K = nn.Parameter(
-            torch.empty(
-                self.cfg.n_heads,
-                self.cfg.d_model,
-                self.cfg.d_head,
-                dtype = self.cfg.dtype
-            )
-        )
-        self.W_V = nn.Parameter(
-            torch.empty(
-                self.cfg.n_heads,
-                self.cfg.d_model,
-                self.cfg.d_head,
-                dtype = self.cfg.dtype
-            )
-        )
-        self.W_O = nn.Parameter(
-            torch.empty(
-                self.cfg.n_heads,
-                self.cfg.d_head,
-                self.cfg.d_model,
-                dtype = self.cfg.dtype
-            )
-        )
+        self.qkv = nn.Linear(self.cfg.d_model, self.cfg.d_model * 3, bias=True)
+        self.proj = nn.Linear(self.cfg.d_model, self.cfg.d_model)
 
-        # Initialize biases
-        self.b_Q = nn.Parameter(
-            torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
-        )
-        self.b_K = nn.Parameter(
-            torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
-        )
-        self.b_V = nn.Parameter(
-            torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
-        )
-        self.b_O = nn.Parameter(torch.zeros(self.cfg.d_model, dtype=self.cfg.dtype))
+        # # Initialize parameters
+        # self.W_Q = nn.Parameter(
+        #     torch.empty(
+        #         self.cfg.n_heads,
+        #         self.cfg.d_model,
+        #         self.cfg.d_head,
+        #         dtype = self.cfg.dtype
+        #     )
+        # )
+        # self.W_K = nn.Parameter(
+        #     torch.empty(
+        #         self.cfg.n_heads,
+        #         self.cfg.d_model,
+        #         self.cfg.d_head,
+        #         dtype = self.cfg.dtype
+        #     )
+        # )
+        # self.W_V = nn.Parameter(
+        #     torch.empty(
+        #         self.cfg.n_heads,
+        #         self.cfg.d_model,
+        #         self.cfg.d_head,
+        #         dtype = self.cfg.dtype
+        #     )
+        # )
+        # self.W_O = nn.Parameter(
+        #     torch.empty(
+        #         self.cfg.n_heads,
+        #         self.cfg.d_head,
+        #         self.cfg.d_model,
+        #         dtype = self.cfg.dtype
+        #     )
+        # )
+
+        # # Initialize biases
+        # self.b_Q = nn.Parameter(
+        #     torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
+        # )
+        # self.b_K = nn.Parameter(
+        #     torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
+        # )
+        # self.b_V = nn.Parameter(
+        #     torch.zeros(self.cfg.n_heads, self.cfg.d_head, dtype=self.cfg.dtype)
+        # )
+        # self.b_O = nn.Parameter(torch.zeros(self.cfg.d_model, dtype=self.cfg.dtype))
 
 
         # Add hook points
@@ -87,7 +94,9 @@ class Attention(nn.Module):
         self.hook_z = HookPoint()  # [batch, pos, head_index, d_head]
         self.hook_attn_scores = HookPoint()  # [batch, head_index, query_pos, key_pos]
         self.hook_pattern = HookPoint()  # [batch, head_index, query_pos, key_pos]
-        self.hook_result = HookPoint()  # [batch, pos, head_index, d_model]
+        # self.hook_result = HookPoint()  # [batch, pos, head_index, d_model]
+
+        self.hook_qkv = HookPoint()  # [batch, pos, 3, head_index, d_head]
 
         self.layer_id = layer_id
 
@@ -126,62 +135,80 @@ class Attention(nn.Module):
     
     def forward(
             self,
-            query_input: Union[
+            x: Union[
                 Float[torch.Tensor, "batch pos d_model"],
-                Float[torch.Tensor, "batch pos head_index d_model"],
-            ],
-            key_input: Union[
-                Float[torch.Tensor, "batch pos d_model"],
-                Float[torch.Tensor, "batch pos head_index d_model"],
-            ],
-            value_input: Union[
-                Float[torch.Tensor, "batch pos d_model"],
-                Float[torch.Tensor, "batch pos head_index d_model"],
+                # Float[torch.Tensor, "batch pos head_index d_model"],
             ]
     ) -> Float[torch.Tensor, "batch pos d_model"]:
         
-        q, k, v  = self.calculate_qkv_matrices(query_input, key_input, value_input)
+        # Calculate QKV
+        B, N, C = x.shape
+        qkv = self.qkv(x).reshape(B, N, 3, self.cfg.n_heads, self.cfg.d_head).permute(2, 0, 3, 1, 4)
 
-        attn_scores = self.calculate_attn_scores(q, k)
+        qkv = self.hook_qkv(qkv)
+
+        q, k, v = qkv.unbind(0)
+
+        q = self.hook_q(q)
+        k = self.hook_k(k)
+        v = self.hook_v(v)
+        
+        # q, k, v  = self.calculate_qkv_matrices(query_input, key_input, value_input)
+
+        # Attention Scores
+        q = q * self.scale
+        attn_scores = q @ k.transpose(-2, -1)
         attn_scores = self.hook_attn_scores(attn_scores)
 
-        pattern = F.softmax(attn_scores, dim=-1) # where do I do normalization? 
-        pattern = torch.where(torch.isnan(pattern), torch.zeros_like(pattern), pattern)
-        pattern = self.hook_pattern(pattern)
+        # Attention Pattern
+        attn_pattern = attn_scores.softmax(dim=-1)
+        attn_pattern = torch.where(torch.isnan(attn_pattern), torch.zeros_like(attn_pattern), attn_pattern)
+        attn_pattern = self.hook_pattern(attn_pattern)
+        attn_pattern = attn_pattern.to(self.cfg.dtype)
 
-        pattern = pattern.to(self.cfg.dtype)
-        z = self.calculate_z_scores(v, pattern)
+        # Value matrix
+        z = attn_pattern @ v
+        z = self.hook_z(z)
 
-        if not self.cfg.use_attn_result:
-            out = (
-                (
-                    einsum(
-                        "batch pos head_index d_head, \
-                        head_index d_head d_model -> \
-                        batch pos d_model",
-                        z,
-                        self.W_O,
-                    )
-                )
-                + self.b_O
-            )
-        else: 
-            # Explicitly calculate the attention result so it can be accessed by a hook.
-            # Off by default to not eat through GPU memory.
-            result = self.hook_result(
-                einsum(
-                    "batch pos head_index d_head, \
-                    head_index d_head d_model -> \
-                    batch pos head_index d_model",
-                    z,
-                    self.W_O,
-                )
-            )
-            out = (
-                einops.reduce(result, "batch pos head_index d_model -> batch position d_model", "sum")
-                + self.b_O
-            )
-        return out
+        # Output projection layer
+        z = z.transpose(1,2).reshape(B,N,C)
+        output = self.proj(z)
+        # output = self.hook_result(output)
+
+        return output
+
+        # z = self.calculate_z_scores(v, pattern)
+
+        # if not self.cfg.use_attn_result:
+        #     out = (
+        #         (
+        #             einsum(
+        #                 "batch pos head_index d_head, \
+        #                 head_index d_head d_model -> \
+        #                 batch pos d_model",
+        #                 z,
+        #                 self.W_O,
+        #             )
+        #         )
+        #         + self.b_O
+        #     )
+        # else: 
+        #     # Explicitly calculate the attention result so it can be accessed by a hook.
+        #     # Off by default to not eat through GPU memory.
+        #     result = self.hook_result(
+        #         einsum(
+        #             "batch pos head_index d_head, \
+        #             head_index d_head d_model -> \
+        #             batch pos head_index d_model",
+        #             z,
+        #             self.W_O,
+        #         )
+        #     )
+        #     out = (
+        #         einops.reduce(result, "batch pos head_index d_model -> batch position d_model", "sum")
+        #         + self.b_O
+        #     )
+        # return out
 
     def calculate_qkv_matrices(
             self,
@@ -213,16 +240,15 @@ class Attention(nn.Module):
         else:
             qkv_einops_string = "batch pos d_model"
 
-
-        q = self.hook_q(
-            einsum(
+        q = einsum(
                 f"{qkv_einops_string}, head_index d_model d_head \
                 -> batch pos head_index d_head",
                 query_input,
                 self.W_Q,
-            )
-            + self.b_Q
-        )  # [batch, pos, head_index, d_head]
+            ) + self.b_Q
+            # [batch, pos, head_index, d_head]
+        q = self.hook_q(q.transpose(-1,-2)) # [batch, pos, d_head, head_index]; to match timm
+
         k = self.hook_k(
             einsum(
                 f"{qkv_einops_string}, head_index d_model d_head \
@@ -232,6 +258,8 @@ class Attention(nn.Module):
             )
             + self.b_K
         )  # [batch, pos, head_index, d_head]
+        k = self.hook_k(k.transpose(-1,-2)) # [batch, pos, d_head, head_index]; to match timm
+
         v = self.hook_v(
             einsum(
                 f"{qkv_einops_string}, head_index d_model d_head \
@@ -241,6 +269,7 @@ class Attention(nn.Module):
             )
             + self.b_V
         )  # [batch, pos, head_index, d_head]
+        v = self.hook_v(v.transpose(-1,-2))
         return q, k, v
     
     def calculate_attn_scores(
@@ -255,10 +284,11 @@ class Attention(nn.Module):
         """
         q = q * self.scale
         attn_scores = einsum(
-            "batch query_pos head_index d_head, batch key_pos head_index d_head -> batch head_index query_pos key_pos",
+            "batch query_pos d_head head_index, batch key_pos d_head -> batch head_index query_pos key_pos",
             q,
             k,
         )
+        
         return attn_scores
     
     def calculate_z_scores(
@@ -266,6 +296,8 @@ class Attention(nn.Module):
             v: Float[torch.Tensor, "batch key_pos head_index d_head"],
             pattern: Float[torch.Tensor, "batch head_index query_pos key_pos"],
     ) -> Float[torch.Tensor, "batch query_pos head_index d_head"]:
+        
+
         z = self.hook_z(
             einsum(
                 "batch key_pos head_index d_head, \
