@@ -29,7 +29,7 @@ def add_head_dimension(
         if clone_tensor:
             return repeated_tensor.clone()
         else:
-            return repeated_tensor
+                return repeated_tensor
 
 class TransformerBlock(nn.Module):
     """
@@ -85,35 +85,32 @@ class TransformerBlock(nn.Module):
         
         resid_pre = self.hook_resid_pre(resid_pre)
 
-        # if self.cfg.use_attn_in or self.cfg.use_split_qkv_input:
-        #     # We're adding a head dimension
-        #     attn_in = add_head_dimension(resid_pre, self.cfg.n_heads, clone_tensor=False)
-        # else:
-        attn_in = resid_pre
+        if self.cfg.use_attn_in or self.cfg.use_split_qkv_input:
+            # We're adding a head dimension
+            attn_in = add_head_dimension(resid_pre, self.cfg.n_heads, clone_tensor=False)
+        else:
+            attn_in = resid_pre
 
         if self.cfg.use_attn_in:
             attn_in = self.hook_attn_in(attn_in.clone())
         
-        # if self.cfg.use_split_qkv_input:
-        #     query_input = self.hook_q_input(attn_in.clone())
-        #     key_input = self.hook_k_input(attn_in.clone())
-        #     value_input = self.hook_v_input(attn_in.clone())
-        # else:
-        #     query_input = attn_in
-        #     key_input = attn_in
-        #     value_input = attn_in
+        if self.cfg.use_split_qkv_input:
+            query_input = self.hook_q_input(attn_in.clone())
+            key_input = self.hook_k_input(attn_in.clone())
+            value_input = self.hook_v_input(attn_in.clone())
+        else:
+            query_input = attn_in
+            key_input = attn_in
+            value_input = attn_in
         
-        # attn_out = self.attn(
-        #     query_input = query_input,
-        #     key_input = key_input,
-        #     value_input = value_input,
-        # )
-
-        # Update: moving to timm setup for accuracy; add function to split qkv later.
         attn_out = self.attn(
-            self.ln1(attn_in)
+                query_input = self.ln1(query_input),
+                key_input = self.ln1(key_input),
+                value_input = self.ln1(value_input),
             )
-                
+
+        # Take hook fn
+        
         attn_out = self.hook_attn_out(
             attn_out
         )

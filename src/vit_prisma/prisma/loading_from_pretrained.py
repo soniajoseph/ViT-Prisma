@@ -29,10 +29,7 @@ def convert_timm_weights(
 
     new_state_dict = {}
     new_state_dict["cls_token"] = old_state_dict["cls_token"]
-    new_state_dict["pos_embed.W_pos"] = old_state_dict["pos_embed"]
-    pos_embed_W_pos = old_state_dict["pos_embed"]
-    pos_embed_W_pos = pos_embed_W_pos.squeeze(0)
-    new_state_dict["pos_embed.W_pos"] = pos_embed_W_pos
+    new_state_dict["pos_embed.W_pos"] = old_state_dict["pos_embed"].squeeze(0)
     new_state_dict["embed.proj.weight"] = old_state_dict["patch_embed.proj.weight"]
     new_state_dict["embed.proj.bias"] = old_state_dict["patch_embed.proj.bias"] 
     new_state_dict["ln_final.w"] = old_state_dict["norm.weight"]
@@ -46,37 +43,25 @@ def convert_timm_weights(
         new_state_dict[f"{layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.norm2.bias"]
 
         W = old_state_dict[f"{layer_key}.attn.qkv.weight"]
-        new_state_dict[f"{layer_key}.attn.qkv.weight"] = old_state_dict[f"{layer_key}.attn.qkv.weight"]
-        new_state_dict[f"{layer_key}.attn.qkv.bias"] = old_state_dict[f"{layer_key}.attn.qkv.bias"]
+        W_reshape = einops.rearrange( W, "(three h dh) d ->three h d dh" , three=3, h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_Q, W_K, W_V = torch.unbind(W_reshape, dim=0)
+        new_state_dict[f"{layer_key}.attn.W_Q"] = W_Q
+        new_state_dict[f"{layer_key}.attn.W_K"] = W_K
+        new_state_dict[f"{layer_key}.attn.W_V"] = W_V
 
-        new_state_dict[f"{layer_key}.attn.proj.weight"] = old_state_dict[f"{layer_key}.attn.proj.weight"]
-        new_state_dict[f"{layer_key}.attn.proj.bias"] = old_state_dict[f"{layer_key}.attn.proj.bias"]
+        W_O = old_state_dict[f"{layer_key}.attn.proj.weight"]
+        W_O = einops.rearrange(W_O, "m (i h)->i h m", i=cfg.n_heads)
+        new_state_dict[f"{layer_key}.attn.W_O"] = W_O
 
+        attn_bias = old_state_dict[f"{layer_key}.attn.qkv.bias"]
+        attn_bias_reshape = einops.rearrange(attn_bias, "(three h dh) -> three h dh", three=3, h=cfg.n_heads, dh=cfg.d_head)
+        b_Q, b_K, b_V = torch.unbind(attn_bias_reshape, dim=0)
+        new_state_dict[f"{layer_key}.attn.b_Q"] = b_Q
+        new_state_dict[f"{layer_key}.attn.b_K"] = b_K
+        new_state_dict[f"{layer_key}.attn.b_V"] = b_V
 
-        # W_Q, W_K, W_V = torch.tensor_split(W, 3, dim=0)
-        # W_Q = einops.rearrange(W_Q, "(i h) m->h m i", h=cfg.n_heads)
-        # W_K = einops.rearrange(W_K, "(i h) m->h m i", h=cfg.n_heads)
-        # W_V = einops.rearrange(W_V, "(i h) m->h m i", h=cfg.n_heads)
-        # new_state_dict[f"{layer_key}.attn.W_Q"] = W_Q
-        # new_state_dict[f"{layer_key}.attn.W_K"] = W_K
-        # new_state_dict[f"{layer_key}.attn.W_V"] = W_V
-
-        # W_O = old_state_dict[f"{layer_key}.attn.proj.weight"]
-        # W_O = einops.rearrange(W_O, "m (i h)->i h m", i=cfg.n_heads)
-        # new_state_dict[f"{layer_key}.attn.W_O"] = W_O
-
-        # attn_bias = old_state_dict[f"{layer_key}.attn.qkv.bias"]
-        # b_Q, b_K, b_V = torch.tensor_split(attn_bias, 3, dim=0)
-        # b_Q = einops.rearrange(b_Q, "(i h) -> h i", h=cfg.n_heads)
-        # b_K = einops.rearrange(b_K, "(i h) -> h i", h=cfg.n_heads)
-        # b_V = einops.rearrange(b_V, "(i h) -> h i", h=cfg.n_heads)
-        # new_state_dict[f"{layer_key}.attn.b_Q"] = b_Q
-        # new_state_dict[f"{layer_key}.attn.b_K"] = b_K
-        # new_state_dict[f"{layer_key}.attn.b_V"] = b_V
-
-        # b_O = old_state_dict[f"{layer_key}.attn.proj.bias"]
-        # b_O = einops.rearrange(b_O, "m -> m")
-        # new_state_dict[f"{layer_key}.attn.b_O"] = b_O
+        b_O = old_state_dict[f"{layer_key}.attn.proj.bias"]
+        new_state_dict[f"{layer_key}.attn.b_O"] = b_O
 
         new_state_dict[f"{layer_key}.mlp.b_in"] = old_state_dict[f"{layer_key}.mlp.fc1.bias"]
         new_state_dict[f"{layer_key}.mlp.b_out"] = old_state_dict[f"{layer_key}.mlp.fc2.bias"]
@@ -177,13 +162,13 @@ def fill_missing_keys(model, state_dict):
         state_dict[key] = default_state_dict[key]
     return state_dict
 
-def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedViTConfig:
+def convert_pretrained_model_config(model_name: str, is_timm: bool = True) -> HookedViTConfig:
 
     if is_timm:
-        model = timm.create_model(model)
+        model = timm.create_model(model_name)
         hf_config = AutoConfig.from_pretrained(model.default_cfg['hf_hub_id'])
     else:
-        hf_config = AutoConfig.from_pretrained(model)
+        hf_config = AutoConfig.from_pretrained(model_name)
 
     pretrained_config = {
                     'n_layers' : hf_config.num_hidden_layers,
@@ -193,8 +178,7 @@ def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedV
                     'n_heads' : hf_config.num_attention_heads,
                     'd_mlp' : hf_config.intermediate_size,
                     'activation_name' : hf_config.hidden_act,
-                    'eps': 1e-6, # There is a bug here
-                    # 'eps' : hf_config.layer_norm_eps,
+                    'eps' : hf_config.layer_norm_eps,
                     'original_architecture' : hf_config.architecture,
                     'initializer_range' : hf_config.initializer_range,
                     'n_channels' : hf_config.num_channels,
@@ -203,5 +187,13 @@ def convert_pretrained_model_config(model: str, is_timm: bool = True) -> HookedV
                     'n_classes' : hf_config.num_classes,
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
+    
+    # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
+    if is_timm and model_name == "vit_base_patch16_224":
+        pretrained_config.update({
+            "eps": 1e-6,
+            "return_type": "class_logits",
+        })
 
-    return HookedViTConfig.from_dict(pretrained_config) # Does this entirely override config or add to it? 
+
+    return HookedViTConfig.from_dict(pretrained_config)
