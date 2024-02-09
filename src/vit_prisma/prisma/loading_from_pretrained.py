@@ -19,7 +19,7 @@ from typing import Dict
 
 import einops
 
-def convert_timm_weigthts(
+def convert_timm_weights(
         old_state_dict,
         cfg: HookedViTConfig,
 ):
@@ -124,7 +124,7 @@ def get_pretrained_state_dict(
             param.requires_grad = False
 
         # state_dict = None # Conversion of state dict to HookedTransformer format       
-        state_dict = convert_timm_weigthts(hf_model.state_dict(), cfg)
+        state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
                 
         return state_dict
 
@@ -188,7 +188,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True) -> Ho
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
     
-    # Currently a bug getting configs, only this model works and still requires modification of eps
+    # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
     if is_timm and model_name == "vit_base_patch16_224":
         pretrained_config.update({
             "eps": 1e-6,
