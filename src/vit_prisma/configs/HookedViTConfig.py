@@ -97,7 +97,7 @@ class HookedViTConfig:
     max_grad_norm = 1.0
 
     # Saving related
-    parent_dir: str = "/Users/praneets/Downloads/working_dir"
+    parent_dir: str = ""
     save_dir: str = 'Checkpoints'
     save_checkpoints: bool = True
     save_cp_frequency: int = 5
