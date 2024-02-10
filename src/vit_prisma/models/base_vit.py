@@ -10,7 +10,7 @@ from vit_prisma.models.layers.position_embedding import PosEmbedding
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.models.layers.attention import Attention
-from vit_prisma.models.layers.transformer_block import TransformerBlock
+from vit_prisma.models.layers.transformer_block import TransformerBlock, BertBlock
 
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 # from vit_prisma.models.prisma_net import PrismaNet
@@ -81,10 +81,26 @@ class HookedViT(HookedRootModule):
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
 
+        if self.cfg.layer_norm_after: # Put layernorm after attn/mlp layers, not before
+            if self.cfg.normalization_type == "LN":
+                self.ln_pre = LayerNorm(self.cfg)
+            elif self.cfg.normalization_type == "LNPre":
+                self.ln_pre = LayerNormPre(self.cfg)
+            elif self.cfg.normalization_type is None:
+                self.ln_pre = nn.Identity()
+            else:
+                raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
+            self.hook_ln_pre = HookPoint()
+
         # Blocks
+        if self.cfg.layer_norm_after:
+            block = BertBlock
+        else:
+            block = TransformerBlock
+        
         self.blocks = nn.ModuleList(
             [
-                TransformerBlock(self.cfg, block_index)
+                block(self.cfg, block_index)
                 for block_index in range(self.cfg.n_layers)
             ]
         )
@@ -125,6 +141,9 @@ class HookedViT(HookedRootModule):
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
         
         residual = embed + pos_embed
+        
+        if self.cfg.layer_norm_after:
+            
 
         for block in self.blocks:
             residual = block(residual)
@@ -598,6 +617,7 @@ class HookedViT(HookedRootModule):
         cls, 
         model_name: str,
         is_timm: bool = True,
+        is_clip: bool = False,
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,
@@ -638,6 +658,7 @@ class HookedViT(HookedRootModule):
         cfg = convert_pretrained_model_config(
             model_name,
             is_timm=is_timm,
+            is_clip=is_clip,
         )
 
         state_dict = get_pretrained_state_dict(
