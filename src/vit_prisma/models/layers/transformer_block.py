@@ -229,9 +229,11 @@ class BertBlock(nn.Module):
                 if not self.cfg.use_hook_mlp_in
                 else self.hook_mlp_in(resid_mid.clone())
             )
-            mlp_in = self.ln2(mlp_in)
-            normalized_resid_mid = self.ln2(mlp_in)
+            normalized_resid_mid = mlp_in
             mlp_out = self.hook_mlp_out(self.mlp(normalized_resid_mid))
+            
+            mlp_out = self.ln2(mlp_out)
+            
             resid_post = self.hook_resid_post(resid_mid + mlp_out)
         else:
             resid_post = self.hook_resid_post(resid_pre + attn_out)
