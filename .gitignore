@@ -85,7 +85,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+prisma_env/
+.prisma_env
 # Spyder project settings
 .spyderproject
 .spyproject
