@@ -104,9 +104,9 @@ class TransformerBlock(nn.Module):
             value_input = attn_in
         
         attn_out = self.attn(
-                query_input = query_input,
-                key_input = key_input,
-                value_input = value_input,
+                query_input = self.ln1(query_input),
+                key_input = self.ln1(key_input),
+                value_input = self.ln1(value_input),
             )
 
         # Take hook fn

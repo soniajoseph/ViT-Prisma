@@ -199,20 +199,21 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                 }
     
     # Rectifying Huggingface bugs:
-    
     # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
     if is_timm and model_name == "vit_base_patch16_224":
         pretrained_config.update({
             "eps": 1e-6,
             "return_type": "class_logits",
         })
-        
+    
+    # Config for 32 is incorrect, fix manually 
     if is_timm and model_name == "vit_base_patch32_224":
         pretrained_config.update({
             "patch_size": 32,
+            "eps": 1e-6,
+            "return_type": "class_logits"
         })
     
-
     print(pretrained_config)
 
     return HookedViTConfig.from_dict(pretrained_config)
