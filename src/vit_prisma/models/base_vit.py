@@ -143,7 +143,8 @@ class HookedViT(HookedRootModule):
         residual = embed + pos_embed
         
         if self.cfg.layer_norm_after:
-            
+            residual = self.ln_pre(residual)
+            residual = self.hook_ln_pre(residual)
 
         for block in self.blocks:
             residual = block(residual)

@@ -57,6 +57,9 @@ class HookedViTConfig:
     rotary_base: int = 10000
     trust_remote_code: bool = False
     rotary_adjacent_pairs: bool = False
+        
+    # Layer norm
+    layer_norm_after: bool = False
 
     # Initialization
     weight_type: str = 'he'

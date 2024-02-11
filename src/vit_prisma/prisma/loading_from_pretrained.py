@@ -23,73 +23,6 @@ import einops
 Official model names from Huggingface.
 """
 
-# Supported models (more coming soon)
-OFFICIAL_MODEL_NAMES = {
-    "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
-} 
-
-def convert_clip_weights(
-    old_state_dict,
-    cfg: HookedViTConfig,
-):
-    "Converting https://huggingface.co/wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
-    
-    new_state_dict = {}
-    new_state_dict["cls_token"] = old_state_dict["embeddings.class_embedding"]
-    new_state_dict["pos_embed.W_pos"] = old_state_dict["embeddings.position_embedding.weight"].squeeze(0)
-    new_state_dict["embed.proj.weight"] = old_state_dict["embeddings.patch_embedding.weight"]
-    
-#     new_state_dict["embed.proj.bias"] = old_state_dict["patch_embeddings.projection.bias"] # No position embedding?
-
-    new_state_dict["ln_final.w"] = old_state_dict["post_layernorm.weight"]
-    new_state_dict["ln_final.b"] = old_state_dict["post_layernorm.bias"]
-
-    for layer in range(cfg.n_layers):
-        layer_key = f"blocks.{layer}" 
-        new_state_dict[f"{layer_key}.ln1.w"] = old_state_dict[f"encoder.layers.{layer_key}.norm1.weight"]
-        new_state_dict[f"{layer_key}.ln1.b"] = old_state_dict[f" {layer_key}.norm1.bias"]
-        new_state_dict[f"{layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.norm2.weight"]
-        new_state_dict[f"{layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.norm2.bias"]
-
-        W = old_state_dict[f"{layer_key}.attn.qkv.weight"]
-        W_reshape = einops.rearrange( W, "(three h dh) d ->three h d dh" , three=3, h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        W_Q, W_K, W_V = torch.unbind(W_reshape, dim=0)
-        new_state_dict[f"{layer_key}.attn.W_Q"] = W_Q
-        new_state_dict[f"{layer_key}.attn.W_K"] = W_K
-        new_state_dict[f"{layer_key}.attn.W_V"] = W_V
-
-        W_O = old_state_dict[f"{layer_key}.attn.proj.weight"]
-        W_O = einops.rearrange(W_O, "m (i h)->i h m", i=cfg.n_heads)
-        new_state_dict[f"{layer_key}.attn.W_O"] = W_O
-
-        attn_bias = old_state_dict[f"{layer_key}.attn.qkv.bias"]
-        attn_bias_reshape = einops.rearrange(attn_bias, "(three h dh) -> three h dh", three=3, h=cfg.n_heads, dh=cfg.d_head)
-        b_Q, b_K, b_V = torch.unbind(attn_bias_reshape, dim=0)
-        new_state_dict[f"{layer_key}.attn.b_Q"] = b_Q
-        new_state_dict[f"{layer_key}.attn.b_K"] = b_K
-        new_state_dict[f"{layer_key}.attn.b_V"] = b_V
-
-        b_O = old_state_dict[f"{layer_key}.attn.proj.bias"]
-        new_state_dict[f"{layer_key}.attn.b_O"] = b_O
-
-        new_state_dict[f"{layer_key}.mlp.b_in"] = old_state_dict[f"{layer_key}.mlp.fc1.bias"]
-        new_state_dict[f"{layer_key}.mlp.b_out"] = old_state_dict[f"{layer_key}.mlp.fc2.bias"]
-
-        mlp_W_in = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
-        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
-        new_state_dict[f"{layer_key}.mlp.W_in"] = mlp_W_in
-
-        mlp_W_out = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
-        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
-        new_state_dict[f"{layer_key}.mlp.W_out"] = mlp_W_out
-
-    new_state_dict["head.weight"] = old_state_dict["head.weight"]
-    new_state_dict["head.bias"] = old_state_dict["head.bias"]
-
-    return new_state_dict
-    
-    
-
 def convert_timm_weights(
         old_state_dict,
         cfg: HookedViTConfig,
@@ -244,8 +177,8 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
     else:
         hf_config = AutoConfig.from_pretrained(model_name)
         
-    print('hf_config', hf_config)
-    
+#     print('hf config', hf_config)
+            
  
     pretrained_config = {
                     'n_layers' : hf_config.num_hidden_layers,
@@ -265,12 +198,21 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
     
+    # Rectifying Huggingface bugs:
+    
     # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
     if is_timm and model_name == "vit_base_patch16_224":
         pretrained_config.update({
             "eps": 1e-6,
             "return_type": "class_logits",
         })
+        
+    if is_timm and model_name == "vit_base_patch32_224":
+        pretrained_config.update({
+            "patch_size": 32,
+        })
+    
 
+    print(pretrained_config)
 
     return HookedViTConfig.from_dict(pretrained_config)
