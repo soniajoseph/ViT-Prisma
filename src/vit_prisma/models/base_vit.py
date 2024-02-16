@@ -355,6 +355,8 @@ class HookedViT(HookedRootModule):
                         )
 
                     del state_dict[f"blocks.{l}.mlp.ln.w"]
+                    
+        print("LayerNorm folded.")
 
         return state_dict
     
@@ -390,6 +392,8 @@ class HookedViT(HookedRootModule):
                     state_dict[f"blocks.{l}.mlp.b_out"]
                     - state_dict[f"blocks.{l}.mlp.b_out"].mean()
                 )
+                
+        print("Centered weights writing to residual stream")
         return state_dict
 
     def fold_value_biases(self, state_dict: Dict[str, torch.Tensor]):
@@ -425,6 +429,8 @@ class HookedViT(HookedRootModule):
                 state_dict[f"blocks.{layer}.attn._b_V"] = torch.zeros_like(
                     state_dict[f"blocks.{layer}.attn._b_V"]
                 )
+                
+
         return state_dict
 
     def refactor_factored_attn_matrices(self, state_dict: Dict[str, torch.Tensor]):
