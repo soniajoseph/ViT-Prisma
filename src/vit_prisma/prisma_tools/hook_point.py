@@ -1,6 +1,6 @@
 
 from typing import List, Union, Dict, Callable, Tuple, Optional, Any
-from vit_prisma.prisma.lens_handle import LensHandle
+from vit_prisma.prisma_tools.lens_handle import LensHandle
 import torch.nn as nn
 
 

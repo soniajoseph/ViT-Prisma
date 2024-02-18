@@ -6,7 +6,7 @@ from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
-from vit_prisma.prisma.hook_point import HookPoint
+from vit_prisma.prisma_tools.hook_point import HookPoint
 
 from typing import Dict, Optional, Tuple, Union
 

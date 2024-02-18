@@ -11,21 +11,22 @@ from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.models.layers.attention import Attention
 from vit_prisma.models.layers.transformer_block import TransformerBlock, BertBlock
+from vit_prisma.models.layers.head import Head
 
 from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
 # from vit_prisma.models.prisma_net import PrismaNet
-from vit_prisma.prisma.hook_point import HookPoint
-from vit_prisma.prisma.hooked_root_module import HookedRootModule
+from vit_prisma.prisma_tools.hook_point import HookPoint
+from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 
 from vit_prisma.configs import HookedViTConfig
 
-from vit_prisma.prisma.activation_cache import ActivationCache
+from vit_prisma.prisma_tools.activation_cache import ActivationCache
 
-from vit_prisma.prisma.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys
+from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys
 from vit_prisma.utils.prisma_utils import transpose
 
 from vit_prisma.utils import devices
-from vit_prisma.prisma import FactoredMatrix
+from vit_prisma.prisma_tools import FactoredMatrix
 
 from typing import Union, Dict, List, Tuple, Optional, Literal
 
@@ -115,7 +116,8 @@ class HookedViT(HookedRootModule):
             raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
 
         # Final classification head
-        self.head = nn.Linear(self.cfg.d_model, self.cfg.n_classes)
+        self.head = Head(self.cfg)
+
 
         # Initialize weights
         self.init_weights()
@@ -355,6 +357,25 @@ class HookedViT(HookedRootModule):
                         )
 
                     del state_dict[f"blocks.{l}.mlp.ln.w"]
+
+        if not self.cfg.final_rms and fold_biases:
+            # Dumb bug from my old SoLU training code, some models have RMSNorm instead of LayerNorm
+            # pre unembed.
+            state_dict[f"head.b_H"] = state_dict[f"head.b_H"] + (
+                state_dict[f"head.W_H"] * state_dict[f"ln_final.b"][:, None]
+            ).sum(dim=-2)
+            del state_dict[f"ln_final.b"]
+
+        state_dict[f"head.W_H"] = (
+            state_dict[f"head.W_H"] * state_dict[f"ln_final.w"][:, None]
+        )
+        del state_dict[f"ln_final.w"]
+
+        if center_weights:
+            # Center the weights that read in from the LayerNormPre
+            state_dict[f"head.W_H"] -= einops.reduce(
+                state_dict[f"head.W_H"], "d_model n_classes -> 1 n_classes", "mean"
+            )
                     
         print("LayerNorm folded.")
 
