@@ -75,8 +75,12 @@ def convert_timm_weights(
         mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
         new_state_dict[f"{layer_key}.mlp.W_out"] = mlp_W_out
 
-    new_state_dict["head.weight"] = old_state_dict["head.weight"]
-    new_state_dict["head.bias"] = old_state_dict["head.bias"]
+
+
+    new_state_dict["head.W_H"] = einops.rearrange(old_state_dict["head.weight"], "c d -> d c")
+    new_state_dict["head.b_H"] = old_state_dict["head.bias"]
+
+    
 
     return new_state_dict
 

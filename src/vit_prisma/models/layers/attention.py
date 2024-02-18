@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 import logging
-from vit_prisma.prisma import HookPoint
+from vit_prisma.prisma_tools import HookPoint
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
 from typing import Union, Dict, Optional, List, Tuple
@@ -13,7 +13,7 @@ import numpy as np
 
 import einops
 
-from vit_prisma.prisma import FactoredMatrix
+from vit_prisma.prisma_tools import FactoredMatrix
 from fancy_einsum import einsum
 
 import torch.nn.functional as F

@@ -23,4 +23,6 @@ def test_loading_timm():
         torch.manual_seed(1)
         input_image = torch.rand((batch_size, channels, height, width)).to(device)
 
-    assert torch.allclose(hooked_model(input_image), timm_model(input_image), atol=TOLERANCE), "Model output diverges!""
+    hooked_output, timm_output = hooked_model(input_image), timm_model(input_image)
+
+    assert torch.allclose(hooked_output, timm_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - timm_output))}"

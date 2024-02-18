@@ -12,7 +12,7 @@ from torch import nn
 
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-from vit_prisma.prisma.hooked_root_module import HookedRootModule
+from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 
 def get_device_for_block_index(
     index: int,

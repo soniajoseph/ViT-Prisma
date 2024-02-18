@@ -6,7 +6,7 @@ from typing import Dict, Optional, Tuple, Union
 from jaxtyping import Float, Int
 
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
-from vit_prisma.prisma.hook_point import HookPoint
+from vit_prisma.prisma_tools.hook_point import HookPoint
 
 class LayerNormPre(nn.Module):
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):
