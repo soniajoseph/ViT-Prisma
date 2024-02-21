@@ -105,6 +105,11 @@ class HookedViTConfig:
     save_checkpoints: bool = True
     save_cp_frequency: int = 5
 
+    # Properties specific to video transformers
+    is_video_transformer: bool = False
+    video_tubelet_depth: int = 2
+    video_num_frames: int = 32
+
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]):

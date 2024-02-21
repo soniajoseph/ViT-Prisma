@@ -20,6 +20,9 @@ class PosEmbedding(nn.Module):
         self.cfg = cfg
 
         num_patches = (self.cfg.image_size // self.cfg.patch_size)**2
+        if self.cfg.is_video_transformer:
+            num_patches = num_patches*(self.cfg.video_num_frames//self.cfg.video_tubelet_depth)
+            
         token_length = num_patches + 1 if self.cfg.classification_type == 'cls' else num_patches
 
         self.W_pos = nn.Parameter(

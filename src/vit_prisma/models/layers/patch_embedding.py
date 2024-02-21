@@ -1,5 +1,9 @@
 import logging
 import torch.nn as nn
+import torch 
+from jaxtyping import Float
+from vit_prisma.configs import HookedViTConfig
+import einops
 
 class PatchEmbedding(nn.Module):
 
@@ -19,11 +23,42 @@ class PatchEmbedding(nn.Module):
         if self.logger:
             self.logger.info(f"{stage} size: {tensor.shape}")
 
-    def forward(self, x):
+    def forward(self, x:Float[torch.Tensor, "batch channel height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
         self._log("PatchEmbedding input", x)
 
-        B, C, H, W = x.shape
         x = self.proj(x).flatten(2).transpose(1, 2)
 
         self._log("PatchEmbedding output", x)
         return x
+    
+
+# Used for videos, 3 dimensional spacetime patches 
+class TubeletEmbedding(nn.Module):
+
+    def __init__(self, cfg:HookedViTConfig):
+        super().__init__()
+        self.cfg = cfg
+
+        tubelet_size = [self.cfg.video_tubelet_depth, self.cfg.patch_size, self.cfg.patch_size]
+        self.proj = nn.Conv3d(
+            self.cfg.n_channels, 
+            self.cfg.d_model, 
+            kernel_size=tubelet_size, 
+            stride=tubelet_size, 
+            bias=True
+        )
+
+    
+
+    def forward(self, x:Float[torch.Tensor, "batch num_frames channels height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
+        
+        # Flip num_frames and channels
+        x = einops.rearrange(x, "b t c h w -> b c t h w")
+        
+        x = self.proj(x)
+
+        # Flatten the tokens
+        x = einops.rearrange(x, "b c t h w -> b (t h w) c") 
+
+        return x
+
