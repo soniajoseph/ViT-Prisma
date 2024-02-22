@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from transformers import ViTForImageClassification
 
-from vit_prisma.models.layers.patch_embedding import PatchEmbedding
+from vit_prisma.models.layers.patch_embedding import PatchEmbedding, TubeletEmbedding
 from vit_prisma.models.layers.position_embedding import PosEmbedding
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 from vit_prisma.models.layers.mlp import MLP
@@ -75,7 +75,10 @@ class HookedViT(HookedRootModule):
         self.cls_token = nn.Parameter(torch.randn(1, 1, self.cfg.d_model))
 
         # Patch embeddings
-        self.embed = PatchEmbedding(self.cfg)
+        if self.cfg.is_video_transformer:
+            self.embed = TubeletEmbedding(self.cfg)
+        else:
+            self.embed = PatchEmbedding(self.cfg)
         self.hook_embed = HookPoint()
 
         # Position embeddings
