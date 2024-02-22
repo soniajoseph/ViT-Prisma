@@ -199,12 +199,17 @@ class HookedViT(HookedRootModule):
         else:
             return out, cache_dict
         
-    def tokens_to_residual_directions(self):
+    def tokens_to_residual_directions(self, labels):
         '''
         Logit-lens related funtions not implemented; see how we can implement a vision equivalent.
         '''
+
+        answer_residual_directions = self.head.W_H[:,labels]  
+        answer_residual_directions = einops.rearrange(
+                        answer_residual_directions, "d_model ... -> ... d_model"
+                    )
         
-        pass 
+        return answer_residual_directions
 
     def fold_layer_norm(
         self, state_dict: Dict[str, torch.Tensor], fold_biases=True, center_weights=True
