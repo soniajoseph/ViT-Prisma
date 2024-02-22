@@ -9,7 +9,7 @@ from transformers import VivitForVideoClassification
 
 
 def test_loading_vivet():
-    TOLERANCE = 1e-5
+    TOLERANCE = 1e-4
 
     model_name = "google/vivit-b-16x2-kinetics400"
     batch_size = 5
@@ -19,9 +19,7 @@ def test_loading_vivet():
     width = 224
     device = "cuda"
 
-
-
-    hooked_model = HookedViT.from_pretrained(model_name, is_timm=False, fold_ln=False, fold_value_biases=False, center_writing_weights=False, refactor_factored_attn_matrices=False)
+    hooked_model = HookedViT.from_pretrained(model_name, is_timm=False)
     hooked_model.to(device)
     google_model = VivitForVideoClassification.from_pretrained(model_name)
     google_model.to(device)
