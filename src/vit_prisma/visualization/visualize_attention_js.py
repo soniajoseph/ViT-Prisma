@@ -64,17 +64,25 @@ class AttentionHeadImageJSInfo:
 
 
 
-def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN_SCALING=20, cls_token=True):
+def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN_SCALING=8, cls_token=True):
 
-    if type(list_of_attn_heads) != list:
+    # if list of attn heads is tensor
+    if type(list_of_attn_heads) == torch.Tensor:
+        list_of_attn_heads = [np.array(list_of_attn_heads[i]) for i in range(list_of_attn_heads.shape[0])]
+    elif type(list_of_attn_heads) != list:
         list_of_attn_heads = [list_of_attn_heads]
+
     if type(list_of_images) != list:
         list_of_images = [list_of_images]
 
-    if list_of_names is None:
+    if list_of_names == torch.Tensor:
+        
+        list_of_names = [str(i) for i in list_of_names.tolist()]
+    elif list_of_names is None:
         list_of_names = []
         for i in range(len(list_of_attn_heads)):
             list_of_names.append(f"Attention Head {i+1}")
+
 
     assert len(list_of_attn_heads) == len(list_of_images), "Must provide an image for each attention head"
     assert len(list_of_attn_heads) == len(list_of_names), "Must provide a name for each attention head"
