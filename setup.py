@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='vit-prisma',
-    version='0.1.1',
+    version='0.1.2',
     author='Sonia Joseph',
     author_email='soniamollyjoseph@gmail.com',
     description='A Vision Transformer library for mechanistic interpretability.',
