@@ -12,6 +12,11 @@ setup(
     url='https://github.com/soniajoseph/vit-prisma',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
+    package_data={
+    # Replace 'vit_prisma' with your package's actual name if different
+    'vit_prisma': ['visualization/*.html', 'visualization/*.js'],
+    # Add other patterns here as needed
+},
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
