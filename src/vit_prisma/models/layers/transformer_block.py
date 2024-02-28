@@ -36,7 +36,7 @@ class TransformerBlock(nn.Module):
     Transformer block.
     """
 
-    def __init__(self, cfg: Union[Dict, HookedViTConfig], block_index):
+    def __init__(self, cfg: Union[Dict, HookedViTConfig], block_index=None):
         super().__init__()
 
         if isinstance(cfg, Dict):

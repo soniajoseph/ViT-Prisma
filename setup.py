@@ -13,7 +13,6 @@ setup(
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     package_data={
-    # Replace 'vit_prisma' with your package's actual name if different
     'vit_prisma': ['visualization/*.html', 'visualization/*.js'],
     # Add other patterns here as needed
 },
@@ -31,6 +30,17 @@ setup(
             'pytest>=6.0',
             # Other development dependencies...
         ],
+        'test':[ 
+            'pytest>=6.0',
+            'torch',
+            'numpy',
+            'jaxtyping',
+            'einops',
+            'fancy_einsum',
+            'timm',
+            'transformers',
+            'scikit-learn'
+                ]
     },
     keywords='vision-transformer, clip, multimodal, machine-learning, mechanistic interpretability',
     zip_safe=False,
