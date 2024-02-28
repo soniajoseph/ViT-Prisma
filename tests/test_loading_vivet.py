@@ -17,7 +17,7 @@ def test_loading_vivet():
     num_frames = 32
     height = 224
     width = 224
-    device = "cuda"
+    device = "cpu"
 
     hooked_model = HookedViT.from_pretrained(model_name, is_timm=False)
     hooked_model.to(device)

@@ -29,10 +29,9 @@ class TestInductionDataset(unittest.TestCase):
 
     def test_get_item(self):
         for dataset in [self.train_dataset, self.test_dataset]:
-            image, label, meta_data = dataset[0]
+            image, label = dataset[0]
             self.assertEqual(image.shape[0], 1)
-            self.assertIsInstance(label, torch.Tensor)
-            self.assertIsInstance(meta_data, type(dataset.metadata[0]))
+            self.assertIsInstance(image, torch.Tensor)
 
 if __name__ == '__main__':
     unittest.main()

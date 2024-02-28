@@ -229,4 +229,4 @@ def test_prepending_hooks(zero_attach_pos, prepend):
     # the logits should be equal to the unembed bias
     # exactly when the zero hook is attached last XOR it is prepended
 
-    assert torch.allclose(logits, model.head.bias[None, :]) == logits_are_unembed_bias
+    assert torch.allclose(logits, model.head.b_H[None, :]) == logits_are_unembed_bias
