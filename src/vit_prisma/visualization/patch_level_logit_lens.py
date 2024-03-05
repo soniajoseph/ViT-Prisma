@@ -101,30 +101,36 @@ def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
 
 # Animal logit lens
 
-def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_size=20, return_graph=False):
-
+def display_patch_logit_lens(patch_dictionary, width=1000, height=1200, emoji_size=26, return_graph=False, show_colorbar=True, labels=None):
     num_patches = len(patch_dictionary)
 
+    # Assuming data_array_formatted is correctly shaped according to your data structure
     data_array_formatted = np.array([[item[0] for item in list(patch_dictionary.values())[i]] for i in range(num_patches)])
 
-    # Extracting labels for hover text
-    hover_text = [[str(i) + " " + item[1] for item in list(patch_dictionary.values())[i]] for i in range(50)]
+    # Modify hover text generation based on whether labels are provided
+    if labels:
+      hover_text = [
+            [f"{labels[j]}: {item[1]}" for j, item in enumerate(list(patch_dictionary.values())[i])]
+            for i in range(num_patches)
+        ] 
+    else:
+        hover_text = [[str(item[1]) for item in list(patch_dictionary.values())[i]] for i in range(num_patches)]
 
     # Creating the interactive heatmap
     fig = go.Figure(data=go.Heatmap(
         z=data_array_formatted,
         x=list(patch_dictionary.keys())[:num_patches],
-        y=[f'{i}' for i in range(data_array_formatted.shape[0])], # Patch Number
+        y=[f'{i}' for i in range(data_array_formatted.shape[0])],  # Patch Number
         hoverongaps=False,
-        colorbar=dict(title='Logit Value'),
+        colorbar=dict(title='Logit Value') if show_colorbar else None,
         text=hover_text,
         hoverinfo="text"
     ))
 
-    # Initialize a list to hold annotations
+    # Initialize a list to hold annotations for emojis
     annotations = []
 
-    # Calculate half the distance between cells in both x and y directions
+    # Calculate half the distance between cells in both x and y directions for annotation placement
     x_half_dist = 0.5
     y_half_dist = 0.2
 
@@ -138,7 +144,7 @@ def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_si
     # Add annotations to the figure
     fig.update_layout(annotations=annotations)
 
-    # Add annotations to the figure
+    # Configure the layout of the figure
     fig.update_layout(
         title='Per-Patch Logit Lens',
         xaxis=dict(title='Layer Number'),
@@ -150,4 +156,4 @@ def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_si
     fig.show()
 
     if return_graph:
-      return fig
+        return fig
