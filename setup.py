@@ -1,6 +1,19 @@
 from setuptools import setup, find_packages
 
 
+install_requires = [
+    'pytest>=6.0',  # Test dependency, but included here to auto-install
+    'torch',        # Test dependency
+    'numpy',        # Test dependency
+    'jaxtyping',    # Test dependency
+    'einops',       # Test dependency
+    'fancy_einsum', # Test dependency
+    'plotly==5.19.0',
+    'timm',         # Test dependency
+    'transformers', # Test dependency
+    'scikit-learn', # Test dependency
+]
+
 setup(
     name='vit-prisma',
     version='0.1.2',
@@ -24,24 +37,7 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
     ],
     python_requires='>=3.6',
-    # install_requires=install_requires,
-    extras_require={
-        'dev': [
-            'pytest>=6.0',
-            # Other development dependencies...
-        ],
-        'test':[ 
-            'pytest>=6.0',
-            'torch',
-            'numpy',
-            'jaxtyping',
-            'einops',
-            'fancy_einsum',
-            'timm',
-            'transformers',
-            'scikit-learn'
-                ]
-    },
+    install_requires=install_requires,
     keywords='vision-transformer, clip, multimodal, machine-learning, mechanistic interpretability',
     zip_safe=False,
 )
