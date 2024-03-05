@@ -20,6 +20,9 @@ def get_patch_logit_directions(cache, all_answers, incl_mid=False, return_labels
 
 def get_patch_logit_dictionary(patch_logit_directions, batch_idx=0, rank_label=None):
     patch_dictionary = defaultdict(list)
+    # if tuple, get first entry
+    if isinstance(patch_logit_directions, tuple):
+        patch_logit_directions = patch_logit_directions[0]
     # Go through laeyrs of one batch
     for patch_idx, patches in enumerate(patch_logit_directions[batch_idx]):
         # Go through every patch and get max prediction
