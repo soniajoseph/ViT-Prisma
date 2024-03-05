@@ -101,7 +101,7 @@ def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
 
 # Animal logit lens
 
-def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_size=20):
+def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_size=20, return_graph=False):
 
     num_patches = len(patch_dictionary)
 
@@ -148,3 +148,6 @@ def display_patch_logit_lens(patch_dictionary, width=1000, height=1000, emoji_si
         height=height
     )
     fig.show()
+
+    if return_graph:
+      return fig
