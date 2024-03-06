@@ -125,6 +125,8 @@ class HookedViT(HookedRootModule):
         # Initialize weights
         self.init_weights()
 
+
+
         # Set up HookPoints
         self.setup()
 
@@ -667,6 +669,7 @@ class HookedViT(HookedRootModule):
         default_prepend_bos: Optional[bool] = True,
         default_padding_side: Optional[Literal["left", "right"]] = "right",
         dtype="float32",
+        use_attn_result: Optional[bool] = False,
         **from_pretrained_kwargs,
     ) -> "HookedViT":
         
@@ -690,12 +693,16 @@ class HookedViT(HookedRootModule):
             logging.warning(
                 "float16 models may not work on CPU. Consider using a GPU or bfloat16."
             )
+
+        # Set up other parts of transformer
         
         cfg = convert_pretrained_model_config(
             model_name,
             is_timm=is_timm,
             is_clip=is_clip,
         )
+
+
 
         state_dict = get_pretrained_state_dict(
             model_name, is_timm, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
@@ -710,6 +717,10 @@ class HookedViT(HookedRootModule):
             fold_value_biases=fold_value_biases,
             refactor_factored_attn_matrices=refactor_factored_attn_matrices,
         )
+
+        # Set up other parameters
+        model.set_use_attn_result(use_attn_result)
+
 
         if move_to_device:
             model.move_model_modules_to_device()

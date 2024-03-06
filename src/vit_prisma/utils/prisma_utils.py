@@ -6,6 +6,39 @@ import re
 import json
 import logging
 
+
+def test_prompt(example_data_point, model, example_answer=None, top_k=10):
+
+    logits = model(example_data_point.unsqueeze(0))
+    probs = logits.softmax(dim=-1)
+    probs = probs.squeeze(0).detach().numpy()
+    sorted_probs = np.sort(probs)[::-1]
+    sorted_probs_args = np.argsort(probs)[::-1]
+
+    for i in range(top_k):
+        index = sorted_probs_args[i]
+        prob = sorted_probs[i]
+        logit = logits[0, index].item()  # Assuming you want to show the original logit value
+        label = IMAGENET_DICT[index]  # Adjust based on your mapping
+
+        rank_str = f"Top {i}th token."
+        logit_str = f"Logit: {logit:.2f}"
+        prob_str = f"Prob: {prob * 100:.2f}%"
+        token_str = f"Label: |{label}|"
+
+        print(f"{rank_str} {logit_str} {prob_str} {token_str}")
+
+    if example_answer:
+      tabby_cat_idx = imagenet_index_from_word(example_answer)
+
+    # Example for displaying ranks of the answer tokens, adjust according to your needs
+      answer_index = imagenet_index_from_word(example_answer)
+      answer_indices = [answer_index]  # Assuming index is the answer index, adjust as necessary
+      print("Rank of the correct answer:")
+      for ans_index in answer_indices:
+          rank = np.where(sorted_probs_args == ans_index)[0][0]
+          print(f"Class Name: {example_answer} | Rank: {rank} | ImageNet Index: {tabby_cat_idx}")
+
 def transpose(tensor: Float[torch.Tensor, "... a b"]) -> Float[torch.Tensor, "... b a"]:
     """
     Utility to swap the last two dimensions of a tensor, regardless of the number of leading dimensions

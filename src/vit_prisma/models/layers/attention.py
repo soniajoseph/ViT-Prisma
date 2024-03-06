@@ -177,7 +177,7 @@ class Attention(nn.Module):
                 )
             )
             out = (
-                einops.reduce(result, "batch pos head_index d_model -> batch position d_model", "sum")
+                einops.reduce(result, "batch pos head_index d_model -> batch pos d_model", "sum")
                 + self.b_O
             )
         return out
