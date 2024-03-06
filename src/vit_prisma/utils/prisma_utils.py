@@ -6,6 +6,9 @@ import re
 import json
 import logging
 
+from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
+from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
+
 
 def test_prompt(example_data_point, model, example_answer=None, top_k=10):
 
