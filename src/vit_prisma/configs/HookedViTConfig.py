@@ -59,7 +59,10 @@ class HookedViTConfig:
     rotary_adjacent_pairs: bool = False
         
     # Layer norm
-    layer_norm_after: bool = False
+    layer_norm_pre: bool = False # add layernorm before transformer blocks
+
+    #Bert Block
+    use_bert_block: bool = False 
 
     # Initialization
     weight_type: str = 'he'
