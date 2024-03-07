@@ -19,7 +19,6 @@ def test_loading_clip():
 
 
     full = CLIPModel.from_pretrained(model_name)
-    print(full.config.return_dict,'HI')
     tinyclip = full.vision_model
 
     tinyclip_final_proj = full.visual_projection
