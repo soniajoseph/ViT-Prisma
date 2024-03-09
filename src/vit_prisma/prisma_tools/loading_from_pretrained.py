@@ -7,7 +7,7 @@ Preserves most of the original functionality with necessary modifications for Vi
 
 import logging
 
-from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification
+from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel
 
 import timm
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
@@ -18,9 +18,85 @@ from typing import Dict
 
 import einops
 
-"""
-Official model names from Huggingface.
-"""
+
+
+
+def convert_clip_weights(
+        old_state_dict,
+        old_head_state_dict,
+        cfg: HookedViTConfig,
+):
+    
+    new_vision_model_state_dict = {}
+
+
+    new_vision_model_state_dict["cls_token"] = old_state_dict["embeddings.class_embedding"].unsqueeze(0).unsqueeze(0)
+    new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["embeddings.position_embedding.weight"]
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["embeddings.patch_embedding.weight"]
+    new_vision_model_state_dict["embed.proj.bias"] =  torch.zeros((cfg.d_model,), device=new_vision_model_state_dict["embed.proj.weight"].device)
+    new_vision_model_state_dict["ln_final.w"] = old_state_dict["post_layernorm.weight"]
+    new_vision_model_state_dict["ln_final.b"] = old_state_dict["post_layernorm.bias"]
+    new_vision_model_state_dict["ln_pre.w"] = old_state_dict["pre_layrnorm.weight"] #typo in ClipModel
+    new_vision_model_state_dict["ln_pre.b"] = old_state_dict["pre_layrnorm.bias"]
+
+
+    for layer in range(cfg.n_layers):
+        layer_key = f"encoder.layers.{layer}"
+        new_layer_key = f"blocks.{layer}"
+
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{layer_key}.layer_norm1.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{layer_key}.layer_norm1.bias"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.layer_norm2.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.layer_norm2.bias"]
+
+        W_Q = old_state_dict[f"{layer_key}.self_attn.q_proj.weight"]
+        W_K = old_state_dict[f"{layer_key}.self_attn.k_proj.weight"]
+        W_V = old_state_dict[f"{layer_key}.self_attn.v_proj.weight"]
+        W_O = old_state_dict[f"{layer_key}.self_attn.out_proj.weight"]
+
+        W_Q = einops.rearrange(W_Q, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_K = einops.rearrange(W_K, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_V = einops.rearrange(W_V, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+
+        b_Q = old_state_dict[f"{layer_key}.self_attn.q_proj.bias"]
+        b_K = old_state_dict[f"{layer_key}.self_attn.k_proj.bias"]
+        b_V = old_state_dict[f"{layer_key}.self_attn.v_proj.bias"]
+        b_O = old_state_dict[f"{layer_key}.self_attn.out_proj.bias"]
+
+        b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_V = einops.rearrange(b_V, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+
+        mlp_W_in = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
+        mlp_W_out = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
+        mlp_b_in = old_state_dict[f"{layer_key}.mlp.fc1.bias"]
+        mlp_b_out = old_state_dict[f"{layer_key}.mlp.fc2.bias"]
+
+        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
+        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
+
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    new_vision_model_state_dict["head.W_H"] = einops.rearrange(old_head_state_dict["weight"], "c d -> d c")
+    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,), device=new_vision_model_state_dict["head.W_H"].device)
+
+        
+    return new_vision_model_state_dict
+
 
 def convert_timm_weights(
         old_state_dict,
@@ -148,6 +224,7 @@ def convert_vivet_weights(
 def get_pretrained_state_dict(
     official_model_name: str,
     is_timm: bool,
+    is_clip: bool,
     cfg: HookedViTConfig,
     hf_model=None,
     dtype: torch.dtype = torch.float32,
@@ -178,14 +255,21 @@ def get_pretrained_state_dict(
         
     try:
         if is_timm:
-            hf_model = timm.create_model(official_model_name, pretrained=True)
+            hf_model = hf_model if hf_model is not None else timm.create_model(official_model_name, pretrained=True)
             for param in hf_model.parameters():
                 param.requires_grad = False
             state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
+        elif is_clip:
+            full_model = hf_model if hf_model is not None else CLIPModel.from_pretrained(official_model_name)
+            for param in full_model.parameters():
+                param.requires_grad = False
+            vision = full_model.vision_model
+            visual_projection = full_model.visual_projection
+            state_dict = convert_clip_weights(vision.state_dict(), visual_projection.state_dict(), cfg)
 
         elif cfg.is_video_transformer:
             if "vivit" in official_model_name:
-                hf_model = VivitForVideoClassification.from_pretrained(official_model_name, torch_dtype=dtype, **kwargs)
+                hf_model = hf_model if hf_model is not None else VivitForVideoClassification.from_pretrained(official_model_name, torch_dtype=dtype, **kwargs)
 
                 for param in hf_model.parameters():
                     param.requires_grad = False
@@ -195,7 +279,7 @@ def get_pretrained_state_dict(
                 raise ValueError
         
         else:
-            hf_model = ViTForImageClassification.from_pretrained(
+            hf_model = hf_model if hf_model is not None else ViTForImageClassification.from_pretrained(
                     official_model_name, torch_dtype=dtype, **kwargs
             )
             raise ValueError
@@ -250,7 +334,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
     elif is_clip: # Extract vision encoder from dual-encoder CLIP model.
         hf_config = AutoConfig.from_pretrained(model_name).vision_config
         hf_config.architecture = 'vit_clip_vision_encoder'
-        hf_config.num_classes = 'n/a'
+        hf_config.num_classes = hf_config.projection_dim # final output dimension instead of classes
     else:
         hf_config = AutoConfig.from_pretrained(model_name)
         
@@ -295,6 +379,12 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "patch_size": 32,
             "eps": 1e-6,
             "return_type": "class_logits"
+        })
+
+    if is_clip:
+        pretrained_config.update({
+            "layer_norm_pre": True,
+            "return_type": "class_logits" # actually returns 'visual_projection'
         })
 
 

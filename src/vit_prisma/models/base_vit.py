@@ -85,7 +85,7 @@ class HookedViT(HookedRootModule):
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
 
-        if self.cfg.layer_norm_after: # Put layernorm after attn/mlp layers, not before
+        if self.cfg.layer_norm_pre: # Put layernorm after attn/mlp layers, not before
             if self.cfg.normalization_type == "LN":
                 self.ln_pre = LayerNorm(self.cfg)
             elif self.cfg.normalization_type == "LNPre":
@@ -97,7 +97,7 @@ class HookedViT(HookedRootModule):
             self.hook_ln_pre = HookPoint()
 
         # Blocks
-        if self.cfg.layer_norm_after:
+        if self.cfg.use_bert_block:
             block = BertBlock
         else:
             block = TransformerBlock
@@ -132,11 +132,23 @@ class HookedViT(HookedRootModule):
 
     def forward(self,
             input: Union[
-            str,
-            List[str],
-            Int[torch.Tensor, "batch pos"],
-            Float[torch.Tensor, "batch pos d_model"],
-        ],):
+            Float[torch.Tensor, "batch height width channels"],
+
+            ],
+            stop_at_layer: Optional[int] = None,
+
+        ):
+        """Forward Pass.
+        Args:
+            stop_at_layer Optional[int]: If not None, stop the forward pass at the specified layer.
+                Exclusive - ie, stop_at_layer = 0 will only run the embedding layer, stop_at_layer =
+                1 will run the embedding layer and the first transformer block, etc. Supports
+                negative indexing. Useful for analysis of intermediate layers, eg finding neuron
+                activations in layer 3 of a 24 layer model. Defaults to None (run the full model).
+                If not None, we return the last residual stream computed.
+        """
+
+
 
         batch_size = input.shape[0]
 
@@ -148,13 +160,15 @@ class HookedViT(HookedRootModule):
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
         
         residual = embed + pos_embed
-        
-        if self.cfg.layer_norm_after:
+
+        if self.cfg.layer_norm_pre:
             residual = self.ln_pre(residual)
             residual = self.hook_ln_pre(residual)
 
-        for block in self.blocks:
+        for block in self.blocks[:stop_at_layer]:
             residual = block(residual)
+        if stop_at_layer is not None:
+            return residual
 
         x = self.ln_final(residual)
 
@@ -705,7 +719,7 @@ class HookedViT(HookedRootModule):
 
 
         state_dict = get_pretrained_state_dict(
-            model_name, is_timm, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
+            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
         )
 
         model = cls(cfg, move_to_device=False)
