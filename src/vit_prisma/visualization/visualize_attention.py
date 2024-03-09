@@ -65,6 +65,6 @@ def plot_attn_heads(total_activations, n_heads=12, n_layers=12, img_shape=50, id
         cbar_ax.set_title('Attention', size=12)
 
     plt.subplots_adjust(wspace=0.2, hspace=0.4)
-    plt.suptitle(f'Attention Scores for Image Idx {idx}', fontsize=20, y=0.93)
+    plt.suptitle(f'Attention for Image Idx {idx}', fontsize=20, y=0.93)
     plt.show()
 
