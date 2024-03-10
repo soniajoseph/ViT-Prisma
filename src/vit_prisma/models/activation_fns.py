@@ -1,17 +1,20 @@
+"""
+Prisma Repo
+By Sonia Joseph
+
+Copyright (c) Sonia Joseph. All rights reserved.
+
+Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
+For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
+"""
+
 import numpy as np
 import torch
 from typing import Dict, Optional, Tuple, Union
 from jaxtyping import Float, Int
 import torch.nn.functional as F
 
-# activation_dict ={
-#     "ReLU": torch.nn.ReLU,
-#     "LeakyReLU": torch.nn.LeakyReLU,
-#     "gelu_new": gelu_new,
-#     "gelu_fast": gelu_fast,
-#     "solu": solu,
-#     "Linear": torch.nn.Identity,
-# }
+
 
 
 def gelu_new(

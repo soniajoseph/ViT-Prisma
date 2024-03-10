@@ -1,8 +1,11 @@
 """
-Reference:
-https://github.com/neelnanda-io/TransformerLens/blob/main/transformer_lens/ActivationCache.py
+Prisma Repo
+By Sonia Joseph
 
-Same functionality here but no logit attribution (def logit_attrs) due to no Unembed matrix in ViTs.
+Copyright (c) Sonia Joseph. All rights reserved.
+
+Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
+For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
 
 from typing import Dict, Iterator, List, Optional, Tuple, Union

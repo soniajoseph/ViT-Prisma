@@ -1,3 +1,13 @@
+"""
+Prisma Repo
+By Sonia Joseph
+
+Copyright (c) Sonia Joseph. All rights reserved.
+
+Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
+For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
+"""
+
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
 import torch
 from jaxtyping import Float, Int

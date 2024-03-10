@@ -1,8 +1,11 @@
 """
-Reference:
-https://github.com/neelnanda-io/TransformerLens/blob/main/transformer_lens/loading_from_pretrained.py
+Prisma Repo
+By Sonia Joseph
 
-Preserves most of the original functionality with necessary modifications for ViTs and pretrained ViT models.
+Copyright (c) Sonia Joseph. All rights reserved.
+
+Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
+For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
 
 import logging

@@ -1,3 +1,13 @@
+"""
+Prisma Repo
+By Sonia Joseph
+
+Copyright (c) Sonia Joseph. All rights reserved.
+
+Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
+For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
+"""
+
 import numpy as np
 import torch
 from collections import defaultdict
