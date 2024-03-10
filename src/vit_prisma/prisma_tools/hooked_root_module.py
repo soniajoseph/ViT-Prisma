@@ -219,12 +219,14 @@ class HookedRootModule(nn.Module):
             incl_bwd = False,
             reset_hooks_end = True,
             clear_contexts = False,
+            **model_kwargs,
+
     ):
         cache_dict, fwd, bwd = self.get_caching_hooks(
             names_filter, incl_bwd, device, remove_batch_dim=remove_batch_dim
         )
         with self.hooks(fwd_hooks=fwd, bwd_hooks=bwd, reset_hooks_end=reset_hooks_end, clear_contexts=clear_contexts):
-            model_out = self(*model_args)
+            model_out = self(*model_args, **model_kwargs)
             if incl_bwd:
                 model_out.backward()
         return model_out, cache_dict
