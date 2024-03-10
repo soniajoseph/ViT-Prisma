@@ -13,7 +13,32 @@ def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
                                        heatmap_mode='logit_values',
                                        alpha_color=.6,
                                        return_graph=False):
+    """
+    Overlays a heatmap on an image to visualize model predictions on patches, with options to display
+    logit values or emoji representations for each patch.
 
+    This function is useful for interpreting the output of patch-based models like Vision Transformers,
+    providing a visual summary of which areas of the image are most relevant to the model's predictions
+    and how those predictions are distributed across the image.
+
+    Args:
+    image : (np.ndarray or torch.Tensor) - The input image. Can be a numpy array of shape (H, W, 3) or a PyTorch tensor of shape (3, H, W).
+    patch_dictionary : (dict) - A dictionary mapping patch indices to tuples with logit values, class names, and class indices.
+    patch_size : (optional int) - The size of each square patch in pixels. Default is 32.
+    layer_idx : (optional, int) - The index of the layer from which logit values are extracted. Default is -1, indicating the last layer.
+    imagenet_class_to_emoji : (optional dict) - A mapping from ImageNet class indices to emojis for visual representation. Default is IMAGENET_EMOJI.
+    emoji_font_size : (optional int) - The font size for emojis displayed on the heatmap. Default is 30.
+    heatmap_mode : (optional str) - The mode of the heatmap visualization. Options are 'logit_values' for displaying logit values directly,
+        or 'emoji_colors' for using colors associated with emojis. Default is 'logit_values'.
+    alpha_color : (optional float) - The opacity of the heatmap overlay, between 0 (transparent) and 1 (opaque). Default is 0.6.
+    return_graph : (optional bool) - Whether to return the Plotly figure object without displaying it. Default is False.
+
+    Returns: 
+    plotly.go.Figure or None
+        The Plotly figure object if `return_graph` is True. Otherwise, the figure is displayed directly and
+        nothing is returned.
+    
+    """
     valid_heatmap_modes = ['logit_values', 'emoji_colors']
     if heatmap_mode not in valid_heatmap_modes:
         raise ValueError(f"Invalid heatmap_mode '{heatmap_mode}'. Valid options are {valid_heatmap_modes}.")
@@ -102,6 +127,33 @@ def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
 # Animal logit lens
 
 def display_patch_logit_lens(patch_dictionary, width=1000, height=1200, emoji_size=26, return_graph=False, show_colorbar=True, labels=None):
+    """
+    Visualizes logit values for image patches using an interactive heatmap, overlayed with emojis
+    representing the predicted classes. This function aids in analyzing model predictions at a patch level,
+    offering insights into focus areas and prediction confidence across the image.
+
+    Args:
+    patch_dictionary : dict
+        A dictionary mapping each patch index to a list of tuples containing logit values, class names,
+        and class indices for predictions.
+    width : int, optional
+        The width of the heatmap in pixels. Default is 1000.
+    height : int, optional
+        The height of the heatmap in pixels. Default is 1200.
+    emoji_size : int, optional
+        The font size used for emojis in the heatmap. Default is 26.
+    return_graph : bool, optional
+        If True, the function returns the Plotly figure object instead of displaying it. Default is False.
+    show_colorbar : bool, optional
+        Determines whether to display a colorbar indicating the logit value scale. Default is True.
+    labels : list of str, optional
+        Optional labels to enrich hover text information. If provided, labels are displayed alongside class
+        names in the heatmap's hover text.
+
+    Returns:
+    plotly.go.Figure, optional
+        The Plotly figure object representing the heatmap, returned only if `return_graph` is True.
+    """
     num_patches = len(patch_dictionary)
 
     # Assuming data_array_formatted is correctly shaped according to your data structure

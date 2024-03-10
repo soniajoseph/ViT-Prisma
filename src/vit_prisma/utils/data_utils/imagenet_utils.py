@@ -2,6 +2,14 @@
 from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 
 def imagenet_index_from_word(search_term):
+    """
+    Get the ImageNet index from a search term
+    Args:
+        search_term: (str) - Search term to look for in the ImageNet dictionary
+
+    Returns:
+        (int) - ImageNet index corresponding to the search term
+    """
     # Convert the search term to lowercase to ensure case-insensitive matching
     search_term = search_term.lower()
 

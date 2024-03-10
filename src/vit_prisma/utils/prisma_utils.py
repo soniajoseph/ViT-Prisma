@@ -20,8 +20,16 @@ from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
 
 
-def test_prompt(example_data_point, model, example_answer=None, top_k=10):
+def display_ranked_predictions(example_data_point, model, example_answer=None, top_k=10):
+    """
+    Display the top-k predictions for a given data point
+    Args:
+        example_data_point: (torch.Tensor) - Data point to predict on, it is of the shape: (C, H, W)
 
+        model: (torch.nn.Module) - Model to use for prediction
+        example_answer: (str) - Optional - The correct answer for the data point
+        top_k: (int) - Number of top predictions to display
+    """
     logits = model(example_data_point.unsqueeze(0))
     probs = logits.softmax(dim=-1)
     probs = probs.squeeze(0).detach().numpy()
@@ -42,7 +50,7 @@ def test_prompt(example_data_point, model, example_answer=None, top_k=10):
         print(f"{rank_str} {logit_str} {prob_str} {token_str}")
 
     if example_answer:
-      tabby_cat_idx = imagenet_index_from_word(example_answer)
+      example_class_idx = imagenet_index_from_word(example_answer)
 
     # Example for displaying ranks of the answer tokens, adjust according to your needs
       answer_index = imagenet_index_from_word(example_answer)
@@ -50,7 +58,7 @@ def test_prompt(example_data_point, model, example_answer=None, top_k=10):
       print("Rank of the correct answer:")
       for ans_index in answer_indices:
           rank = np.where(sorted_probs_args == ans_index)[0][0]
-          print(f"Class Name: {example_answer} | Rank: {rank} | ImageNet Index: {tabby_cat_idx}")
+          print(f"Class Name: {example_answer} | Rank: {rank} | ImageNet Index: {example_class_idx}")
 
 def transpose(tensor: Float[torch.Tensor, "... a b"]) -> Float[torch.Tensor, "... b a"]:
     """
