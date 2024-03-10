@@ -17,6 +17,18 @@ from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
 
 
 def get_patch_logit_directions(cache, all_answers, incl_mid=False, return_labels=True):
+    """
+    Accumulated residuals upto the last layer is projected onto the answer space to determine the logit directions
+
+    Args:
+        cache: (ActivationCache) - Activation cache with all the activations of the model for a given input
+        all_answers: (torch.Tensor) - Target vectors for projecting the residuals
+        incl_mid: (bool) - Whether to return `resid_mid` for all previous layers
+        return_labels: (bool) - Whether to return a list of labels for the residual stream components. Useful for labelling graphs.
+    Returns:
+        (torch.Tensor) - Projected influences of residuals on answer vectors
+        (list) - Labels for the residual stream components
+    """
     accumulated_residual, labels = cache.accumulated_resid(
         layer=-1, incl_mid=incl_mid, return_labels=True
     )
@@ -29,6 +41,19 @@ def get_patch_logit_directions(cache, all_answers, incl_mid=False, return_labels
     return result, labels
 
 def get_patch_logit_dictionary(patch_logit_directions, batch_idx=0, rank_label=None):
+    """
+    Returns a dictionary, identifying the most likely class for each patch. 
+
+    Args:
+    patch_logit_directions : (torch.Tensor or tuple) - The predictions for each patch. 
+    batch_idx : (int) - The index of the batch to analyze. Defaults to 0.
+    rank_label : (optional str) - A class name to track its rank among predictions for each patch.
+
+    Returns:
+    defaultdict(list) - A dictionary mapping each patch to a list with its top prediction and optionally the rank of the specified class.
+    Each list item is a tuple containing the logit score, class name, and class index, and if `rank_label` is provided, 
+    the rank of that class.
+    """
     patch_dictionary = defaultdict(list)
     # if tuple, get first entry
     if isinstance(patch_logit_directions, tuple):

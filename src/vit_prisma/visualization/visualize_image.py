@@ -3,7 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def display_grid_on_image(image, patch_size=32):
+    """
+    Display grid on image with patch index
+    Args:
+        image: (torch.Tensor) or (np.ndarray) - Image to display grid on
+        patch_size: (int) - Size of patch
 
+    Returns:
+        None
+    """
     if isinstance(image, torch.Tensor):
         image = image.detach().numpy().transpose(1,2,0)
 
