@@ -35,9 +35,10 @@ Check out our tutorial notebooks for using the repo.
 3. [Interactive Attention Head Tour](https://colab.research.google.com/drive/1P252fCvTHNL_yhqJDeDVOXKCzIgIuAz2) - Deeper dive into the various types of attention heads a ViT contains with interactive JavaScript.
 
 
-## Available Models
-
-
+## Supported Models
+* [timm ViTs](https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/vision_transformer.py)
+* [CLIP](https://huggingface.co/docs/transformers/main/en/model_doc/clip)
+* Our custom toy models (see below)
 
 ## Training Code
 
@@ -45,12 +46,23 @@ Prisma contains training code to train your own custom ViTs. Training small ViTs
 
 For training your own models, check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
 
-
-
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
+## Custom Models & Checkpoints
 
-### ImageNet-1k classification training checkpoints
+### ImageNet-1k classification checkpoints (patch size 32)
+
+This model was trained by Praneet Suresh. All models include training checkpoints, in case you want to analyze training dynamics.
+
+This larger patch size ViT has inspectable attention heads; else the patch size 16 attention heads are too large to easily render in JavaScript.
+
+[ImageNet-Small-Attention-and-MLP-Patch32](https://huggingface.co/PraneetNeuro/ImageNet-Small-Attention-and-MLP-Patch32)
+
+| **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
+|:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
+| **tiny** | **3**         | |  0.22 \| 0.42 |            N/A            | [Attention+MLP](https://huggingface.co/PraneetNeuro/ImageNet-Small-Attention-and-MLP-Patch32) |
+
+### ImageNet-1k classification checkpoints (patch size 16)
 
 The detailed training logs and metrics can be found [here](https://wandb.ai/vit-prisma/Imagenet/overview?workspace=user-yash-vadi). These models were trained by Yash Vadi.
 
@@ -78,7 +90,6 @@ Full results and training setup are [here](https://github.com/soniajoseph/ViT-Pr
 | **base** | **2**         | 0.996             | 0.685             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-base-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-base-Attention-and-MLP) |
 | **small**| **3**         | 1.000             | 0.774             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-small-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-small-Attention-and-MLP) |
 | **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
-
 
 
 ## Guidelines for training + uploading models
