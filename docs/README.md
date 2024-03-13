@@ -34,6 +34,18 @@ Check out our tutorial notebooks for using the repo.
 2. [Emoji Logit Lens](https://colab.research.google.com/drive/1yAHrEoIgkaVqdWC4GY-GQ46ZCnorkIVo) - Deeper dive into layer- and patch-level predictions with interactive plots.
 3. [Interactive Attention Head Tour](https://colab.research.google.com/drive/1P252fCvTHNL_yhqJDeDVOXKCzIgIuAz2) - Deeper dive into the various types of attention heads a ViT contains with interactive JavaScript.
 
+## Features
+
+For a full demo of features, check out the demo notebooks above.
+
+### Attention head visualization
+<img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
+
+### Activation patching
+
+### Direct logit attribution
+
+### Emoji logit lens
 
 ## Supported Models
 * [timm ViTs](https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/vision_transformer.py)
@@ -45,8 +57,6 @@ Check out our tutorial notebooks for using the repo.
 Prisma contains training code to train your own custom ViTs. Training small ViTs can be very useful when isolating specific behaviors in the model.
 
 For training your own models, check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
-
-<img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
 ## Custom Models & Checkpoints
 
