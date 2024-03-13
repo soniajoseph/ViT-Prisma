@@ -48,14 +48,16 @@ For a full demo of features, check out the demo notebooks above.
 </div>
 
 ### Activation patching
-<img src="assets/images/patched head.png" width="300">
+<img src="assets/images/patched head.png" width="500">
 
 ### Direct logit attribution
-<img src="assets/images/direct logit attribution.png" width="300">
+<img src="assets/images/direct logit attribution.png" width="800">
 
 ### Emoji logit lens
-<img src="assets/images/cat toilet segmentation.png" width="300">
-<img src="assets/images/child lion segmentation.png" width="300">
+<div style="display: flex; align-items: center;">
+<img src="assets/images/cat toilet segmentation.png" width="400">
+<img src="assets/images/child lion segmentation.png" width="400">
+</div>
 
 
 ## Supported Models
