@@ -55,6 +55,7 @@ For a full demo of features, check out the demo notebooks above.
 
 ### Emoji logit lens
 <div style="display: flex; align-items: center;">
+<img src="assets/images/dogit lens.png" width="400">
 <img src="assets/images/cat toilet segmentation.png" width="400">
 <img src="assets/images/child lion segmentation.png" width="400">
 <img src="assets/images/cheetah segmentation.png" width="400">
