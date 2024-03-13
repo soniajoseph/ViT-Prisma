@@ -5,7 +5,7 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
-ViT Prisma is an open-source mechanistic interpretability library for vision and multimodal models. Currently, the library supports ViTs and CLIP. This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_). ViT Prisma is largely based on TransformerLens by Neel Nanda.
+ViT Prisma is an open-source mechanistic interpretability library for vision and multimodal models. Currently, the library supports ViTs and CLIP. This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_). ViT Prisma is largely based on [TransformerLens](https://github.com/neelnanda-io/TransformerLens) by Neel Nanda.
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi), [Rob Graham](https://github.com/themachinefan) [and more coming soon]
 
@@ -66,11 +66,10 @@ This model was trained by Praneet Suresh. All models include training checkpoint
 
 This larger patch size ViT has inspectable attention heads; else the patch size 16 attention heads are too large to easily render in JavaScript.
 
-[ImageNet-Small-Attention-and-MLP-Patch32](https://huggingface.co/PraneetNeuro/ImageNet-Small-Attention-and-MLP-Patch32)
 
 | **Size** | **NumLayers** | **Attention+MLP** | **AttentionOnly** | **Model Link**                              |
 |:--------:|:-------------:|:-----------------:|:-----------------:|--------------------------------------------|
-| **tiny** | **3**         | |  0.22 \| 0.42 |            N/A            | [Attention+MLP](https://huggingface.co/PraneetNeuro/ImageNet-Small-Attention-and-MLP-Patch32) |
+| **tiny** | **3**         | 0.22 \| 0.42 |            N/A            | [Attention+MLP](https://huggingface.co/PraneetNeuro/ImageNet-Small-Attention-and-MLP-Patch32) |
 
 ### ImageNet-1k classification checkpoints (patch size 16)
 
