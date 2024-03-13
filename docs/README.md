@@ -42,21 +42,23 @@ For a full demo of features, check out the demo notebooks above.
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
 <div style="display: flex; align-items: center;">
-  <img src="assets/images/attention head 1.png" alt="Logo Image 1" width="200" style="margin-right: 10px;"/>
-  <img src="assets/images/attention head 2.png" alt="Logo Image 2" width="200" style="margin-right: 10px;"/>
-  <img src="assets/images/attention head 3.png" alt="Logo Image 3" width="200"/>
+  <img src="assets/images/attention head 1.png" alt="Logo Image 1" width="250" style="margin-right: 10px;"/>
+  <img src="assets/images/attention head 2.png" alt="Logo Image 2" width="250" style="margin-right: 10px;"/>
+  <img src="assets/images/attention head 3.png" alt="Logo Image 3" width="250"/>
 </div>
 
 ### Activation patching
-<img src="assets/images/patched head.png" width="500">
+<img src="assets/images/patched head.png" width="450">
 
 ### Direct logit attribution
-<img src="assets/images/direct logit attribution.png" width="800">
+<img src="assets/images/direct logit attribution.png" width="700">
 
 ### Emoji logit lens
 <div style="display: flex; align-items: center;">
 <img src="assets/images/cat toilet segmentation.png" width="400">
 <img src="assets/images/child lion segmentation.png" width="400">
+<img src="assets/images/cheetah segmentation.png" width="400">
+
 </div>
 
 
