@@ -5,49 +5,51 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
-ViT Prisma is an open-source mechanistic interpretability library for Vision Transformers (ViTs). This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_).
+ViT Prisma is an open-source mechanistic interpretability library for vision and multimodal models. Currently, the library supports ViTs and CLIP. This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_). ViT Prisma is largely based on TransformerLens by Neel Nanda.
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi), [Rob Graham](https://github.com/themachinefan) [and more coming soon]
 
-We welcome new contributors. Check out our contributing guidelines [here](CONTRIBUTING.md).
+We welcome new contributors. Check out our contributing guidelines [here](CONTRIBUTING.md) and our [open Issues](https://github.com/soniajoseph/ViT-Prisma/issues).
 
 ## Installing Repo
 
-To install as an editable repo:
+Installing with pip:
+```
+pip install vit_prisma
+```
+
+To install as an editable repo from source:
 ```
 git clone https://github.com/soniajoseph/ViT-Prisma
 cd ViT-Prisma
 pip install -e .
 ```
+
 ## How do I use this repo?
 Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
 
+Check out our tutorial notebooks for using the repo.
 
-# What's in the repo?
+1. [Main ViT Demo](https://colab.research.google.com/drive/1TL_BY1huQ4-OTORKbiIg7XfTyUbmyToQ) - Overview of main mechanistic interpretability technique on a ViT, including direct logit attribution, attention head visualization, and activation patching. The activation patching switches the net's prediction from tabby cat to Border collie with a minimum ablation.
+2. [Emoji Logit Lens](https://colab.research.google.com/drive/1yAHrEoIgkaVqdWC4GY-GQ46ZCnorkIVo) - Deeper dive into layer- and patch-level predictions with interactive plots.
+3. [Interactive Attention Head Tour](https://colab.research.google.com/drive/1P252fCvTHNL_yhqJDeDVOXKCzIgIuAz2) - Deeper dive into the various types of attention heads a ViT contains with interactive JavaScript.
 
-**Part One:** Mechanistic interpretability tooling, including activation caching, path-patching, and attention head visualization. _In progress._
 
-**Part Two:** Open source mini transformers (ViT "mice"). _In progress._
+## Available Models
 
-**Part Three:** Code to train your own vision transformers.
 
-# Part One: Mechanistic Interpretability Tooling
 
-*Coming soon.*
+## Training Code
 
-**Attention head visualization code**
-* [Attention Head Demo Notebook](https://colab.research.google.com/drive/1xyNa2ghlALC7SejHNJYmAHc9wBYWUhZJ#scrollTo=MyKK6W1ltsKk)
+Prisma contains training code to train your own custom ViTs. Training small ViTs can be very useful when isolating specific behaviors in the model.
+
+For training your own models, check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
+
 
 
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
-# Part Two: Open Source Mini-Transformers (ViT Mice 🐭)
-ViT Mice are the mini-versions of the standard Vision Transformers.  Just as mice are used in scientific experiments for their small size, ViT Mice serve a similar purpose to illuminate their larger counterparts. By training these mice on both toy datasets and in-the-wild data, we aim to observe their behaviors in various environments.
 
-**Categories of ViT Mice** 
-1. **Toy Data Mice:** Trained on controlled, synthetic datasets to understand specific behaviors or to isolate certain aspects of the learning process.
-2. **In-the-Wild Mice:** Trained on naturalistic, real-world data reminiscent of models in-production.
- 
 ### ImageNet-1k classification training checkpoints
 
 The detailed training logs and metrics can be found [here](https://wandb.ai/vit-prisma/Imagenet/overview?workspace=user-yash-vadi). These models were trained by Yash Vadi.
@@ -78,17 +80,6 @@ Full results and training setup are [here](https://github.com/soniajoseph/ViT-Pr
 | **medium**|**4**         | 1.000             | 0.991             | [AttentionOnly](https://huggingface.co/IamYash/dSprites-medium-AttentionOnly), [Attention+MLP](https://huggingface.co/IamYash/dSprites-medium-Attention-and-MLP) |
 
 
-### To do: to train
-
-1-4 layer, attention-only, and full-attention versions of each.
-* ImageNet-1k Mice (reconstruction loss)
-   * Attention-only
-     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
-   * Full-attention
-     * 1-layer, 2-layer, 3-layer, 4-layer, 5-layer
-* dSprites
-    * Smallest possible model that can recognize size.
-    * Smallest possible model that can recognize position.
 
 ## Guidelines for training + uploading models
 
@@ -96,96 +87,6 @@ Upload your trained models to Huggingface. Follow the [Huggingface guidelines](h
 
 Include frequent checkpoints throughout training, which will help other researchers understand training dynamics.
 
-# Part Three: ViT Training Code 🚀
-
-This repo includes training code to easily train ViTs from scratch or finetune existing models. See our [Usage Guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md) for more information.
-
-## Configurations 
-
-The Prisma config object houses certain hyperparameters of the models, along with attributes of the training procedure, which can come in handy to track, and design new experiments. 
-
-There are several config objects available in the framework. 
-
-Below are the configs available as part of the framework:
- - InductionConfig
- - CircleConfig
- - MNISTConfig
- - DSpritesConfig
-
-```python
-from vit_prisma.configs import <CONFIG_OF_CHOICE>
-```
-By inspecting one of the configs available in the framework, you can create your own one.
-
-## Base ViT
-
-The base ViT part of the Prisma Project allows instantiating models in a flexible way, where the architecture is defined by the Prisma config object discussed in the previous section.
-
-### Instantiating the Base ViT 
-
-```python
-from vit_prisma.models import base_vit
-from vit_prisma.configs import InductionConfig
-
-# The InductionConfig is available in the framework itself, which is setup for the induction dataset
-config = InductionConfig.GlobalConfig()
-
-model = base_vit.BaseViT(config)
-```
-
-### Using pretrained models
-
-```python
-from vit_prisma.models.pretrained_model import PretrainedModel
-from vit_prisma.configs import InductionConfig
-
-config = InductionConfig.GlobalConfig()
-
-hf_model = PretrainedModel('google/vit-base-patch16-224-in21k', config)
-
-timm_model = PretrainedModel('vit_base_patch32_224', config, is_timm=True)
-```
-
-### Datasets
-
-The framework also has a few datasets that can be synthetically generated, and cached. 
-
-Below are the datasets available as part of the framework: 
- - Circle
- - [dsprites](https://github.com/google-deepmind/dsprites-dataset)
- - Induction
-
-You will be able to use any other dataset with the framework, for ease of use, you can instantiate it as a Pytorch dataset object.
-
- ```python
- from vit_prisma.dataloaders.induction import InductionDataset
-
- train = InductionDataset('train')
-
- # If you don't provide a test split to the trainer, the trainer will perform the train/test split for you.
- ```
-
- ### Training and tracking experiments
-
- The trainer has built in support for wandb experiment tracking. Make sure to set up wandb on your localhost, and configure the tracking attributes in the Prisma config object.
-
- ```python
- from vit_prisma.models.base_vit import BaseViT
- from vit_prisma.configs import InductionConfig
- from vit_prisma.training import trainer
- from vit_prisma.dataloaders.induction import InductionDataset
-
- train_dataset = InductionDataset('train')
-
- config = InductionConfig.GlobalConfig()
-
- model_function = BaseViT
-
- trainer.train(model_function, config, train_dataset)
- ```
-
-# Errors 💰
-If you point out a conceptual error in this code (e.g. incorrect implementation of a transformer, not a minor function import), I will send you $5-20 per bug depending on the bug's severity.
 
 # Citation
 
