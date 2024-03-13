@@ -48,10 +48,15 @@ For a full demo of features, check out the demo notebooks above.
 </div>
 
 ### Activation patching
+<img src="assets/images/patched head.png" width="300">
 
 ### Direct logit attribution
+<img src="assets/images/direct logit attribution.png" width="300">
 
 ### Emoji logit lens
+<img src="assets/images/cat toilet segmentation.png" width="300">
+<img src="assets/images/child lion segmentation.png" width="300">
+
 
 ## Supported Models
 * [timm ViTs](https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/vision_transformer.py)
