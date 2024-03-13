@@ -5,6 +5,8 @@
   <img src="assets/images/house2.jpg" alt="Logo Image 3" width="200"/>
 </div>
 
+For a full introduction, including Open Problems in vision mechanistic interprtability, see the original Less Wrong post [here](https://www.lesswrong.com/posts/kobJymvvcvhbjWFKe/laying-the-foundations-for-vision-and-multimodal-mechanistic).
+
 ViT Prisma is an open-source mechanistic interpretability library for vision and multimodal models. Currently, the library supports ViTs and CLIP. This library was created by [Sonia Joseph](https://twitter.com/soniajoseph_). ViT Prisma is largely based on [TransformerLens](https://github.com/neelnanda-io/TransformerLens) by Neel Nanda.
 
 *Contributors:* [Praneet Suresh](https://github.com/PraneetNeuro), [Yash Vadi](https://github.com/YashVadi), [Rob Graham](https://github.com/themachinefan) [and more coming soon]
