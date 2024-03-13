@@ -41,6 +41,12 @@ For a full demo of features, check out the demo notebooks above.
 ### Attention head visualization
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
 
+<div style="display: flex; align-items: center;">
+  <img src="assets/images/attention head 1.png" alt="Logo Image 1" width="200" style="margin-right: 10px;"/>
+  <img src="assets/images/attention head 2.png" alt="Logo Image 2" width="200" style="margin-right: 10px;"/>
+  <img src="assets/images/attention head 3.png" alt="Logo Image 3" width="200"/>
+</div>
+
 ### Activation patching
 
 ### Direct logit attribution
