@@ -53,6 +53,8 @@ class MLP(nn.Module):
             self.act_fn = gelu_new
         elif self.cfg.activation_name == "gelu_fast":
             self.act_fn = gelu_fast
+        elif self.cfg.activation_name == "quick_gelu":
+            self.act_fn = quick_gelu
         elif self.cfg.activation_name == "solu_ln": # why does only solu have a layernorm? 
             self.act_fn = solu
             # Hook taken between activation and layer norm
