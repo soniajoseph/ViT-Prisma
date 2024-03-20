@@ -36,7 +36,7 @@ Check out our tutorial notebooks for using the repo.
 
 ## Features
 
-For a full demo of features, check out the demo notebooks above.
+For a full demo of Prisma's features, including the visualizations below with interactivity, check out the demo notebooks above.
 
 ### Attention head visualization
 <img src="https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/assets/images/corner-head.gif" width="300">
@@ -48,10 +48,10 @@ For a full demo of features, check out the demo notebooks above.
 </div>
 
 ### Activation patching
-<img src="assets/images/patched head.png" width="450">
+<img src="assets/images/patched head.png" width="400">
 
 ### Direct logit attribution
-<img src="assets/images/direct logit attribution.png" width="700">
+<img src="assets/images/direct logit attribution.png" width="600">
 
 ### Emoji logit lens
 <div style="display: flex; align-items: center;">

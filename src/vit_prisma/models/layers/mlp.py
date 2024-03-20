@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 import numpy as np
 
-from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu
+from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu, quick_gelu
 
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 

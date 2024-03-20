@@ -16,6 +16,9 @@ import torch.nn.functional as F
 
 
 
+def quick_gelu(input: Float[torch.Tensor, "batch pos d_mlp"]):
+    return input * torch.sigmoid(1.702 * input)
+
 
 def gelu_new(
     input: Float[torch.Tensor, "batch pos d_mlp"]
