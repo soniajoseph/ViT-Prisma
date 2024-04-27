@@ -38,6 +38,8 @@ class VisionActivationsStore:
         num_workers=0,
     ):
         self.cfg = cfg
+        assert not self.cfg.normalize_activations, "Normalize activations is currently not implemented for vision, sorry!"
+        self.normalize_activations = self.cfg.normalize_activations
         self.model = model
         self.dataset = dataset
         self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
@@ -247,7 +249,7 @@ class VisionActivationsStore:
 
         """
 
-        batch_size = self.cfg.train_batch_size
+        batch_size = self.cfg.train_batch_size_tokens
 
         # 1. # create new buffer by mixing stored and new buffer
         mixing_buffer = torch.cat(

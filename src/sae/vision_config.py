@@ -3,5 +3,5 @@ from sae_lens.training.config import LanguageModelSAERunnerConfig
 
 
 @dataclass
-class VisionModelRunner(LanguageModelSAERunnerConfig):
-    total_training_images:int = 1_000_000
+class VisionModelRunnerConfig(LanguageModelSAERunnerConfig):
+    store_batch_size:int =32 # num images
