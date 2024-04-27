@@ -41,4 +41,7 @@ setup(
     install_requires=install_requires,
     keywords='vision-transformer, clip, multimodal, machine-learning, mechanistic interpretability',
     zip_safe=False,
+    extras_require={
+        'sae': ['sae-lens==0.7.0'],  # to use: pip install -e .[sae]
+    },
 )
