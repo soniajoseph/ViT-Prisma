@@ -224,6 +224,69 @@ def convert_vivet_weights(
 
     return new_state_dict
 
+def convert_hf_vit_for_image_classification_weights(   old_state_dict,
+        cfg: HookedViTConfig,
+):
+
+    new_state_dict = {}
+
+    #exit(0)
+    new_state_dict["cls_token"] = old_state_dict["vit.embeddings.cls_token"]
+    new_state_dict["pos_embed.W_pos"] = old_state_dict["vit.embeddings.position_embeddings"].squeeze(0)
+    new_state_dict["embed.proj.weight"] = old_state_dict["vit.embeddings.patch_embeddings.projection.weight"]
+    new_state_dict["embed.proj.bias"] = old_state_dict["vit.embeddings.patch_embeddings.projection.bias"] 
+    new_state_dict["ln_final.w"] = old_state_dict["vit.layernorm.weight"]
+    new_state_dict["ln_final.b"] = old_state_dict["vit.layernorm.bias"]
+
+    for layer in range(cfg.n_layers):
+        layer_key = f"vit.encoder.layer.{layer}" 
+        new_layer_key = f"blocks.{layer}"
+        new_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{layer_key}.layernorm_before.weight"]
+        new_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{layer_key}.layernorm_before.bias"]
+        new_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.layernorm_after.weight"]
+        new_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.layernorm_after.bias"]
+
+        W_Q  = old_state_dict[f"{layer_key}.attention.attention.query.weight"]
+        W_K  = old_state_dict[f"{layer_key}.attention.attention.key.weight"]
+        W_V  = old_state_dict[f"{layer_key}.attention.attention.value.weight"]
+
+        new_state_dict[f"{new_layer_key}.attn.W_Q"] = einops.rearrange(W_Q, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        new_state_dict[f"{new_layer_key}.attn.W_K"] = einops.rearrange(W_K, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        new_state_dict[f"{new_layer_key}.attn.W_V"] = einops.rearrange(W_V, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+
+        W_O = old_state_dict[f"{layer_key}.attention.output.dense.weight"]
+        new_state_dict[f"{new_layer_key}.attn.W_O"] =  einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+
+
+        b_Q  = old_state_dict[f"{layer_key}.attention.attention.query.bias"]
+        b_K  = old_state_dict[f"{layer_key}.attention.attention.key.bias"]
+        b_V  = old_state_dict[f"{layer_key}.attention.attention.value.bias"]
+
+        new_state_dict[f"{new_layer_key}.attn.b_Q"] = einops.rearrange(b_Q, "(h dh) -> h dh",  h=cfg.n_heads, dh=cfg.d_head)
+        new_state_dict[f"{new_layer_key}.attn.b_K"] = einops.rearrange(b_K, "(h dh) -> h dh",  h=cfg.n_heads, dh=cfg.d_head)
+        new_state_dict[f"{new_layer_key}.attn.b_V"] = einops.rearrange(b_V, "(h dh) -> h dh",  h=cfg.n_heads, dh=cfg.d_head)
+
+        b_O = old_state_dict[f"{layer_key}.attention.output.dense.bias"]
+        new_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+
+        mlp_W_in = old_state_dict[f"{layer_key}.intermediate.dense.weight"]
+        new_state_dict[f"{new_layer_key}.mlp.W_in"] =  einops.rearrange(mlp_W_in, "m d -> d m")
+
+        mlp_W_out  = old_state_dict[f"{layer_key}.output.dense.weight"]
+       
+        new_state_dict[f"{new_layer_key}.mlp.W_out"] = einops.rearrange(mlp_W_out, "d m -> m d")
+
+        new_state_dict[f"{new_layer_key}.mlp.b_in"] =  old_state_dict[f"{layer_key}.intermediate.dense.bias"]
+        new_state_dict[f"{new_layer_key}.mlp.b_out"] =  old_state_dict[f"{layer_key}.output.dense.bias"]
+
+    new_state_dict["head.W_H"] = einops.rearrange(old_state_dict["classifier.weight"], "c d -> d c")
+    new_state_dict["head.b_H"] = old_state_dict["classifier.bias"]
+
+
+    return new_state_dict
+
+
+
 def get_pretrained_state_dict(
     official_model_name: str,
     is_timm: bool,
@@ -285,7 +348,7 @@ def get_pretrained_state_dict(
             hf_model = hf_model if hf_model is not None else ViTForImageClassification.from_pretrained(
                     official_model_name, torch_dtype=dtype, **kwargs
             )
-            raise ValueError
+            state_dict = convert_hf_vit_for_image_classification_weights(hf_model.state_dict(), cfg)
 
             # Load model weights, and fold in layer norm weights
 
@@ -402,6 +465,13 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
 
         })
 
+    if pretrained_config['n_classes'] is None:
+        id2label = getattr(hf_config, "id2label", None)
+        if id2label is not None:
+            pretrained_config.update({
+                "n_classes": len(id2label),
+                "return_type": "class_logits"
+            })
     
     print(pretrained_config)
 
