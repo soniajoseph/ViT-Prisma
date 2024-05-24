@@ -42,6 +42,6 @@ setup(
     keywords='vision-transformer, clip, multimodal, machine-learning, mechanistic interpretability',
     zip_safe=False,
     extras_require={
-        'sae': ['sae-lens==0.7.0'],  # to use: pip install -e .[sae]
+        'sae': ['sae-lens==2.1.3'],  # to use: pip install -e .[sae] # as of 2.1.3, windows will require pip install sae-lens==2.1.3 --no-dependencies followed by manually installing needed packages
     },
 )
