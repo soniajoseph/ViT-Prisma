@@ -38,6 +38,32 @@ from sae.vision_activations_store import VisionActivationsStore
 from sae.legacy_load import load_legacy_pt_file
 import csv
 
+from transformers import CLIPProcessor, CLIPModel
+
+
+        
+def get_imagenet_names(imagenet_path):
+    ind_to_name = {}
+    list_of_names = []
+    with open( os.path.join(imagenet_path, "LOC_synset_mapping.txt" ), 'r') as file:
+        # Iterate over each line in the file
+        for line_num, line in enumerate(file):
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(' ')
+            label = parts[1].split(',')[0]
+            ind_to_name[line_num] = label
+            list_of_names.append(label)
+    return ind_to_name, list_of_names
+
+def get_text_embeddings(model_name, list_of_classes):
+    vanilla_model = CLIPModel.from_pretrained(model_name)
+    processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False) # Make sure the do_rescale is false for pytorch datasets
+    inputs = processor(text=list_of_classes, return_tensors='pt', padding=True)
+    text_embeddings = vanilla_model.get_text_features(**inputs)
+    del vanilla_model, processor
+    return text_embeddings
 
 
 def train_sae_group_on_vision_model(
@@ -69,6 +95,10 @@ def train_sae_group_on_vision_model(
         all_layers = [all_layers]
 
     pbar = tqdm(total=total_training_tokens, desc="Training SAE")
+
+    # Get precomputed texting embeddings for CE loss reconstruction metric later
+    list_of_classes = get_imagenet_names(model.cfg.imagenet_label_strings)
+    imagenet_text_embeddings = get_text_embeddings(model.cfg.model_name, list_of_classes)
 
     # not resuming
     if training_run_state is None and train_contexts is None:
@@ -171,6 +201,8 @@ def train_sae_group_on_vision_model(
                                     model,
                                     training_run_state.n_training_steps,
                                     suffix=wandb_suffix,
+                                    is_clip=True,
+                                    precomputed_text_embeddings=imagenet_text_embeddings,
                                 )
                             except:
                                 pass
@@ -237,9 +269,6 @@ def train_sae_group_on_vision_model(
         checkpoint_paths=training_run_state.checkpoint_paths,
         log_feature_sparsities=log_feature_sparsities,
     )
-
-
-
 
 
 
@@ -521,7 +550,10 @@ def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretr
     dtype = torch.float32,
 
     #loading
-    from_pretrained_path = pretrained_path
+    from_pretrained_path = pretrained_path,
+
+    # Data
+    imagenet_label_strings = imagenet_label_strings,
     )
 
 
@@ -551,6 +583,9 @@ def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretr
     ])
 
     
+    # if checkpont path doesn't exsit, create it
+    if not os.path.exists(cfg.checkpoint_path):
+        os.makedirs(cfg.checkpoint_path)
 
 
     imagenet1k_data = torchvision.datasets.ImageFolder(imagenet_train_path, transform=data_transforms)
@@ -621,7 +656,27 @@ if __name__ == "__main__":
     parser.add_argument('--load', type=str, default=None, help='Pretrained SAE path')
     args = parser.parse_args()
 
+    def generate_random_phrase(length=4):
+        """Generate a random 4-character phrase."""
+        characters = string.ascii_letters + string.digits
+        return ''.join(random.choice(characters) for _ in range(length))
+
+
+    # Create run name if not provided
+    import string
+    import random
+    random_phrase = generate_random_phrase()
+    # run name is random phrase, model name, hook point, layer number
+    run_name = f"{random_phrase}_{args.model_name}_{args.hook_point}_{args.layers[0]}"
+    # make run name name short random hastag, then model name, then hook point, then layers
+    args.run_name = run_name
+
+    # Make checkpoint path the parent directory plus the model name plus hook point then layers
+    args.checkpoint_path = os.path.join(args.checkpoint_path, run_name)
+
     cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point)
+
+
 
     if cfg.log_to_wandb:
         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)

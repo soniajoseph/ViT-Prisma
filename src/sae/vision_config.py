@@ -5,3 +5,4 @@ from sae_lens.training.config import LanguageModelSAERunnerConfig
 @dataclass
 class VisionModelRunnerConfig(LanguageModelSAERunnerConfig):
     store_batch_size:int =32 # num images
+    imagenet_label_strings: list = None

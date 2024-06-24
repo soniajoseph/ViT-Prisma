@@ -14,6 +14,28 @@ from sae_lens.training.evals import zero_ablate_hook, kl_divergence_attention
 import torch.nn.functional as F
 
 
+from vit_prisma.models.base_vit import HookedViT
+from transformers import CLIPProcessor, CLIPModel
+import torchvision
+import os
+
+# Load ImageNet folder
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+import torch
+
+import csv
+
+import numpy as np
+
+import einops
+
+from typing import Optional, Any
+
+
+
 @torch.no_grad()
 # similar to run_evals for language but adapted slightly for vision. #TODO adapt for CLIP model!
 def run_evals_vision(
@@ -22,13 +44,22 @@ def run_evals_vision(
     model: HookedTransformer,
     n_training_steps: int,
     suffix: str = "",
-):
+    is_clip: bool = True,
+    precomputed_text_embeddings: Optional[Any] = None, # For CLIP
+): 
     hook_point = sparse_autoencoder.cfg.hook_point
     hook_point_layer = sparse_autoencoder.cfg.hook_point_layer
     hook_point_head_index = sparse_autoencoder.cfg.hook_point_head_index
 
     ### Evals
     eval_tokens = activation_store.get_batch_tokens()
+
+    print("Length of eval tokens in current run_evals_vision: ", len(eval_tokens))
+
+    # if is_clip:
+    #     # Get Reconstruction Cross-Entropy Score
+    #     recons_score, orig_loss, recons_loss, zero_abl_loss = get_recons_loss_clip(sparse_autoencoder, model,
+    #                                                                                eval_tokens, precomputed_clip_text_embeddings=precomputed_text_embeddings)
 
     #TODO this was set up with classifier vit in mind but hasn't been modified for clip
     # Get Reconstruction Score
@@ -159,14 +190,23 @@ def recons_loss_batched(
     model: HookedTransformer,
     activation_store: VisionActivationsStore,
     n_batches: int = 100,
+    is_clip: bool = True,
+    precomputed_clip_text_embeddings: Optional[Any] = None,
+    logit_scale: Optional[Any] = None,
 ):
     losses = []
     for _ in tqdm(range(n_batches)):
         batch_tokens, labels = activation_store.get_val_batch_tokens()
+
+        if is_clip:
+            score, loss, recons_loss, zero_abl_loss = get_recons_loss_clip(
+                sparse_autoencoder, model, batch_tokens, labels, precomputed_clip_text_embeddings, logit_scale
+            )
         
-        score, loss, recons_loss, zero_abl_loss = get_recons_loss(
-            sparse_autoencoder, model, batch_tokens, labels,
-        )
+        else:
+            score, loss, recons_loss, zero_abl_loss = get_recons_loss(
+                sparse_autoencoder, model, batch_tokens, labels,
+            )
         losses.append(
             (
                 score.mean().item(),
@@ -183,18 +223,70 @@ def recons_loss_batched(
     return losses
 
 
+
+def get_logits_from_output_emb(image_emb, text_emb, logit_scale):
+    logits_per_text = torch.matmul(text_emb, image_emb.t().to(text_emb.device)) * logit_scale.to(
+                text_emb.device
+    )
+    logits_per_image = logits_per_text.t()
+    return logits_per_image
+
+
+
+@torch.no_grad()
+def get_recons_loss_clip(
+    sparse_autoencoder: SparseAutoencoder,
+    model: HookedTransformer,
+    batch_tokens: torch.Tensor,
+    labels:torch.Tensor,
+    precomputed_clip_text_embeddings: None,
+    logit_scale: None,
+
+):
+    hook_point = sparse_autoencoder.cfg.hook_point
+    clean_output, cache = model.run_with_cache(batch_tokens, names_filter = [hook_point])
+    orig_act = cache[hook_point]
+
+    reconstructed_act = sparse_autoencoder.forward(orig_act).sae_out
+
+    def hook_function(activations, hook, new_activations):
+        activations[:] = new_activations
+        return activations
+    
+    output_reconstructed = model.run_with_hooks(
+        batch_tokens,
+        fwd_hooks=[(hook_point, partial(hook_function, new_activations=reconstructed_act))],
+    )
+    output_zero_ablation = model.run_with_hooks(
+        batch_tokens,
+        fwd_hooks=[(hook_point, partial(hook_function, new_activations=0.0))],
+    )
+
+    labels = labels.to(clean_output.device)
+
+    # Get logits
+    loss_clean = F.cross_entropy(get_logits_from_output_emb(clean_output, precomputed_clip_text_embeddings, logit_scale), labels)
+    loss_reconstructed = F.cross_entropy(get_logits_from_output_emb(output_reconstructed, precomputed_clip_text_embeddings, logit_scale), labels)
+    loss_zero = F.cross_entropy(get_logits_from_output_emb(output_zero_ablation, precomputed_clip_text_embeddings, logit_scale), labels)
+
+    percent_reconstructed_score = (loss_zero - loss_reconstructed)/(loss_zero - loss_clean)
+
+    return percent_reconstructed_score, loss_clean, loss_reconstructed, loss_zero
+
+
+
 @torch.no_grad()
 def get_recons_loss(
     sparse_autoencoder: SparseAutoencoder,
     model: HookedTransformer,
     batch_tokens: torch.Tensor,
-    labels:torch.Tensor
+    labels: torch.Tensor,
+    use_precomputed_clip_text_embeddings: Optional[torch.Tensor] = None,
 ):
     hook_point = sparse_autoencoder.cfg.hook_point
     class_logits = model(batch_tokens)
+
     loss = F.cross_entropy(class_logits, labels)
-
-
 
     head_index = sparse_autoencoder.cfg.hook_point_head_index
 

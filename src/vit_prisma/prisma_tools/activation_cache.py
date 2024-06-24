@@ -84,6 +84,7 @@ class ActivationCache:
         if key in self.cache_dict:
             return self.cache_dict[key]
         elif type(key) == str:
+            print(self.cache_dict)
             return self.cache_dict[utils.get_act_name(key)]
         else:
             if len(key) > 1 and key[1] is not None:
