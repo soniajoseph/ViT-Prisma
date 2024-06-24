@@ -13,6 +13,10 @@ my_draft
 scripts
 *.vscode
 
+# Error logs
+*.out
+*.err
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
