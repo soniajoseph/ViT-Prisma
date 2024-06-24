@@ -265,9 +265,14 @@ def get_recons_loss_clip(
     labels = labels.to(clean_output.device)
 
     # Get logits
-    loss_clean = F.cross_entropy(get_logits_from_output_emb(clean_output, precomputed_clip_text_embeddings, logit_scale), labels)
-    loss_reconstructed = F.cross_entropy(get_logits_from_output_emb(output_reconstructed, precomputed_clip_text_embeddings, logit_scale), labels)
-    loss_zero = F.cross_entropy(get_logits_from_output_emb(output_zero_ablation, precomputed_clip_text_embeddings, logit_scale), labels)
+    logits_clean = get_logits_from_output_emb(clean_output, precomputed_clip_text_embeddings, logit_scale).to(clean_output.device)
+    loss_clean = F.cross_entropy(logits_clean, labels)
+
+    logits_recon = get_logits_from_output_emb(output_reconstructed, precomputed_clip_text_embeddings, logit_scale).to(clean_output.device)
+    loss_reconstructed = F.cross_entropy(logits_recon, labels)
+
+    logits_zero = get_logits_from_output_emb(output_zero_ablation, precomputed_clip_text_embeddings, logit_scale).to(clean_output.device)
+    loss_zero = F.cross_entropy(logits_zero, labels)
 
     percent_reconstructed_score = (loss_zero - loss_reconstructed)/(loss_zero - loss_clean)
 
