@@ -1,0 +1,22 @@
+setup_arguments:
+    imagenet_path:
+      type: str
+      required: true
+      help: "folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description"
+      value: 'imagenet_data'
+    num_workers: 4
+    num_epochs: 2
+
+arguments:
+  checkpoint_path: null
+  expansion_factor: 64
+  context_size: 197
+  d_in: 1024
+  model_name: "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M"
+  hook_point: "blocks.{layer}.mlp.hook_pre"
+  dead_feature_window: 5000
+  run_name: null
+  dtype: "torch.float32"
+  layers: [9]
+  from_pretrained_path: null
+  device: "mps"

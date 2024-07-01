@@ -6,7 +6,7 @@ from vit_prisma.models.base_vit import HookedViT
 
 import numpy as np
 import torch
-import argparse
+import yaml
 import wandb
 from PIL import Image
 from safetensors.torch import save_file
@@ -26,10 +26,8 @@ from sae_lens.training.train_sae_on_language_model import (
      get_total_training_tokens, _wandb_log_suffix, _build_train_context,
      _init_sae_group_b_decs, _update_sae_lens_training_version, _train_step, _build_train_step_log_dict,
      TRAINING_RUN_STATE_PATH, SAE_CONTEXT_PATH
-
-
-
 )
+
 import re
 
 from sae.vision_evals import run_evals_vision
@@ -37,7 +35,6 @@ from sae.vision_config import VisionModelRunnerConfig
 from sae.vision_activations_store import VisionActivationsStore
 from sae.legacy_load import load_legacy_pt_file
 import csv
-
 
 
 def train_sae_group_on_vision_model(
@@ -239,11 +236,6 @@ def train_sae_group_on_vision_model(
     )
 
 
-
-
-
-
-
 # we are not saving activation store unlike saelens.
 def _save_checkpoint(
     sae_group: SparseAutoencoderDictionary,
@@ -310,77 +302,6 @@ def _save_checkpoint(
     return checkpoint_path
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def get_imagenet_index_to_name(imagenet_path):
     ind_to_name = {}
 
@@ -433,15 +354,12 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
                     # Map the ImageId to the first part of the PredictionString
                     self.image_name_to_label[row['ImageId']] = first_prediction
 
-
-
             self.image_names = list(os.listdir(self.images_dir))
 
         def __len__(self):
             return len(self.image_names)
 
         def __getitem__(self, idx):
-
 
             img_path = os.path.join(self.images_dir, self.image_names[idx])
            # print(img_path)
@@ -460,70 +378,17 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
                 return image, label_i
 
 
+def setup(cfg, setup_args, legacy_load=False):
 
-    
-def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretrained_path=None, expansion_factor = 64, num_epochs=2, layers=9, context_size=197, dead_feature_window=5000,d_in=1024, model_name='vit_base_patch32_224', hook_point="blocks.{layer}.mlp.hook_pre", run_name=None):
+    print(setup_args)
 
     # assuming the same structure as here: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description
-    imagenet_train_path = os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/train")
-    imagenet_val_path  =os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/val")
-    imagenet_val_labels = os.path.join(imagenet_path, "LOC_val_solution.csv")
-    imagenet_label_strings = os.path.join(imagenet_path, "LOC_synset_mapping.txt" )
+    imagenet_train_path = os.path.join(setup_args['imagenet_path']['value'], "ILSVRC/Data/CLS-LOC/train")
+    imagenet_val_path  =os.path.join(setup_args['imagenet_path']['value'], "ILSVRC/Data/CLS-LOC/val")
+    imagenet_val_labels = os.path.join(setup_args['imagenet_path']['value'], "LOC_val_solution.csv")
+    imagenet_label_strings = os.path.join(setup_args['imagenet_path']['value'], "LOC_synset_mapping.txt" )
 
-    cfg = VisionModelRunnerConfig(
-        #TODO expose more 
-    # Data Generating Function (Model + Training Distibuion)
-   # model_name = "gpt2-small",
-    model_name = model_name, #
-    hook_point = hook_point,
-    hook_point_layer = layers, # 
-    d_in = d_in,# 768,
-    #dataset_path = "Skylion007/openwebtext", #
-    #is_dataset_tokenized=False,
-    
-    # SAE Parameters
-    expansion_factor = expansion_factor, # online weights used 32! 
-    b_dec_init_method = "geometric_median",
-    
-    # Training Parameters
-    lr = 0.0004,
-    l1_coefficient = 0.00008,
-    lr_scheduler_name="constant",
-    train_batch_size_tokens = 1024*4,
-    context_size = context_size, # TODO should be auto 
-    lr_warm_up_steps=5000,
-    
-    # Activation Store Parameters
-    n_batches_in_buffer = 32,
-    training_tokens = int(1_300_000*num_epochs)*context_size,
-
-
-    store_batch_size = 32, # num images
-    
-    # Dead Neurons and Sparsity
-    use_ghost_grads=True,
-    feature_sampling_window = 1000,
-    dead_feature_window=dead_feature_window,
-   # dead_feature_threshold = 1e-6, # did not apper to be used in either future, (is it a different method than window?)
-    
-    # WANDB
-    log_to_wandb = True,
-    wandb_project= "vit_sae_training", #
-    wandb_entity = None,
-    wandb_log_frequency=100,
-    eval_every_n_wandb_logs = 10, # so every 1000 steps.
-    run_name = run_name,
-    # Misc
-    device = "cuda",
-    seed = 42,
-    n_checkpoints = 10,
-    checkpoint_path = checkpoint_path, # #TODO 
-    dtype = torch.float32,
-
-    #loading
-    from_pretrained_path = pretrained_path
-    )
-
+    cfg.training_tokens = int(1_300_000*setup_args['num_epochs']) * cfg.context_size
 
     #TODO support cfg.resume
     if cfg.from_pretrained_path is not None:
@@ -550,78 +415,29 @@ def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretr
                          std=clip_processor.image_processor.image_std),
     ])
 
-    
-
-
     imagenet1k_data = torchvision.datasets.ImageFolder(imagenet_train_path, transform=data_transforms)
-
-
-
-
     
     imagenet1k_data_val = ImageNetValidationDataset(imagenet_val_path,imagenet_label_strings, imagenet_val_labels ,data_transforms)
-
-
-
 
     activations_loader = VisionActivationsStore(
         cfg,
         model,
         imagenet1k_data,
 
-        num_workers=num_workers,
+        num_workers=setup_args['num_workers'],
         eval_dataset=imagenet1k_data_val,
     )
 
-
-  
-
-
-    return cfg , model, activations_loader, sae_group
+    return model, activations_loader, sae_group
 
 
 if __name__ == "__main__":
 
+    setup_args = yaml.safe_load(open("config.yaml", 'r'))['setup_arguments']
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint_path", 
-                        required=True,
-                        help="folder where you will save checkpoints"
-                        )
-    parser.add_argument('--imagenet_path', required=True, help='folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description')
+    cfg = VisionModelRunnerConfig.from_yaml("config.yaml")
 
-    parser.add_argument("--expansion_factor",
-                        type=int,
-                        default=64)
-    parser.add_argument("--context_size",
-                        type=int,
-                        default=197)
-    parser.add_argument("--d_in",
-                        type=int,
-                        default=1024)
-    parser.add_argument("--num_workers",
-                        type=int,
-                        default=4)
-    parser.add_argument("--model_name",
-                        default="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M")
-    parser.add_argument("--hook_point",
-                        default="blocks.{layer}.mlp.hook_pre")
-    parser.add_argument("--layers",
-                    type=int,
-                    nargs="+",
-                    default=[9])
-    parser.add_argument("--num_epochs",
-                        type=int,
-                        default=2)
-    parser.add_argument("--dead_feature_window",
-                        type=int,
-                        default=5000)
-    parser.add_argument("--run_name")
-
-    parser.add_argument('--load', type=str, default=None, help='Pretrained SAE path')
-    args = parser.parse_args()
-
-    cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point)
+    model, activations_loader, sae_group = setup(cfg, setup_args, legacy_load=False)
 
     if cfg.log_to_wandb:
         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)
