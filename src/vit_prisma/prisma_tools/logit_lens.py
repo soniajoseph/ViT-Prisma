@@ -11,6 +11,7 @@ For more information on TransformerLens, visit: https://github.com/neelnanda-io/
 import numpy as np
 import torch
 from collections import defaultdict
+from typing import Union, Optional, Dict, List, Tuple
 
 from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
@@ -43,7 +44,27 @@ def get_patch_logit_directions(cache, all_answers: torch.Tensor, incl_mid: bool 
     result = result.permute(1, 2, 0, 3)
     return result, labels
 
-def get_patch_logit_dictionary(patch_logit_directions, batch_idx=0, rank_label=None):
+def get_patch_logit_dictionary(
+    patch_logit_directions: Union[torch.Tensor, Tuple[torch.Tensor, ...]], 
+    batch_idx: int = 0, 
+    rank_label: Optional[str] = None
+) -> Dict[int, List[Tuple[float, str, int, Optional[int]]]]:
+    """
+    Constructs a dictionary of patch logit predictions for a given batch index.
+
+    Args:
+        patch_logit_directions (Union[torch.Tensor, Tuple[torch.Tensor, ...]]): A tensor or a tuple of tensors 
+                                                                               containing the logit directions with shape 
+                                                                               (batch_size, num_patches, num_labels, num_answers).
+        batch_idx (int, optional): The index of the batch to process. Default is 0.
+        rank_label (Optional[str], optional): A label to rank against the predictions. Default is None.
+
+    Returns:
+        Dict[int, List[Tuple[float, str, int, Optional[int]]]]: A dictionary where each key is a patch index and each value is a list of tuples.
+                                                                Each tuple contains the logit, predicted class name, predicted index,
+                                                                and optionally the rank of the rank_label.
+    """    
+    
     patch_dictionary = defaultdict(list)
     # if tuple, get first entry
     if isinstance(patch_logit_directions, tuple):
