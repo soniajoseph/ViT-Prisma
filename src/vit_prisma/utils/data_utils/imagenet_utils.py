@@ -1,7 +1,20 @@
 
 from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 
-def imagenet_index_from_word(search_term):
+def imagenet_index_from_word(search_term: str) -> int:
+    """
+    Finds the ImageNet index corresponding to a search term.
+
+    Args:
+        search_term (str): The search term to look up in the ImageNet dictionary.
+
+    Returns:
+        int: The index corresponding to the search term in the ImageNet dictionary.
+
+    Raises:
+        ValueError: If the search term is not found in the ImageNet dictionary.
+    """
+
     # Convert the search term to lowercase to ensure case-insensitive matching
     search_term = search_term.lower()
 
