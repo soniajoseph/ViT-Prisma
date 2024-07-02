@@ -16,7 +16,22 @@ from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
 
 
-def get_patch_logit_directions(cache, all_answers, incl_mid=False, return_labels=True):
+def get_patch_logit_directions(cache, all_answers: torch.Tensor, incl_mid: bool = False, return_labels: bool = True) -> tuple:
+    """
+    Computes the patch logit directions based on accumulated residuals from the cache.
+
+    Args:
+        cache: An object that provides methods to access and process model residuals.
+        all_answers (torch.Tensor): A tensor containing all possible answers with shape (num_answers, d_model).
+        incl_mid (bool, optional): Whether to include intermediate layers. Default is False.
+        return_labels (bool, optional): Whether to return labels along with the result. Default is True.
+
+    Returns:
+        tuple: A tuple containing:
+            - result (torch.Tensor): The computed logit directions with shape (batch_size, num_patches, num_labels, num_answers).
+            - labels: Labels associated with the accumulated residuals, if `return_labels` is True.
+    """
+    
     accumulated_residual, labels = cache.accumulated_resid(
         layer=-1, incl_mid=incl_mid, return_labels=True
     )
