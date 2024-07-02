@@ -11,7 +11,8 @@ def display_grid_on_image(image: Union[np.ndarray, torch.Tensor], patch_size: in
     Separates an image into a grid of patches and overlays the grid on the image.
 
     Args:
-        image (torch.Tensor): The input image, either as a numpy array or a PyTorch tensor.
+        image (torch.Tensor): The input image, either as a numpy array or a PyTorch tensor. 
+                              Dimensions of (H, W, C) if numpy or (C, H, W) if tensor
         patch_size (int, optional): The size of each patch in the grid. Default is 32.
         return_plot (bool, optional): If True, the function will return the plot figure. If False, it will display the plot. Default is False.
 
