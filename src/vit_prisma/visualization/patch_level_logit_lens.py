@@ -8,13 +8,38 @@ import torch
 
 from vit_prisma.utils.data_utils.imagenet_emoji import IMAGENET_EMOJI
 
-def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
-                                       layer_idx=-1,
-                                       imagenet_class_to_emoji=IMAGENET_EMOJI,
-                                       emoji_font_size=30,
-                                       heatmap_mode='logit_values',
-                                       alpha_color=.6,
-                                       return_graph=False):
+def display_grid_on_image_with_heatmap(
+    image: Union[np.ndarray, torch.Tensor], 
+    patch_dictionary: Dict[int, List[Tuple[float, str, int, Optional[int]]]], 
+    patch_size: int = 32, 
+    layer_idx: int = -1, 
+    imagenet_class_to_emoji: Optional[Dict[int, str]] = None, 
+    emoji_font_size: int = 30, 
+    heatmap_mode: str = 'logit_values', 
+    alpha_color: float = 0.6, 
+    return_graph: bool = False
+) -> Optional[go.Figure]:
+    """
+    Displays a grid overlay on the image with a heatmap and optional emoji annotations.
+
+    Args:
+        image (Union[np.ndarray, torch.Tensor]): The input image, either as a numpy array or a PyTorch tensor.
+        patch_dictionary (Dict[int, List[Tuple[float, str, int, Optional[int]]]]): A dictionary where each key is a patch index and each value is a list of tuples.
+                                                                                   Each tuple contains the logit, predicted class name, predicted index, and optionally the rank of the rank_label.
+        patch_size (int, optional): The size of each patch in the grid. Default is 32.
+        layer_idx (int, optional): The layer index to use from the patch dictionary. Default is -1.
+        imagenet_class_to_emoji (Optional[Dict[int, str]], optional): A dictionary mapping ImageNet class indices to emojis. Default is None.
+        emoji_font_size (int, optional): The size of the emojis in the annotations. Default is 30.
+        heatmap_mode (str, optional): The mode for the heatmap. Options are 'logit_values' or 'emoji_colors'. Default is 'logit_values'.
+        alpha_color (float, optional): The opacity of the heatmap overlay. Default is 0.6.
+        return_graph (bool, optional): If True, the function returns the plotly figure object. If False, it displays the heatmap. Default is False.
+
+    Returns:
+        Optional[go.Figure]: The plotly figure object if return_graph is True, otherwise None.
+    
+    Raises:
+        ValueError: If `heatmap_mode` is not one of the valid options ('logit_values', 'emoji_colors').
+    """
 
     valid_heatmap_modes = ['logit_values', 'emoji_colors']
     if heatmap_mode not in valid_heatmap_modes:
