@@ -2,6 +2,8 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
+
 import torch
 
 from vit_prisma.utils.data_utils.imagenet_emoji import IMAGENET_EMOJI
@@ -101,7 +103,32 @@ def display_grid_on_image_with_heatmap(image, patch_dictionary, patch_size=32,
 
 # Animal logit lens
 
-def display_patch_logit_lens(patch_dictionary, width=1000, height=1200, emoji_size=26, return_graph=False, show_colorbar=True, labels=None):
+def display_patch_logit_lens(
+    patch_dictionary: Dict[int, List[Tuple[float, str, int, Optional[int]]]], 
+    width: int = 1000, 
+    height: int = 1200, 
+    emoji_size: int = 26, 
+    return_graph: bool = False, 
+    show_colorbar: bool = True, 
+    labels: Optional[List[str]] = None
+) -> Optional[go.Figure]:
+    """
+    Displays an interactive heatmap of patch logit values with optional emoji annotations.
+
+    Args:
+        patch_dictionary (Dict[int, List[Tuple[float, str, int, Optional[int]]]]): A dictionary where each key is a patch index and each value is a list of tuples.
+                                                                                   Each tuple contains the logit, predicted class name, predicted index, and optionally the rank of the rank_label.
+        width (int, optional): The width of the heatmap. Default is 1000.
+        height (int, optional): The height of the heatmap. Default is 1200.
+        emoji_size (int, optional): The size of the emojis in the annotations. Default is 26.
+        return_graph (bool, optional): If True, the function returns the plotly figure object. If False, it displays the heatmap. Default is False.
+        show_colorbar (bool, optional): If True, a colorbar is displayed. Default is True.
+        labels (Optional[List[str]], optional): A list of labels for the hover text. Default is None.
+
+    Returns:
+        Optional[go.Figure]: The plotly figure object if return_graph is True, otherwise None.
+    """
+    
     num_patches = len(patch_dictionary)
 
     # Assuming data_array_formatted is correctly shaped according to your data structure
