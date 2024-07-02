@@ -7,6 +7,7 @@ from vit_prisma.models.base_vit import HookedViT
 import numpy as np
 import torch
 import yaml
+import argparse
 import wandb
 from PIL import Image
 from safetensors.torch import save_file
@@ -380,8 +381,6 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
 
 def setup(cfg, setup_args, legacy_load=False):
 
-    print(setup_args)
-
     # assuming the same structure as here: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description
     imagenet_train_path = os.path.join(setup_args['imagenet_path']['value'], "ILSVRC/Data/CLS-LOC/train")
     imagenet_val_path  =os.path.join(setup_args['imagenet_path']['value'], "ILSVRC/Data/CLS-LOC/val")
@@ -433,9 +432,13 @@ def setup(cfg, setup_args, legacy_load=False):
 
 if __name__ == "__main__":
 
-    setup_args = yaml.safe_load(open("config.yaml", 'r'))['setup_arguments']
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="config.yaml")
+    args = parser.parse_args()
 
-    cfg = VisionModelRunnerConfig.from_yaml("config.yaml")
+    setup_args = yaml.safe_load(open(args.config, 'r'))['setup_arguments']
+
+    cfg = VisionModelRunnerConfig.from_yaml(args.config)
 
     model, activations_loader, sae_group = setup(cfg, setup_args, legacy_load=False)
 
