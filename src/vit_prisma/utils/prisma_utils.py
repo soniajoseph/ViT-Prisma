@@ -20,7 +20,19 @@ from vit_prisma.utils.data_utils.imagenet_dict import IMAGENET_DICT
 from vit_prisma.utils.data_utils.imagenet_utils import imagenet_index_from_word
 
 
-def test_prompt(example_data_point, model, example_answer=None, top_k=10):
+def test_prompt(example_data_point: torch.Tensor, model: Any, example_answer: Optional[str] = None, top_k: int = 10) -> None:
+    """
+    Evaluates a model's predictions on a given data point and prints the top-k predicted labels along with their logits and probabilities.
+
+    Args:
+        example_data_point (torch.Tensor): The input data point to be evaluated by the model.
+        model (Any): The model used for generating predictions.
+        example_answer (Optional[str], optional): The correct label for the data point, if available. Default is None.
+        top_k (int, optional): The number of top predictions to display. Default is 10.
+
+    Returns:
+        None
+    """
 
     logits = model(example_data_point.unsqueeze(0))
     probs = logits.softmax(dim=-1)

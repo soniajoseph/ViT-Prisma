@@ -228,10 +228,16 @@ class HookedViT(HookedRootModule):
         else:
             return out, cache_dict
         
-    def tokens_to_residual_directions(self, labels):
-        '''
-        Logit-lens related funtions not implemented; see how we can implement a vision equivalent.
-        '''
+    def tokens_to_residual_directions(self, labels: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the residual directions for given labels.
+
+        Args:
+            labels (torch.Tensor): A 1D tensor of label indices with shape (batch_size,).
+
+        Returns:
+            torch.Tensor: The residual directions with shape (batch_size, d_model).
+        """
 
         answer_residual_directions = self.head.W_H[:,labels]  
         answer_residual_directions = einops.rearrange(
