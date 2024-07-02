@@ -155,9 +155,28 @@ class HookedRootModule(nn.Module):
         *model_args,
         fwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
         bwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
-        reset_hooks_end = True,
-        clear_contexts = False,
+        reset_hooks_end: bool = True,
+        clear_contexts: bool = False,
     ):
+        """
+        Executes the model with specified forward and backward hooks.
+
+        Args:
+            model_args: The arguments to be passed to the model's forward method.
+            fwd_hooks (List[Tuple[Union[str, Callable], Callable]], optional): A list of tuples specifying forward hooks.
+                Each tuple contains a string (layer name) or a callable to match layers, and a callable hook function.
+            bwd_hooks (List[Tuple[Union[str, Callable], Callable]], optional): A list of tuples specifying backward hooks.
+                Each tuple contains a string (layer name) or a callable to match layers, and a callable hook function.
+            reset_hooks_end (bool, optional): Whether to reset the hooks at the end of the run. Default is True.
+            clear_contexts (bool, optional): Whether to clear contexts at the end of the run. Default is False.
+
+        Returns:
+            The output of the model's forward method.
+
+        Raises:
+            Warning: If backward hooks are provided and reset_hooks_end is True, a warning is logged that hooks will be reset before a backward pass can occur.
+        """
+        
         if len(bwd_hooks) > 0 and reset_hooks_end:
             logging.warning(
                 "WARNING: Hooks will be reset at the end of run_with_hooks. This removes the backward hooks before a backward pass can occur."
