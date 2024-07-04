@@ -483,7 +483,7 @@ def convert_pretrained_model_config(model_name: str) -> HookedViTConfig:
 
 def is_timm(model_name: str) -> bool:
     "Check if the model name is a timm model"
-    return model_name in timm.list_models()
+    return model_name in timm.list_models(pretrained=True)
 
 def is_clip(model_name: str) -> bool:
     "Check if the model name is a clip model"
