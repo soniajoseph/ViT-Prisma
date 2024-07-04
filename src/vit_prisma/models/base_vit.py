@@ -684,8 +684,6 @@ class HookedViT(HookedRootModule):
     def from_pretrained(
         cls, 
         model_name: str,
-        is_timm: bool = True,
-        is_clip: bool = False,
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,
@@ -728,14 +726,12 @@ class HookedViT(HookedRootModule):
         
         cfg = convert_pretrained_model_config(
             model_name,
-            is_timm=is_timm,
-            is_clip=is_clip,
         )
 
 
 
         state_dict = get_pretrained_state_dict(
-            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
+            model_name, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
         )
 
         model = cls(cfg, move_to_device=False)

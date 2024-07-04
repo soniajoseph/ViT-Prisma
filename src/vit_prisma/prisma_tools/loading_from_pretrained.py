@@ -13,6 +13,8 @@ import logging
 from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel
 
 import timm
+import clip
+
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
 import torch
@@ -289,8 +291,6 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
 
 def get_pretrained_state_dict(
     official_model_name: str,
-    is_timm: bool,
-    is_clip: bool,
     cfg: HookedViTConfig,
     hf_model=None,
     dtype: torch.dtype = torch.float32,
@@ -318,7 +318,10 @@ def get_pretrained_state_dict(
     #         f"Loading model {official_model_name} state dict requires setting trust_remote_code=True"
     #     )
     #     kwargs["trust_remote_code"] = True
-        
+
+    is_timm = is_timm(official_model_name)
+    is_clip = is_clip(official_model_name)
+
     try:
         if is_timm:
             hf_model = hf_model if hf_model is not None else timm.create_model(official_model_name, pretrained=True)
@@ -390,9 +393,10 @@ def fill_missing_keys(model, state_dict):
         state_dict[key] = default_state_dict[key]
     return state_dict
 
-def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
+def convert_pretrained_model_config(model_name: str) -> HookedViTConfig:
     
-    
+    is_timm = is_timm(model_name)
+    is_clip = is_clip(model_name)
 
     if is_timm:
         model = timm.create_model(model_name)
@@ -476,3 +480,11 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
     print(pretrained_config)
 
     return HookedViTConfig.from_dict(pretrained_config)
+
+def is_timm(model_name: str) -> bool:
+    "Check if the model name is a timm model"
+    return model_name in timm.list_models()
+
+def is_clip(model_name: str) -> bool:
+    "Check if the model name is a clip model"
+    return model_name in clip.available_models()
