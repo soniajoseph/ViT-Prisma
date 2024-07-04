@@ -22,6 +22,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Output files
+*sbatch_err
+*sbatch_out
+
 # Distribution / packaging
 .Python
 build/
