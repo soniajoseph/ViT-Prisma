@@ -1,4 +1,3 @@
-
 import os
 import signal
 from typing import Any, Optional, cast
@@ -52,6 +51,32 @@ def train_sae_group_on_vision_model(
     eval_every_n_wandb_logs: int = 100,
     autocast: bool = False,
 ) -> TrainSAEGroupOutput:
+    """
+    Trains a group of sparse autoencoders (SAEs) on a vision model's activations.
+
+    Args:
+        model (HookedRootModule): The vision model to extract activations from.
+        sae_group (SparseAutoencoderDictionary): Group of sparse autoencoders to be trained.
+        activation_store (VisionActivationsStore): Store for vision model activations.
+        train_contexts (Optional[dict[str, SAETrainContext]]): Optional training contexts for resuming training.
+        training_run_state (Optional[SAETrainingRunState]): Optional state for resuming training.
+        batch_size (int): Size of the training batch. Default is 1024.
+        n_checkpoints (int): Number of checkpoints to save during training. Default is 0.
+        feature_sampling_window (int): Number of training steps between resampling features. Default is 1000.
+        use_wandb (bool): Whether to use Weights & Biases for logging. Default is False.
+        wandb_log_frequency (int): Frequency of logging to Weights & Biases. Default is 50.
+        eval_every_n_wandb_logs (int): Frequency of evaluations based on Weights & Biases logs. Default is 100.
+        autocast (bool): Whether to use automatic mixed precision. Default is False.
+
+    Returns:
+        TrainSAEGroupOutput: Output containing trained SAE group, checkpoint paths, and log feature sparsities.
+
+    Raises:
+        ValueError: If train_contexts or training_run_state are None when resuming training.
+        InterruptedException: If training is interrupted by a signal.
+
+    """
+        
     total_training_tokens = get_total_training_tokens(sae_group=sae_group)
     _update_sae_lens_training_version(sae_group)
     total_training_steps = total_training_tokens // batch_size
@@ -245,6 +270,21 @@ def _save_checkpoint(
     checkpoint_name: int | str,
     wandb_aliases: list[str] | None = None,
 ) -> str:
+    """
+    Saves a checkpoint of the current training state of the sparse autoencoders.
+
+    Args:
+        sae_group (SparseAutoencoderDictionary): Group of sparse autoencoders.
+        train_contexts (dict[str, SAETrainContext]): Training contexts for each autoencoder.
+        training_run_state (SAETrainingRunState): State of the current training run.
+        checkpoint_name (int | str): Name or identifier for the checkpoint.
+        wandb_aliases (list[str] | None): Optional list of aliases for Weights & Biases logging.
+
+    Returns:
+        str: Path to the saved checkpoint.
+
+    """
+
 
     checkpoint_path = f"{sae_group.cfg.checkpoint_path}/{checkpoint_name}"
     training_run_state.checkpoint_paths.append(checkpoint_path)

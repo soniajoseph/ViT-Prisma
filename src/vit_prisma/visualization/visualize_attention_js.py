@@ -3,6 +3,8 @@ import string, random, json
 import torch
 import os
 from typing import List
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
+
 from jinja2 import Template
 
 def convert_to_3_channels(image):
@@ -64,8 +66,28 @@ class AttentionHeadImageJSInfo:
 
 
 
-def plot_javascript(list_of_attn_heads, list_of_images, list_of_names=None, ATTN_SCALING=8, cls_token=True):
+def plot_javascript(
+    list_of_attn_heads: Union[torch.Tensor, List[np.ndarray]], 
+    list_of_images: Union[List[np.ndarray], np.ndarray], 
+    list_of_names: Optional[Union[torch.Tensor, List[str]]] = None, 
+    ATTN_SCALING: int = 8, 
+    cls_token: bool = True
+) -> str:
+    """
+    Generates HTML and JavaScript code to visualize attention heads with corresponding images.
 
+    Args:
+        list_of_attn_heads (Union[torch.Tensor, List[np.ndarray]]): A tensor of shape (num_heads, num_patches, num_patches)
+                                                                   or a list of numpy arrays with the same shape.
+        list_of_images (Union[List[np.ndarray], np.ndarray]): A list of images or a single image array, each image with shape 
+                                                              (height, width, channels).
+        list_of_names (Optional[Union[torch.Tensor, List[str]]], optional): A tensor or a list of names for the attention heads. Default is None.
+        ATTN_SCALING (int, optional): Scaling factor for attention visualization. Default is 8.
+        cls_token (bool, optional): Whether to include the CLS token. Default is True.
+
+    Returns:
+        str: Generated HTML and JavaScript code for visualizing the attention heads with corresponding images.
+    """
     # if list of attn heads is tensor
     if type(list_of_attn_heads) == torch.Tensor:
         list_of_attn_heads = [np.array(list_of_attn_heads[i]) for i in range(list_of_attn_heads.shape[0])]
