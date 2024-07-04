@@ -138,11 +138,11 @@ class VisionActivationsStore:
                 for act_name in act_names
             ]
         else:
-            layerwise_activations = self.model.run_with_cache( ####
+            output, layerwise_activations = self.model.run_with_cache( ####
                 batch_tokens,
                 names_filter=act_names,
                 stop_at_layer=hook_point_max_layer + 1,
-            )[1]
+            )
             activations_list = [
                 layerwise_activations[act_name] for act_name in act_names
             ]

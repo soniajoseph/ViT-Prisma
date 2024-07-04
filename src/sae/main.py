@@ -13,6 +13,9 @@ from safetensors.torch import save_file
 from tqdm import tqdm
 from transformer_lens.hook_points import HookedRootModule
 
+# add sys to path
+
+
 from sae_lens import __version__
 
 from sae_lens.training.sae_group import SparseAutoencoderDictionary
@@ -32,6 +35,10 @@ from sae_lens.training.train_sae_on_language_model import (
 )
 import re
 
+import sys
+sys.path.append('../sae')
+import sae
+
 from sae.vision_evals import run_evals_vision
 from sae.vision_config import VisionModelRunnerConfig
 from sae.vision_activations_store import VisionActivationsStore
@@ -42,10 +49,10 @@ from transformers import CLIPProcessor, CLIPModel
 
 
         
-def get_imagenet_names(imagenet_path):
+def get_imagenet_names(imagenet_labels_path):
     ind_to_name = {}
     list_of_names = []
-    with open( os.path.join(imagenet_path, "LOC_synset_mapping.txt" ), 'r') as file:
+    with open( os.path.join(imagenet_labels_path), 'r') as file:
         # Iterate over each line in the file
         for line_num, line in enumerate(file):
             line = line.strip()
@@ -58,6 +65,7 @@ def get_imagenet_names(imagenet_path):
     return ind_to_name, list_of_names
 
 def get_text_embeddings(model_name, list_of_classes):
+    print("getting text embeddings from model", model_name)
     vanilla_model = CLIPModel.from_pretrained(model_name)
     processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False) # Make sure the do_rescale is false for pytorch datasets
     inputs = processor(text=list_of_classes, return_tensors='pt', padding=True)
@@ -94,11 +102,12 @@ def train_sae_group_on_vision_model(
     if not isinstance(all_layers, list):
         all_layers = [all_layers]
 
-    pbar = tqdm(total=total_training_tokens, desc="Training SAE")
+    pbar = tqdm(total=total_training_tokens, desc="Training SAE", ncols=80, leave=True, disable=wandb.run is not None)
 
     # Get precomputed texting embeddings for CE loss reconstruction metric later
-    list_of_classes = get_imagenet_names(model.cfg.imagenet_label_strings)
-    imagenet_text_embeddings = get_text_embeddings(model.cfg.model_name, list_of_classes)
+    ind_to_name, list_of_classes = get_imagenet_names(cfg.imagenet_label_strings)
+    print("list of classes", list_of_classes)
+    imagenet_text_embeddings = get_text_embeddings(cfg.model_name, list_of_classes)
 
     # not resuming
     if training_run_state is None and train_contexts is None:
@@ -133,7 +142,6 @@ def train_sae_group_on_vision_model(
         signal.signal(signal.SIGTERM, interrupt_callback)
 
         # Estimate norm scaling factor if necessary
-        # TODO(tomMcGrath): this is a bodge and should be moved back inside a class
         if activation_store.normalize_activations:
             print("Estimating activation norm")
             n_batches_for_norm_estimate = int(1e3)
@@ -225,9 +233,10 @@ def train_sae_group_on_vision_model(
 
             training_run_state.n_training_steps += 1
             if training_run_state.n_training_steps % 100 == 0:
-                pbar.set_description(
-                    f"{training_run_state.n_training_steps}| MSE Loss {torch.stack(mse_losses).mean().item():.3f} | L1 {torch.stack(l1_losses).mean().item():.3f}"
-                )
+                # pbar.set_description(
+                #     f"{training_run_state.n_training_steps}| MSE Loss {torch.stack(mse_losses).mean().item():.3f} | L1 {torch.stack(l1_losses).mean().item():.3f}"
+                # )
+                pass 
             pbar.update(batch_size)
 
             ### If n_training_tokens > sae_group.cfg.training_tokens, then we should switch to fine-tuning (if we haven't already)
@@ -491,7 +500,7 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
 
 
     
-def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretrained_path=None, expansion_factor = 64, num_epochs=2, layers=9, context_size=197, dead_feature_window=5000,d_in=1024, model_name='vit_base_patch32_224', hook_point="blocks.{layer}.mlp.hook_pre", run_name=None):
+def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretrained_path=None, expansion_factor = 64, num_epochs=2, layers=9, context_size=197, dead_feature_window=5000,d_in=1024, model_name='vit_base_patch32_224', hook_point="blocks.{layer}.mlp.hook_pre", run_name=None, l1_coefficient=0.00008):
 
     # assuming the same structure as here: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description
     imagenet_train_path = os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/train")
@@ -516,7 +525,7 @@ def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretr
     
     # Training Parameters
     lr = 0.0004,
-    l1_coefficient = 0.00008,
+    l1_coefficient = l1_coefficient,
     lr_scheduler_name="constant",
     train_batch_size_tokens = 1024*4,
     context_size = context_size, # TODO should be auto 
@@ -554,6 +563,7 @@ def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretr
 
     # Data
     imagenet_label_strings = imagenet_label_strings,
+
     )
 
 
@@ -653,6 +663,8 @@ if __name__ == "__main__":
                         default=5000)
     parser.add_argument("--run_name")
 
+    parser.add_argument('--l1_coefficient', type=float, default=0.00008, help='L1 coefficient')
+
     parser.add_argument('--load', type=str, default=None, help='Pretrained SAE path')
     args = parser.parse_args()
 
@@ -674,12 +686,17 @@ if __name__ == "__main__":
     # Make checkpoint path the parent directory plus the model name plus hook point then layers
     args.checkpoint_path = os.path.join(args.checkpoint_path, run_name)
 
-    cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point)
+    cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point,
+                                                      l1_coefficient=args.l1_coefficient)
 
 
 
     if cfg.log_to_wandb:
         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)
+        # wandb.run.log_code = False
+        # import sys
+        # sys.stdout = open('wandb_output.log', 'w')
+
 
 
     # train SAE

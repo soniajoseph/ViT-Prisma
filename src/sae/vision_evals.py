@@ -4,7 +4,7 @@ from typing import Any, cast
 import pandas as pd
 import torch
 import wandb
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from transformer_lens import HookedTransformer
 from transformer_lens.utils import get_act_name
 
@@ -185,7 +185,7 @@ def run_evals_vision(
                 step=n_training_steps,
             )
 
-def recons_loss_batched(
+def get_all_stats(
     sparse_autoencoder: SparseAutoencoder,
     model: HookedTransformer,
     activation_store: VisionActivationsStore,
@@ -194,12 +194,58 @@ def recons_loss_batched(
     precomputed_clip_text_embeddings: Optional[Any] = None,
     logit_scale: Optional[Any] = None,
 ):
-    losses = []
+    reconstruction_losses = []
+    l0_norms = []
+    l1_losses = []
+    mse_losses = []
+    avg_cosine_similarities = []
+
+
+    sparse_autoencoder = sparse_autoencoder.cuda()
+
+    # for param in sparse_autoencoder.parameters():
+    #     param.data = param.data.cuda()
+    # model = model.to("cuda")
+    # model.cfg = model.cfg.to(model.cfg.device)
+
     for _ in tqdm(range(n_batches)):
+
         batch_tokens, labels = activation_store.get_val_batch_tokens()
 
+        hook_point = sparse_autoencoder.cfg.hook_point
+        clean_output, cache = model.run_with_cache(batch_tokens, names_filter = [hook_point])
+        orig_act = cache[hook_point]
+        # orig_act.to(model.cfg.device)
+        del cache
+
+        # # L0 Norm
+        # sparse_autoencoder = sparse_autoencoder.to(model.cfg.device)
+
+        # sparse_autoencoder.b_dec = sparse_autoencoder.b_dec.to(model.cfg.device)
+
+        sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(
+        orig_act
+    )
+
+        # ignore the bos token, get the number of features that activated in each token, averaged accross batch and position
+        l0_norm = (feature_acts[:, 1:] > 0).float().sum(-1).detach().mean().cpu().item()
+        l0_norms.append(l0_norm)
+
+        l1_losses.append(l1_loss)
+
+        mse_losses.append(mse_loss)
+
+        avg_cosine_similarity = torch.cosine_similarity(einops.rearrange(orig_act, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                              einops.rearrange( sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                                dim=0).mean(-1).cpu().tolist()
+        avg_cosine_similarities.append(avg_cosine_similarity)
+        # Get l1
+
+
+        # Reconstruction score
         if is_clip:
             score, loss, recons_loss, zero_abl_loss = get_recons_loss_clip(
+                orig_act, clean_output,
                 sparse_autoencoder, model, batch_tokens, labels, precomputed_clip_text_embeddings, logit_scale
             )
         
@@ -207,20 +253,46 @@ def recons_loss_batched(
             score, loss, recons_loss, zero_abl_loss = get_recons_loss(
                 sparse_autoencoder, model, batch_tokens, labels,
             )
-        losses.append(
+        reconstruction_losses.append(
             (
-                score.mean().item(),
-                loss.mean().item(),
-                recons_loss.mean().item(),
-                zero_abl_loss.mean().item(),
+                score.mean().cpu().item(),
+                loss.mean().cpu().item(),
+                recons_loss.mean().cpu().item(),
+                zero_abl_loss.mean().cpu().item(),
             )
         )
 
-    losses = pd.DataFrame(
-        losses, columns=cast(Any, ["score", "loss", "recons_loss", "zero_abl_loss"])
+    reconstruction_losses = pd.DataFrame(
+        reconstruction_losses, columns=cast(Any, ["score", "loss", "recons_loss", "zero_abl_loss"])
+
+
+
     )
 
-    return losses
+    # Check device of everything below
+    l0_norms = torch.tensor(l0_norms).cpu().numpy()
+    l1_losses = torch.tensor(l1_losses).cpu().numpy()
+    mse_losses = torch.tensor(mse_losses).cpu().numpy()
+    avg_cosine_similarities = torch.tensor(avg_cosine_similarities).cpu().numpy()
+
+
+    # Add everything else to dataframe
+    total_stats = pd.DataFrame(
+        {
+            "l0_norm": l0_norms,
+            "l1_loss": l1_losses,
+            "mse_loss": mse_losses,
+            "avg_cosine_similarity": avg_cosine_similarities,
+        }
+    )
+
+    # Add reconstruction loss columns
+    total_stats = pd.concat([total_stats, reconstruction_losses], axis=1)
+
+    print(total_stats)
+    
+
+    return total_stats
 
 
 
@@ -235,6 +307,8 @@ def get_logits_from_output_emb(image_emb, text_emb, logit_scale):
 
 @torch.no_grad()
 def get_recons_loss_clip(
+    orig_act,
+    clean_output,
     sparse_autoencoder: SparseAutoencoder,
     model: HookedTransformer,
     batch_tokens: torch.Tensor,
@@ -243,15 +317,15 @@ def get_recons_loss_clip(
     logit_scale: None,
 
 ):
-    hook_point = sparse_autoencoder.cfg.hook_point
-    clean_output, cache = model.run_with_cache(batch_tokens, names_filter = [hook_point])
-    orig_act = cache[hook_point]
 
     reconstructed_act = sparse_autoencoder.forward(orig_act).sae_out
 
     def hook_function(activations, hook, new_activations):
         activations[:] = new_activations
         return activations
+    
+    hook_point = sparse_autoencoder.cfg.hook_point
+    print('hook_point', hook_point)
     
     output_reconstructed = model.run_with_hooks(
         batch_tokens,
@@ -262,7 +336,7 @@ def get_recons_loss_clip(
         fwd_hooks=[(hook_point, partial(hook_function, new_activations=0.0))],
     )
 
-    labels = labels.to(clean_output.device)
+    # labels = labels.to(model.cfg.device)
 
     # Get logits
     logits_clean = get_logits_from_output_emb(clean_output, precomputed_clip_text_embeddings, logit_scale).to(clean_output.device)
