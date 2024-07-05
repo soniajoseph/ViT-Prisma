@@ -24,11 +24,11 @@ from typing import Dict
 import einops
 
 
-def is_timm(model_name: str) -> bool:
+def check_timm(model_name: str) -> bool:
     "Check if the model name is a timm model"
     return model_name in timm.list_models(pretrained=True)
 
-def is_clip(model_name: str) -> bool:
+def check_clip(model_name: str) -> bool:
     "Check if the model name is a clip model"
     return model_name in clip.available_models()
 
@@ -325,8 +325,8 @@ def get_pretrained_state_dict(
     #     )
     #     kwargs["trust_remote_code"] = True
 
-    is_timm = is_timm(official_model_name)
-    is_clip = is_clip(official_model_name)
+    is_timm = check_timm(official_model_name)
+    is_clip = check_clip(official_model_name)
 
     try:
         if is_timm:
@@ -401,8 +401,8 @@ def fill_missing_keys(model, state_dict):
 
 def convert_pretrained_model_config(model_name: str) -> HookedViTConfig:
     
-    is_timm = is_timm(model_name)
-    is_clip = is_clip(model_name)
+    is_timm = check_timm(model_name)
+    is_clip = check_clip(model_name)
 
     if is_timm:
         model = timm.create_model(model_name)
