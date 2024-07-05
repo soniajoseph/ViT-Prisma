@@ -24,7 +24,13 @@ from typing import Dict
 import einops
 
 
+def is_timm(model_name: str) -> bool:
+    "Check if the model name is a timm model"
+    return model_name in timm.list_models(pretrained=True)
 
+def is_clip(model_name: str) -> bool:
+    "Check if the model name is a clip model"
+    return model_name in clip.available_models()
 
 def convert_clip_weights(
         old_state_dict,
@@ -480,11 +486,3 @@ def convert_pretrained_model_config(model_name: str) -> HookedViTConfig:
     print(pretrained_config)
 
     return HookedViTConfig.from_dict(pretrained_config)
-
-def is_timm(model_name: str) -> bool:
-    "Check if the model name is a timm model"
-    return model_name in timm.list_models(pretrained=True)
-
-def is_clip(model_name: str) -> bool:
-    "Check if the model name is a clip model"
-    return model_name in clip.available_models()
