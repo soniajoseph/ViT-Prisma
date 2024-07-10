@@ -12,7 +12,6 @@ install_requires = [
     'timm',         # Test dependency
     'transformers', # Test dependency
     'scikit-learn', # Test dependency
-    'clip',         #Test dependency
     'datasets',
 ]
 
