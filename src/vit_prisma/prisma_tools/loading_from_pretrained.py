@@ -22,6 +22,10 @@ from typing import Dict
 import einops
 
 
+def check_timm(model_name: str) -> bool:
+    "Check if the model name is a timm model"
+    available_models = timm.list_models(pretrained=True)
+    return any(model_name.lower() in available_model.lower() for available_model in available_models)
 
 
 def convert_clip_weights(
@@ -289,7 +293,6 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
 
 def get_pretrained_state_dict(
     official_model_name: str,
-    is_timm: bool,
     is_clip: bool,
     cfg: HookedViTConfig,
     hf_model=None,
@@ -319,6 +322,8 @@ def get_pretrained_state_dict(
     #     )
     #     kwargs["trust_remote_code"] = True
         
+    is_timm = check_timm(official_model_name)
+    
     try:
         if is_timm:
             hf_model = hf_model if hf_model is not None else timm.create_model(official_model_name, pretrained=True)
@@ -390,9 +395,10 @@ def fill_missing_keys(model, state_dict):
         state_dict[key] = default_state_dict[key]
     return state_dict
 
-def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
+def convert_pretrained_model_config(model_name: str, is_clip: bool = False) -> HookedViTConfig:
     
-    
+    is_timm = check_timm(model_name)
+    print(is_timm)
 
     if is_timm:
         model = timm.create_model(model_name)
