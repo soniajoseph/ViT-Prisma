@@ -727,13 +727,12 @@ class HookedViT(HookedRootModule):
         
         cfg = convert_pretrained_model_config(
             model_name,
-            is_clip=is_clip,
         )
 
 
 
         state_dict = get_pretrained_state_dict(
-            model_name, is_clip, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
+            model_name, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
         )
 
         model = cls(cfg, move_to_device=False)

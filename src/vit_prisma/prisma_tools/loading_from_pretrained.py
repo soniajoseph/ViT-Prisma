@@ -28,6 +28,11 @@ def check_timm(model_name: str) -> bool:
     available_models = timm.list_models(pretrained=True)
     return any(model_name.lower() in available_model.lower() for available_model in available_models)
 
+def check_clip(model_name: str) -> bool:
+    "Check if the model name is a clip model"
+    config = AutoConfig.from_pretrained(model_name)
+    return config.model_type == "clip"
+
 def convert_clip_weights(
         old_state_dict,
         old_head_state_dict,
@@ -293,7 +298,6 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
 
 def get_pretrained_state_dict(
     official_model_name: str,
-    is_clip: bool,
     cfg: HookedViTConfig,
     hf_model=None,
     dtype: torch.dtype = torch.float32,
@@ -321,7 +325,9 @@ def get_pretrained_state_dict(
     #         f"Loading model {official_model_name} state dict requires setting trust_remote_code=True"
     #     )
     #     kwargs["trust_remote_code"] = True
+
     is_timm = check_timm(official_model_name)
+    is_clip = False if is_timm else check_clip(official_model_name)    
 
     try:
         if is_timm:
@@ -394,9 +400,11 @@ def fill_missing_keys(model, state_dict):
         state_dict[key] = default_state_dict[key]
     return state_dict
 
-def convert_pretrained_model_config(model_name: str, is_clip: bool = False) -> HookedViTConfig:
+def convert_pretrained_model_config(model_name: str) -> HookedViTConfig:
     
     is_timm = check_timm(model_name)
+    is_clip = False if is_timm else check_clip(model_name)    
+
 
     if is_timm:
         model = timm.create_model(model_name)

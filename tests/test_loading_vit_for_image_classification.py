@@ -17,7 +17,7 @@ def test_loading_vit_for_image_classification():
     width = 224
     device = "cpu"
 
-    hooked_model = HookedViT.from_pretrained(model_name=model_name, is_timm=False)
+    hooked_model = HookedViT.from_pretrained(model_name=model_name)
     hooked_model.to(device)
     vit_model = ViTForImageClassification.from_pretrained(model_name)
     vit_model.to(device)
