@@ -25,7 +25,7 @@ def test_loading_clip():
     tinyclip.to(device)
     tinyclip_final_proj.to(device)
 
-    hooked_model = HookedViT.from_pretrained(model_name, is_timm=False, is_clip=True)
+    hooked_model = HookedViT.from_pretrained(model_name)
     hooked_model.to(device)
 
     with torch.random.fork_rng():
