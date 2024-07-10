@@ -684,7 +684,6 @@ class HookedViT(HookedRootModule):
     def from_pretrained(
         cls, 
         model_name: str,
-        is_clip: bool = False,
         fold_ln: Optional[bool] = True,
         center_writing_weights: Optional[bool] = True,
         refactor_factored_attn_matrices: Optional[bool] = False,

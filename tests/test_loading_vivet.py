@@ -19,7 +19,7 @@ def test_loading_vivet():
     width = 224
     device = "cpu"
 
-    hooked_model = HookedViT.from_pretrained(model_name, is_timm=False)
+    hooked_model = HookedViT.from_pretrained(model_name)
     hooked_model.to(device)
     google_model = VivitForVideoClassification.from_pretrained(model_name)
     google_model.to(device)
