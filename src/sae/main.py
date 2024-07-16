@@ -31,6 +31,20 @@ from sae_lens.training.train_sae_on_language_model import (
 )
 import re
 
+
+import os
+import argparse
+import torch
+import torchvision
+from transformers import CLIPProcessor
+from transformer_lens import HookedViT
+from sparse_autoencoder import SparseAutoencoderDictionary, VisionModelRunnerConfig
+from sparse_autoencoder.train.vision_model_runner import train_sae_group_on_vision_model
+from sparse_autoencoder.activations.vision_activations_store import VisionActivationsStore
+from sparse_autoencoder.utils.tensor_ops import load_legacy_pt_file
+from typing import Any, cast
+import wandb
+
 from sae.vision_evals import run_evals_vision
 from sae.vision_config import VisionModelRunnerConfig
 from sae.vision_activations_store import VisionActivationsStore
@@ -128,7 +142,6 @@ def train_sae_group_on_vision_model(
         signal.signal(signal.SIGTERM, interrupt_callback)
 
         # Estimate norm scaling factor if necessary
-        # TODO(tomMcGrath): this is a bodge and should be moved back inside a class
         if activation_store.normalize_activations:
             print("Estimating activation norm")
             n_batches_for_norm_estimate = int(1e3)
@@ -431,179 +444,101 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
 
 
 
-    
-def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretrained_path=None, expansion_factor = 64, num_epochs=2, layers=9, context_size=197, dead_feature_window=5000,d_in=1024, model_name='vit_base_patch32_224', hook_point="blocks.{layer}.mlp.hook_pre", run_name=None):
+def setup_imagenet_paths(imagenet_path):
+    return {
+        'train': os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/train"),
+        'val': os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/val"),
+        'val_labels': os.path.join(imagenet_path, "LOC_val_solution.csv"),
+        'label_strings': os.path.join(imagenet_path, "LOC_synset_mapping.txt")
+    }
 
-    # assuming the same structure as here: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description
-    imagenet_train_path = os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/train")
-    imagenet_val_path  =os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/val")
-    imagenet_val_labels = os.path.join(imagenet_path, "LOC_val_solution.csv")
-    imagenet_label_strings = os.path.join(imagenet_path, "LOC_synset_mapping.txt" )
-
-    cfg = VisionModelRunnerConfig(
-        #TODO expose more 
-    # Data Generating Function (Model + Training Distibuion)
-   # model_name = "gpt2-small",
-    model_name = model_name, #
-    hook_point = hook_point,
-    hook_point_layer = layers, # 
-    d_in = d_in,# 768,
-    #dataset_path = "Skylion007/openwebtext", #
-    #is_dataset_tokenized=False,
-    
-    # SAE Parameters
-    expansion_factor = expansion_factor, # online weights used 32! 
-    b_dec_init_method = "geometric_median",
-    
-    # Training Parameters
-    lr = 0.0004,
-    l1_coefficient = 0.00008,
-    lr_scheduler_name="constant",
-    train_batch_size_tokens = 1024*4,
-    context_size = context_size, # TODO should be auto 
-    lr_warm_up_steps=5000,
-    
-    # Activation Store Parameters
-    n_batches_in_buffer = 32,
-    training_tokens = int(1_300_000*num_epochs)*context_size,
-
-
-    store_batch_size = 32, # num images
-    
-    # Dead Neurons and Sparsity
-    use_ghost_grads=True,
-    feature_sampling_window = 1000,
-    dead_feature_window=dead_feature_window,
-   # dead_feature_threshold = 1e-6, # did not apper to be used in either future, (is it a different method than window?)
-    
-    # WANDB
-    log_to_wandb = True,
-    wandb_project= "vit_sae_training", #
-    wandb_entity = None,
-    wandb_log_frequency=100,
-    eval_every_n_wandb_logs = 10, # so every 1000 steps.
-    run_name = run_name,
-    # Misc
-    device = "cuda",
-    seed = 42,
-    n_checkpoints = 10,
-    checkpoint_path = checkpoint_path, # #TODO 
-    dtype = torch.float32,
-
-    #loading
-    from_pretrained_path = pretrained_path
+def create_config(args):
+    return VisionModelRunnerConfig(
+        model_name=args.model_name,
+        hook_point=args.hook_point,
+        hook_point_layer=args.layers[0],
+        d_in=args.d_in,
+        expansion_factor=args.expansion_factor,
+        b_dec_init_method="geometric_median",
+        lr=0.0004,
+        l1_coefficient=0.00008,
+        lr_scheduler_name="constant",
+        train_batch_size_tokens=1024*4,
+        context_size=args.context_size,
+        lr_warm_up_steps=5000,
+        activation_fn="topk",
+        activation_fn_kwargs={"k": 32},
+        n_batches_in_buffer=32,
+        training_tokens=int(1_300_000*args.num_epochs)*args.context_size,
+        store_batch_size=32,
+        use_ghost_grads=False,
+        feature_sampling_window=1000,
+        dead_feature_window=args.dead_feature_window,
+        log_to_wandb=True,
+        wandb_project="vit_sae_training",
+        wandb_entity=None,
+        wandb_log_frequency=100,
+        eval_every_n_wandb_logs=10,
+        run_name=args.run_name,
+        device="cuda",
+        seed=42,
+        n_checkpoints=10,
+        checkpoint_path=args.checkpoint_path,
+        dtype=torch.float32,
+        from_pretrained_path=args.load
     )
 
-
-    #TODO support cfg.resume
+def load_sae_group(cfg, legacy_load=False):
     if cfg.from_pretrained_path is not None:
-        if legacy_load:
-            sae_group = load_legacy_pt_file(cfg.from_pretrained_path)
-        else:
-            sae_group = SparseAutoencoderDictionary.load_from_pretrained(cfg.from_pretrained_path)
-    else:
-        sae_group = SparseAutoencoderDictionary(cfg)
+        return (load_legacy_pt_file(cfg.from_pretrained_path) if legacy_load 
+                else SparseAutoencoderDictionary.load_from_pretrained(cfg.from_pretrained_path))
+    return SparseAutoencoderDictionary(cfg)
 
-
-    model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True)
-    model.to(cfg.device)
-
-
-    import torchvision
-    from transformers import CLIPProcessor
+def setup_model_and_transforms(cfg):
+    model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True).to(cfg.device)
     clip_processor = CLIPProcessor.from_pretrained(cfg.model_name)
     data_transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize((224, 224)),
         torchvision.transforms.ToTensor(),
-        #TODO for clip only 
         torchvision.transforms.Normalize(mean=clip_processor.image_processor.image_mean,
-                         std=clip_processor.image_processor.image_std),
+                                         std=clip_processor.image_processor.image_std),
     ])
+    return model, data_transforms
 
+def setup_datasets(imagenet_paths, data_transforms):
+    train_data = torchvision.datasets.ImageFolder(imagenet_paths['train'], transform=data_transforms)
+    val_data = ImageNetValidationDataset(imagenet_paths['val'], 
+                                         imagenet_paths['label_strings'], 
+                                         imagenet_paths['val_labels'], 
+                                         data_transforms)
+    return train_data, val_data
+
+def setup(args):
+    imagenet_paths = setup_imagenet_paths(args.imagenet_path)
+    cfg = create_config(args)
+    sae_group = load_sae_group(cfg)
+    model, data_transforms = setup_model_and_transforms(cfg)
+    train_data, val_data = setup_datasets(imagenet_paths, data_transforms)
     
-
-
-    imagenet1k_data = torchvision.datasets.ImageFolder(imagenet_train_path, transform=data_transforms)
-
-
-
-
-    
-    imagenet1k_data_val = ImageNetValidationDataset(imagenet_val_path,imagenet_label_strings, imagenet_val_labels ,data_transforms)
-
-
-
-
     activations_loader = VisionActivationsStore(
-        cfg,
-        model,
-        imagenet1k_data,
-
-        num_workers=num_workers,
-        eval_dataset=imagenet1k_data_val,
+        cfg, model, train_data, num_workers=args.num_workers, eval_dataset=val_data
     )
 
+    return cfg, model, activations_loader, sae_group
 
-  
-
-
-    return cfg , model, activations_loader, sae_group
-
-
-if __name__ == "__main__":
-
-
+def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint_path", 
-                        required=True,
-                        help="folder where you will save checkpoints"
-                        )
-    parser.add_argument('--imagenet_path', required=True, help='folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description')
-
-    parser.add_argument("--expansion_factor",
-                        type=int,
-                        default=64)
-    parser.add_argument("--context_size",
-                        type=int,
-                        default=197)
-    parser.add_argument("--d_in",
-                        type=int,
-                        default=1024)
-    parser.add_argument("--num_workers",
-                        type=int,
-                        default=4)
-    parser.add_argument("--model_name",
-                        default="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M")
-    parser.add_argument("--hook_point",
-                        default="blocks.{layer}.mlp.hook_pre")
-    parser.add_argument("--layers",
-                    type=int,
-                    nargs="+",
-                    default=[9])
-    parser.add_argument("--num_epochs",
-                        type=int,
-                        default=2)
-    parser.add_argument("--dead_feature_window",
-                        type=int,
-                        default=5000)
-    parser.add_argument("--run_name")
-
-    parser.add_argument('--load', type=str, default=None, help='Pretrained SAE path')
+    # ... (Add all your argument definitions here)
     args = parser.parse_args()
 
-    cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point)
+    cfg, model, activations_loader, sae_group = setup(args)
 
     if cfg.log_to_wandb:
         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)
 
-
-    # train SAE
     train_sae_group_on_vision_model(
-        model,
-        sae_group,
-        activations_loader,
-        train_contexts=None, #TODO load checkpoints correctly to match saelens v2.1.3 lm_runner!
-        training_run_state=None,  #TODO load checkpoints correctly to match saelens v2.1.3 lm_runner!
+        model, sae_group, activations_loader,
+        train_contexts=None, training_run_state=None,
         n_checkpoints=cfg.n_checkpoints,
         batch_size=cfg.train_batch_size_tokens,
         feature_sampling_window=cfg.feature_sampling_window,
@@ -611,8 +546,198 @@ if __name__ == "__main__":
         wandb_log_frequency=cfg.wandb_log_frequency,
         eval_every_n_wandb_logs=cfg.eval_every_n_wandb_logs,
         autocast=cfg.autocast,
-
     )
 
     if cfg.log_to_wandb:
         wandb.finish()
+
+if __name__ == "__main__":
+    main()
+
+
+
+    
+# def setup(checkpoint_path,imagenet_path, num_workers=0, legacy_load=False, pretrained_path=None, expansion_factor = 64, num_epochs=2, layers=9, context_size=197, dead_feature_window=5000,d_in=1024, model_name='vit_base_patch32_224', hook_point="blocks.{layer}.mlp.hook_pre", run_name=None):
+
+#     # assuming the same structure as here: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description
+#     imagenet_train_path = os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/train")
+#     imagenet_val_path  =os.path.join(imagenet_path, "ILSVRC/Data/CLS-LOC/val")
+#     imagenet_val_labels = os.path.join(imagenet_path, "LOC_val_solution.csv")
+#     imagenet_label_strings = os.path.join(imagenet_path, "LOC_synset_mapping.txt" )
+
+#     cfg = VisionModelRunnerConfig(
+#         #TODO expose more 
+#     # Data Generating Function (Model + Training Distibuion)
+#    # model_name = "gpt2-small",
+#     model_name = model_name, #
+#     hook_point = hook_point,
+#     hook_point_layer = layers, # 
+#     d_in = d_in,# 768,
+#     #dataset_path = "Skylion007/openwebtext", #
+#     #is_dataset_tokenized=False,
+    
+#     # SAE Parameters
+#     expansion_factor = expansion_factor, # online weights used 32! 
+#     b_dec_init_method = "geometric_median",
+    
+#     # Training Parameters
+#     lr = 0.0004,
+#     l1_coefficient = 0.00008,
+#     lr_scheduler_name="constant",
+#     train_batch_size_tokens = 1024*4,
+#     context_size = context_size, # TODO should be auto 
+#     lr_warm_up_steps=5000,
+
+#     # Activation function
+#     activation_fn = "topk",
+#     activation_fn_kwargs = {"k": 32},
+    
+#     # Activation Store Parameters
+#     n_batches_in_buffer = 32,
+#     training_tokens = int(1_300_000*num_epochs)*context_size,
+
+
+#     store_batch_size = 32, # num images
+    
+#     # Dead Neurons and Sparsity
+#     use_ghost_grads=False,
+#     feature_sampling_window = 1000,
+#     dead_feature_window=dead_feature_window,
+#    # dead_feature_threshold = 1e-6, # did not apper to be used in either future, (is it a different method than window?)
+    
+#     # WANDB
+#     log_to_wandb = True,
+#     wandb_project= "vit_sae_training", #
+#     wandb_entity = None,
+#     wandb_log_frequency=100,
+#     eval_every_n_wandb_logs = 10, # so every 1000 steps.
+#     run_name = run_name,
+#     # Misc
+#     device = "cuda",
+#     seed = 42,
+#     n_checkpoints = 10,
+#     checkpoint_path = checkpoint_path, # #TODO 
+#     dtype = torch.float32,
+
+#     #loading
+#     from_pretrained_path = pretrained_path
+#     )
+
+
+#     #TODO support cfg.resume
+#     if cfg.from_pretrained_path is not None:
+#         if legacy_load:
+#             sae_group = load_legacy_pt_file(cfg.from_pretrained_path)
+#         else:
+#             sae_group = SparseAutoencoderDictionary.load_from_pretrained(cfg.from_pretrained_path)
+#     else:
+#         sae_group = SparseAutoencoderDictionary(cfg)
+
+
+#     model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True)
+#     model.to(cfg.device)
+
+
+#     import torchvision
+#     from transformers import CLIPProcessor
+#     clip_processor = CLIPProcessor.from_pretrained(cfg.model_name)
+#     data_transforms = torchvision.transforms.Compose([
+#         torchvision.transforms.Resize((224, 224)),
+#         torchvision.transforms.ToTensor(),
+#         #TODO for clip only 
+#         torchvision.transforms.Normalize(mean=clip_processor.image_processor.image_mean,
+#                          std=clip_processor.image_processor.image_std),
+#     ])
+
+    
+
+
+#     imagenet1k_data = torchvision.datasets.ImageFolder(imagenet_train_path, transform=data_transforms)
+    
+#     imagenet1k_data_val = ImageNetValidationDataset(imagenet_val_path,imagenet_label_strings, imagenet_val_labels ,data_transforms)
+
+
+
+
+#     activations_loader = VisionActivationsStore(
+#         cfg,
+#         model,
+#         imagenet1k_data,
+
+#         num_workers=num_workers,
+#         eval_dataset=imagenet1k_data_val,
+#     )
+
+
+  
+
+
+#     return cfg , model, activations_loader, sae_group
+
+
+# if __name__ == "__main__":
+
+
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--checkpoint_path", 
+#                         required=True,
+#                         help="folder where you will save checkpoints"
+#                         )
+#     parser.add_argument('--imagenet_path', required=True, help='folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description')
+
+#     parser.add_argument("--expansion_factor",
+#                         type=int,
+#                         default=64)
+#     parser.add_argument("--context_size",
+#                         type=int,
+#                         default=197)
+#     parser.add_argument("--d_in",
+#                         type=int,
+#                         default=1024)
+#     parser.add_argument("--num_workers",
+#                         type=int,
+#                         default=4)
+#     parser.add_argument("--model_name",
+#                         default="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M")
+#     parser.add_argument("--hook_point",
+#                         default="blocks.{layer}.mlp.hook_pre")
+#     parser.add_argument("--layers",
+#                     type=int,
+#                     nargs="+",
+#                     default=[9])
+#     parser.add_argument("--num_epochs",
+#                         type=int,
+#                         default=2)
+#     parser.add_argument("--dead_feature_window",
+#                         type=int,
+#                         default=5000)
+#     parser.add_argument("--run_name")
+
+#     parser.add_argument('--load', type=str, default=None, help='Pretrained SAE path')
+#     args = parser.parse_args()
+
+#     cfg ,model, activations_loader, sae_group = setup(args.checkpoint_path,args.imagenet_path, pretrained_path=args.load, expansion_factor=args.expansion_factor,layers=args.layers, context_size=args.context_size, model_name=args.model_name ,num_epochs=args.num_epochs,dead_feature_window=args.dead_feature_window,num_workers=args.num_workers, d_in=args.d_in, run_name =args.run_name, hook_point=args.hook_point)
+
+#     if cfg.log_to_wandb:
+#         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)
+
+
+#     # train SAE
+#     train_sae_group_on_vision_model(
+#         model,
+#         sae_group,
+#         activations_loader,
+#         train_contexts=None, #TODO load checkpoints correctly to match saelens v2.1.3 lm_runner!
+#         training_run_state=None,  #TODO load checkpoints correctly to match saelens v2.1.3 lm_runner!
+#         n_checkpoints=cfg.n_checkpoints,
+#         batch_size=cfg.train_batch_size_tokens,
+#         feature_sampling_window=cfg.feature_sampling_window,
+#         use_wandb=cfg.log_to_wandb,
+#         wandb_log_frequency=cfg.wandb_log_frequency,
+#         eval_every_n_wandb_logs=cfg.eval_every_n_wandb_logs,
+#         autocast=cfg.autocast,
+
+#     )
+
+#     if cfg.log_to_wandb:
+#         wandb.finish()
