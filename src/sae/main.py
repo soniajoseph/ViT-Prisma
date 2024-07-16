@@ -27,6 +27,8 @@ from vision_activations_store import VisionActivationsStore
 # from vision_evals import run_evals_vision
 from vision_training_runner import VisionSAERunner
 
+from sae_lens import SAETrainingRunner
+
 # from sae_lens.training.sae_group import SparseAutoencoderDictionary
 # from sae_lens.training.sparse_autoencoder import (
 #     SAE_CFG_PATH,
@@ -347,9 +349,6 @@ from vision_training_runner import VisionSAERunner
 #     return checkpoint_path
 
 
-from sae_lens import SAETrainingRunner
-
-
 
 
 def setup_imagenet_paths(imagenet_path):
@@ -360,40 +359,42 @@ def setup_imagenet_paths(imagenet_path):
         'label_strings': os.path.join(imagenet_path, "LOC_synset_mapping.txt")
     }
 
-def create_config():
+def create_config(args):
     return VisionModelRunnerConfig(
-        model_name="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
-        hook_point="blocks.{layer}.hook_mlp_out",
-        hook_point_layer=8,
-        d_in=1024,
+        dataset_path = '',
+        # model_name="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
+        model_name = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+        hook_name="blocks.{layer}.hook_mlp_out",
+        hook_layer=8,
+        d_in=512,
         expansion_factor=64,
         b_dec_init_method="geometric_median",
-        lr=0.0004,
-        l1_coefficient=0.00008,
+        lr=1e-4,
+        l1_coefficient=0.0, # not relevant for top k
         lr_scheduler_name="constant",
         train_batch_size_tokens=1024*4,
-        context_size=197,
+        context_size=50,
         lr_warm_up_steps=5000,
         activation_fn="topk",
         activation_fn_kwargs={"k": 32},
         n_batches_in_buffer=32,
         training_tokens=int(1_300_000 * 2) * 197,  # 2 epochs
-        store_batch_size=32,
+        store_batch_size_prompts=32,
         use_ghost_grads=False,
         feature_sampling_window=1000,
         dead_feature_window=5000,
         log_to_wandb=True,
         wandb_project="vit_sae_training",
         wandb_entity=None,
-        wandb_log_frequency=100,
-        eval_every_n_wandb_logs=10,
+        wandb_log_frequency=10,
+        eval_every_n_wandb_logs=100,
         run_name="vit_sae_run",
         device="cuda",
         seed=42,
         n_checkpoints=10,
         checkpoint_path="./checkpoints",
-        dtype=torch.float32,
-        from_pretrained_path=None
+        dtype="float32",
+        from_pretrained_path=None,
     )
 
 def setup_model_and_transforms(cfg):
@@ -422,14 +423,14 @@ def setup(args):
     train_data, val_data = setup_datasets(imagenet_paths, data_transforms)
     
     activations_loader = VisionActivationsStore(
-        cfg, model, train_data, num_workers=args.num_workers, eval_dataset=val_data
+        cfg, model, train_data, eval_dataset=val_data
     )
     
     return cfg, model, activations_loader
 
 def main():
     parser = argparse.ArgumentParser()
-    # ... (Add all your argument definitions here)
+    parser.add_argument('--imagenet_path', default='/network/scratch/s/sonia.joseph/datasets/kaggle_datasets', required=False, help='folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description')
     args = parser.parse_args()
 
     cfg, model, activations_loader = setup(args)
@@ -438,7 +439,7 @@ def main():
         wandb.init(project=cfg.wandb_project, config=cast(Any, cfg), name=cfg.run_name)
 
     # Train the SAE
-    sae = VisionSAERunner(cfg).run()
+    sae = VisionSAERunner(cfg, activations_loader, override_model=model).run()
 
     # train_sae_group_on_vision_model(
     #     model, sae_group, activations_loader,

@@ -2,6 +2,8 @@ from sae_lens import SAETrainingRunner
 from sae_lens.config import LanguageModelSAERunnerConfig
 from sae_lens.training.training_sae import TrainingSAE, TrainStepOutput
 
+from sae_lens import TrainingSAEConfig
+
 
 
 from sae.vision_activations_store import VisionActivationsStore
@@ -11,8 +13,9 @@ from sae.vision_activations_store import VisionActivationsStore
 class VisionSAERunner(SAETrainingRunner):
     def __init__(
         self,
-        cfg: LanguageModelSAERunnerConfig,
-        vision_activations_store: VisionActivationsStore,
+        cfg,
+        vision_activations_store,
+        override_model=None,
 
         # override_dataset: HfDataset | None = None,
         # override_model: HookedRootModule | None = None,

@@ -38,7 +38,7 @@ class VisionActivationsStore:
         num_workers=0,
     ):
         self.cfg = cfg
-        assert not self.cfg.normalize_activations, "Normalize activations is currently not implemented for vision, sorry!"
+        # assert not self.cfg.normalize_activations, "Normalize activations is currently not implemented for vision, sorry!"
         self.normalize_activations = self.cfg.normalize_activations
         self.model = model
         self.dataset = dataset
@@ -76,6 +76,7 @@ class VisionActivationsStore:
             # fill buffer half a buffer, so we can mix it with a new buffer
             self.storage_buffer = self.get_buffer(self.cfg.n_batches_in_buffer // 2)
             self.dataloader = self.get_data_loader()
+
     def get_batch_tokens_internal(self):
         """
         Streams a batch of tokens from a dataset.
@@ -120,21 +121,21 @@ class VisionActivationsStore:
         Returns activations of shape (batches, context, num_layers, d_in)
         """
         layers = (
-            self.cfg.hook_point_layer
-            if isinstance(self.cfg.hook_point_layer, list)
-            else [self.cfg.hook_point_layer]
+            self.cfg.hook_layer
+            if isinstance(self.cfg.hook_layer, list)
+            else [self.cfg.hook_layer]
         )
-        act_names = [self.cfg.hook_point.format(layer=layer) for layer in layers]
+        act_names = [self.cfg.hook_name.format(layer=layer) for layer in layers]
         hook_point_max_layer = max(layers)
 
-        if self.cfg.hook_point_head_index is not None:
+        if self.cfg.hook_head_index is not None:
             layerwise_activations = self.model.run_with_cache(
                 batch_tokens,
                 names_filter=act_names,
                 stop_at_layer=hook_point_max_layer + 1,
             )[1]
             activations_list = [
-                layerwise_activations[act_name][:, :, self.cfg.hook_point_head_index]
+                layerwise_activations[act_name][:, :, self.cfg.hook_head_index]
                 for act_name in act_names
             ]
         else:
@@ -157,8 +158,8 @@ class VisionActivationsStore:
         d_in = self.cfg.d_in
         total_size = batch_size * n_batches_in_buffer
         num_layers = (
-            len(self.cfg.hook_point_layer)
-            if isinstance(self.cfg.hook_point_layer, list)
+            len(self.cfg.hook_layer)
+            if isinstance(self.cfg.hook_layer, list)
             else 1
         )  # Number of hook points or layers
 
@@ -220,13 +221,17 @@ class VisionActivationsStore:
         # Initialize empty tensor buffer of the maximum required size with an additional dimension for layers
         new_buffer = torch.zeros(
             (total_size, context_size, num_layers, d_in),
-            dtype=self.cfg.dtype,
-            device=self.cfg.device,
+            # dtype=self.cfg.dtype,
+            # device=self.cfg.device,
         )
 
         for refill_batch_idx_start in refill_iterator:
             refill_batch_tokens = self.get_batch_tokens() ######
             refill_activations = self.get_activations(refill_batch_tokens)
+
+
+            # refill_activations = refill_activations.view(-1, num_layers, d_in)
+
 
             new_buffer[
                 refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
