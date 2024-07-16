@@ -14,17 +14,17 @@ from transformer_lens.hook_points import HookedRootModule
 
 from sae_lens import __version__
 
-from sae_lens.training.sae_group import SparseAutoencoderDictionary
-from sae_lens.training.sparse_autoencoder import (
-    SAE_CFG_PATH,
-    SAE_WEIGHTS_PATH,
-    SPARSITY_PATH,
-)
-from sae_lens.training.train_sae_on_language_model import (
-    SAETrainContext, SAETrainingRunState, TrainSAEGroupOutput,
-     get_total_training_tokens, _wandb_log_suffix, _build_train_context,
-     _init_sae_group_b_decs, _update_sae_lens_training_version, _train_step, _build_train_step_log_dict,
-     TRAINING_RUN_STATE_PATH, SAE_CONTEXT_PATH
+# from sae_lens.training.sae_group import SparseAutoencoderDictionary
+# from sae_lens.training.sparse_autoencoder import (
+#     SAE_CFG_PATH,
+#     SAE_WEIGHTS_PATH,
+#     SPARSITY_PATH,
+# )
+# from sae_lens.training.train_sae_on_language_model import (
+#     SAETrainContext, SAETrainingRunState, TrainSAEGroupOutput,
+#      get_total_training_tokens, _wandb_log_suffix, _build_train_context,
+#      _init_sae_group_b_decs, _update_sae_lens_training_version, _train_step, _build_train_step_log_dict,
+#      TRAINING_RUN_STATE_PATH, SAE_CONTEXT_PATH
 
 
 
@@ -278,10 +278,6 @@ def train_sae_group_on_vision_model(
 
 
 
-
-
-
-
 # we are not saving activation store unlike saelens.
 def _save_checkpoint(
     sae_group: SparseAutoencoderDictionary,
@@ -452,40 +448,40 @@ def setup_imagenet_paths(imagenet_path):
         'label_strings': os.path.join(imagenet_path, "LOC_synset_mapping.txt")
     }
 
-def create_config(args):
+def create_config():
     return VisionModelRunnerConfig(
-        model_name=args.model_name,
-        hook_point=args.hook_point,
-        hook_point_layer=args.layers[0],
-        d_in=args.d_in,
-        expansion_factor=args.expansion_factor,
+        model_name="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
+        hook_point="blocks.{layer}.hook_mlp_out",
+        hook_point_layer=8,
+        d_in=1024,
+        expansion_factor=64,
         b_dec_init_method="geometric_median",
         lr=0.0004,
         l1_coefficient=0.00008,
         lr_scheduler_name="constant",
         train_batch_size_tokens=1024*4,
-        context_size=args.context_size,
+        context_size=197,
         lr_warm_up_steps=5000,
         activation_fn="topk",
         activation_fn_kwargs={"k": 32},
         n_batches_in_buffer=32,
-        training_tokens=int(1_300_000*args.num_epochs)*args.context_size,
+        training_tokens=int(1_300_000 * 2) * 197,  # 2 epochs
         store_batch_size=32,
         use_ghost_grads=False,
         feature_sampling_window=1000,
-        dead_feature_window=args.dead_feature_window,
+        dead_feature_window=5000,
         log_to_wandb=True,
         wandb_project="vit_sae_training",
         wandb_entity=None,
         wandb_log_frequency=100,
         eval_every_n_wandb_logs=10,
-        run_name=args.run_name,
+        run_name="vit_sae_run",
         device="cuda",
         seed=42,
         n_checkpoints=10,
-        checkpoint_path=args.checkpoint_path,
+        checkpoint_path="./checkpoints",
         dtype=torch.float32,
-        from_pretrained_path=args.load
+        from_pretrained_path=None
     )
 
 def load_sae_group(cfg, legacy_load=False):
