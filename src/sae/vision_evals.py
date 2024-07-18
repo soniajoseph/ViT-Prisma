@@ -81,7 +81,7 @@ def run_evals_vision(
     
     original_act = cache[hook_point.format(layer=hook_point_layer)]
 
-    sae_out, _feature_acts, _, _, _, _ = sparse_autoencoder(original_act)
+    sae_out  = sparse_autoencoder(original_act)
     # patterns_original = (
     #     cache[get_act_name("pattern", hook_point_layer)][:, hook_point_head_index]
     #     .detach()

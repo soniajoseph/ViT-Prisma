@@ -94,14 +94,26 @@ class VisionTrainingSAE(TrainingSAE):
             else:
                 # default SAE sparsity loss
                 weighted_feature_acts = feature_acts * self.W_dec.norm(dim=1)
-                sparsity = weighted_feature_acts.norm(
+                
+                if not self.cfg.l1_loss_wd_norm:
+                     sparsity = weighted_feature_acts.norm(
                     p=self.cfg.lp_norm, dim=-1
                 )  # sum over the feature dimension
+                     
+                else:
+                    # Calculate the L2 norm of each column of W_dec
+                    W_dec_norms = self.W_dec.norm(dim=0)  # This is now a 1D tensor
+                    # Calculate the sparsity term
+                    sparsity = (feature_acts * W_dec_norms).sum(dim=-1)  # sum over the feature dimension
+
+                    # Calculate the L1 loss (no
+                                    
 
                 l1_loss = (current_l1_coefficient * sparsity).mean()
                 loss = mse_loss + l1_loss + ghost_grad_loss
 
                 aux_reconstruction_loss = torch.tensor(0.0)
+
 
 
             return TrainStepOutput(
@@ -110,7 +122,7 @@ class VisionTrainingSAE(TrainingSAE):
                 feature_acts=feature_acts,
                 loss=loss,
                 mse_loss=mse_loss.item(),
-                l1_loss=l1_loss,
+                l1_loss=l1_loss.item(),
                 ghost_grad_loss=(
                     ghost_grad_loss.item()
                     if isinstance(ghost_grad_loss, torch.Tensor)

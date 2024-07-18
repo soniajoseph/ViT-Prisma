@@ -360,42 +360,45 @@ def setup_imagenet_paths(imagenet_path):
     }
 
 def create_config(args):
-    return VisionModelRunnerConfig(
-        dataset_path = '',
-        # model_name="wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
-        model_name = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
-        hook_name="blocks.{layer}.hook_mlp_out",
-        hook_layer=8,
-        d_in=512,
-        expansion_factor=64,
-        b_dec_init_method="geometric_median",
-        lr=1e-4,
-        l1_coefficient=0.0, # not relevant for top k
-        lr_scheduler_name="constant",
-        train_batch_size_tokens=1024*4,
-        context_size=50,
-        lr_warm_up_steps=5000,
-    activation_fn="topk",
-        activation_fn_kwargs={"k": 32},
-        n_batches_in_buffer=32,
-        training_tokens=int(1_300_000 * 2) * 197,  # 2 epochs
-        store_batch_size_prompts=32,
-        use_ghost_grads=True,
-        feature_sampling_window=1000,
-        dead_feature_window=5000,
-        log_to_wandb=True,
-        wandb_project="vit_sae_training",
-        wandb_entity=None,
-        wandb_log_frequency=1,
-        eval_every_n_wandb_logs=1,
-        run_name="vit_sae_run",
-        device="cuda",
-        seed=42,
-        n_checkpoints=10,
-        checkpoint_path="./checkpoints",
-        dtype="float32",
-        from_pretrained_path=None,
+    config = VisionModelRunnerConfig(
+        dataset_path = getattr(args, 'dataset_path', ''),
+        model_name = getattr(args, 'model_name', "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"),
+        hook_name = getattr(args, 'hook_name', "blocks.{layer}.hook_mlp_out"),
+        hook_layer = getattr(args, 'hook_layer', 8),
+        d_in = getattr(args, 'd_in', 512),
+        expansion_factor = getattr(args, 'expansion_factor', 64),
+        b_dec_init_method = getattr(args, 'b_dec_init_method', "geometric_median"),
+        lr = getattr(args, 'lr', 5e-4),
+        l1_coefficient = getattr(args, 'l1_coefficient', 0.00008),
+        lr_scheduler_name = getattr(args, 'lr_scheduler_name', "constant"),
+        lr_warm_up_steps = getattr(args, 'lr_warm_up_steps', 5000),
+        train_batch_size_tokens = getattr(args, 'train_batch_size_tokens', 1024*4),
+        context_size = getattr(args, 'context_size', 50),
+        activation_fn = getattr(args, 'activation_fn', "topk"),
+        activation_fn_kwargs = getattr(args, 'activation_fn_kwargs', {"k": 64}),
+        n_batches_in_buffer = getattr(args, 'n_batches_in_buffer', 32),
+        training_tokens = getattr(args, 'training_tokens', int(1_300_000 * 2) * 197),
+        store_batch_size_prompts = getattr(args, 'store_batch_size_prompts', 32),
+        use_ghost_grads = getattr(args, 'use_ghost_grads', True),
+        feature_sampling_window = getattr(args, 'feature_sampling_window', 1000),
+        dead_feature_window = getattr(args, 'dead_feature_window', 5000),
+        log_to_wandb = getattr(args, 'log_to_wandb', True),
+        wandb_project = getattr(args, 'wandb_project', "vit_sae_training"),
+        wandb_entity = getattr(args, 'wandb_entity', None),
+        wandb_log_frequency = getattr(args, 'wandb_log_frequency', 10),
+        eval_every_n_wandb_logs = getattr(args, 'eval_every_n_wandb_logs', 100),
+        run_name = getattr(args, 'run_name', None),
+        device = getattr(args, 'device', "cuda"),
+        seed = getattr(args, 'seed', 42),
+        n_checkpoints = getattr(args, 'n_checkpoints', 30),
+        checkpoint_path = getattr(args, 'checkpoint_path', "./checkpoints"),
+        dtype = getattr(args, 'dtype', "float32"),
+        from_pretrained_path = getattr(args, 'from_pretrained_path', None),
+        init_encoder_as_decoder_transpose = getattr(args, 'init_encoder_as_decoder_transpose', False),
+        l1_loss_wd_norm = getattr(args, 'l1_loss_wd_norm', False),
     )
+    print(config)
+    return config
 
 def setup_model_and_transforms(cfg):
     model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True).to(cfg.device)
@@ -452,6 +455,13 @@ def setup(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imagenet_path', default='/network/scratch/s/sonia.joseph/datasets/kaggle_datasets', required=False, help='folder containing imagenet1k data organized as follows: https://www.kaggle.com/c/imagenet-object-localization-challenge/overview/description')
+    parser.add_argument('--expansion_factor', type=int)
+    parser.add_argument('--activation_fn', default='topk')
+    parser.add_argument('--run_name', default=None)
+    parser.add_argument('--checkpoint_path', default='/network/scratch/s/sonia.joseph/sae_checkpoints')
+    parser.add_argument('--hook_layer', type=int, default=8)
+    parser.add_argument('--l1_loss_wd_norm', action='store_true')
+
     args = parser.parse_args()
 
     cfg, model, activations_loader = setup(args)
