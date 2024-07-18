@@ -375,19 +375,19 @@ def create_config(args):
         train_batch_size_tokens=1024*4,
         context_size=50,
         lr_warm_up_steps=5000,
-        activation_fn="topk",
+    activation_fn="topk",
         activation_fn_kwargs={"k": 32},
         n_batches_in_buffer=32,
         training_tokens=int(1_300_000 * 2) * 197,  # 2 epochs
         store_batch_size_prompts=32,
-        use_ghost_grads=False,
+        use_ghost_grads=True,
         feature_sampling_window=1000,
         dead_feature_window=5000,
         log_to_wandb=True,
         wandb_project="vit_sae_training",
         wandb_entity=None,
-        wandb_log_frequency=10,
-        eval_every_n_wandb_logs=100,
+        wandb_log_frequency=1,
+        eval_every_n_wandb_logs=1,
         run_name="vit_sae_run",
         device="cuda",
         seed=42,
@@ -399,6 +399,19 @@ def create_config(args):
 
 def setup_model_and_transforms(cfg):
     model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True).to(cfg.device)
+    from functools import wraps
+
+    # Very hacky wrapper to deal with return types in SAE lens
+    def forward_wrapper(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if 'return_type' in kwargs:
+                del kwargs['return_type']
+            return func(*args)
+        return wrapper
+    
+    HookedViT.forward = forward_wrapper(HookedViT.forward)
+
     clip_processor = CLIPProcessor.from_pretrained(cfg.model_name)
     data_transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize((224, 224)),
@@ -421,6 +434,14 @@ def setup(args):
     cfg = create_config(args)
     model, data_transforms = setup_model_and_transforms(cfg)
     train_data, val_data = setup_datasets(imagenet_paths, data_transforms)
+
+    # # just do one sample return value for model
+    # sample_image = Image.open(train_data.imgs[0][0])
+    # sample_image = data_transforms(sample_image).unsqueeze(0)
+    # sample_image = sample_image.to(cfg.device)
+    # sample_output = model(sample_image)
+    # print(sample_output)
+    # print(sample_output.shape)
     
     activations_loader = VisionActivationsStore(
         cfg, model, train_data, eval_dataset=val_data

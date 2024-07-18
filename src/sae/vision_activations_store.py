@@ -42,9 +42,11 @@ class VisionActivationsStore:
         self.normalize_activations = self.cfg.normalize_activations
         self.model = model
         self.dataset = dataset
-        self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
-        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
+        self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size_prompts, collate_fn=collate_fn, drop_last=True)
+        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size_prompts, collate_fn=collate_fn_eval, drop_last=True)
 
+
+        self.store_batch_size_prompts = self.cfg.store_batch_size_prompts
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()
 
@@ -92,7 +94,7 @@ class VisionActivationsStore:
                 data.requires_grad_(False)
                 yield data.to(device) # 5
 
-    def get_batch_tokens(self):
+    def get_batch_tokens(self, dummy):
         return next(self.image_dataloader_iter)
 
     # returns the ground truth class as well.
@@ -154,7 +156,7 @@ class VisionActivationsStore:
         return stacked_activations
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
-        batch_size = self.cfg.store_batch_size
+        batch_size = self.cfg.store_batch_size_prompts
         d_in = self.cfg.d_in
         total_size = batch_size * n_batches_in_buffer
         num_layers = (
@@ -226,7 +228,7 @@ class VisionActivationsStore:
         )
 
         for refill_batch_idx_start in refill_iterator:
-            refill_batch_tokens = self.get_batch_tokens() ######
+            refill_batch_tokens = self.get_batch_tokens(None) ###### Fix, currently dummy variable to be compatable with SAE Lens
             refill_activations = self.get_activations(refill_batch_tokens)
 
 

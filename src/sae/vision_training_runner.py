@@ -1,12 +1,19 @@
 from sae_lens import SAETrainingRunner
 from sae_lens.config import LanguageModelSAERunnerConfig
-from sae_lens.training.training_sae import TrainingSAE, TrainStepOutput
+# from sae_lens.training.training_sae import TrainStepOutput
+
 
 from sae_lens import TrainingSAEConfig
 
 
 
+
 from sae.vision_activations_store import VisionActivationsStore
+
+
+
+from vision_sae import VisionTrainingSAE
+from vision_sae_trainer import VisionSAETrainer
 
 
 
@@ -51,9 +58,40 @@ class VisionSAERunner(SAETrainingRunner):
                 self.cfg.from_pretrained_path, self.cfg.device
             )
         else:
-            self.sae = TrainingSAE(
+            self.sae = VisionTrainingSAE(
                 TrainingSAEConfig.from_dict(
                     self.cfg.get_training_sae_cfg_dict(),
                 )
             )
             self._init_sae_group_b_decs()
+
+
+    def run(self):
+        """
+        Run the training of the SAE.
+        """
+
+        # if self.cfg.log_to_wandb:
+        #     wandb.init(
+        #         project=self.cfg.wandb_project,
+        #         config=cast(Any, self.cfg),
+        #         name=self.cfg.run_name,
+        #         id=self.cfg.wandb_id,
+        #     )
+
+        trainer = VisionSAETrainer(
+            model=self.model,
+            sae=self.sae,
+            activation_store=self.activations_store,
+            save_checkpoint_fn=self.save_checkpoint,
+            cfg=self.cfg,
+        )
+
+        self._compile_if_needed()
+        sae = self.run_trainer_with_interruption_handling(trainer)
+
+        # if self.cfg.log_to_wandb:
+        #     wandb.finish()
+
+        return sae
+    
