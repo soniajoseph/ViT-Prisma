@@ -1,10 +1,9 @@
-Copy
 import os
 import csv
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
-
+ 
 
 import json
 
@@ -31,7 +30,6 @@ class ImageNetValidationDataset(torch.utils.data.Dataset):
             self.transform = transform
             self.labels = {}
             self.return_index = return_index
-
 
             # load label code to index
             self.label_to_index = {}
