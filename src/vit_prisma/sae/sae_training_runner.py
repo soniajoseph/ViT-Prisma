@@ -15,12 +15,11 @@ from safetensors.torch import save_file
 
 from vit_prisma.sae.config import VisionModelSAERunnerConfig, HfDataset
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
+from vit_prisma.utils.load_model import load_model
+from vit_prisma.sae.sae import SAE_CFG_PATH, SAE_WEIGHTS_PATH, SPARSITY_PATH
 
 
 # Import in new code (TO DO)
-from sae_lens.config import HfDataset, LanguageModelSAERunnerConfig
-from sae_lens.load_model import load_model
-from sae_lens.sae import SAE_CFG_PATH, SAE_WEIGHTS_PATH, SPARSITY_PATH
 from sae_lens.training.activations_store import ActivationsStore
 from sae_lens.training.geometric_median import compute_geometric_median
 from sae_lens.training.sae_trainer import SAETrainer
