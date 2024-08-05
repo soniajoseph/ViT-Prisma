@@ -22,8 +22,8 @@ from tqdm import tqdm
 
 
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-from transformers import AutoTokenizer, PreTrainedTokenizerBase
-
+from vit_prisma.sae.tokenization_and_batching import concat_and_batch_sequences
+#
 from vit_prisma.sae.config import (
     DTYPE_MAP,
     CacheActivationsRunnerConfig,

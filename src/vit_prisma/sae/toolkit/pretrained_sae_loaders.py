@@ -78,6 +78,43 @@ def sae_lens_loader(
 
     return cfg_dict, state_dict, log_sparsity
 
+def read_sae_from_disk(
+    cfg_dict: dict[str, Any],
+    weight_path: str,
+    device: str = "cpu",
+    dtype: torch.dtype = torch.float32,
+) -> tuple[dict[str, Any], dict[str, torch.Tensor]]:
+    """
+    Given a loaded dictionary and a path to a weight file, load the weights and return the state_dict.
+    """
+
+    state_dict = {}
+    with safe_open(weight_path, framework="pt", device=device) as f:  # type: ignore
+        for k in f.keys():
+            state_dict[k] = f.get_tensor(k).to(dtype=dtype)
+
+    # if bool and True, then it's the April update method of normalizing activations and hasn't been folded in.
+    if "scaling_factor" in state_dict:
+        # we were adding it anyway for a period of time but are no longer doing so.
+        # so we should delete it if
+        if torch.allclose(
+            state_dict["scaling_factor"],
+            torch.ones_like(state_dict["scaling_factor"]),
+        ):
+            del state_dict["scaling_factor"]
+            cfg_dict["finetuning_scaling_factor"] = False
+        else:
+            assert cfg_dict[
+                "finetuning_scaling_factor"
+            ], "Scaling factor is present but finetuning_scaling_factor is False."
+            state_dict["finetuning_scaling_factor"] = state_dict["scaling_factor"]
+            del state_dict["scaling_factor"]
+    else:
+        # it's there and it's not all 1's, we should use it.
+        cfg_dict["finetuning_scaling_factor"] = False
+
+    return cfg_dict, state_dict
+
 
 def handle_config_defaulting(cfg_dict: dict[str, Any]) -> dict[str, Any]:
 
@@ -101,5 +138,32 @@ def handle_config_defaulting(cfg_dict: dict[str, Any]) -> dict[str, Any]:
         )
 
     cfg_dict.setdefault("normalize_activations", "none")
+
+    return cfg_dict
+
+def get_sae_config_from_hf(
+    repo_id: str,
+    folder_name: str,
+    force_download: bool = False,
+) -> Dict[str, Any]:
+    """
+    Retrieve the configuration for a Sparse Autoencoder (SAE) from a Hugging Face repository.
+
+    Args:
+        repo_id (str): The repository ID on Hugging Face.
+        folder_name (str): The folder name within the repository containing the config file.
+        force_download (bool, optional): Whether to force download the config file. Defaults to False.
+        cfg_overrides (Optional[Dict[str, Any]], optional): Overrides for the config. Defaults to None.
+
+    Returns:
+        Dict[str, Any]: The configuration dictionary for the SAE.
+    """
+    cfg_filename = f"{folder_name}/cfg.json"
+    cfg_path = hf_hub_download(
+        repo_id=repo_id, filename=cfg_filename, force_download=force_download
+    )
+
+    with open(cfg_path, "r") as f:
+        cfg_dict = json.load(f)
 
     return cfg_dict

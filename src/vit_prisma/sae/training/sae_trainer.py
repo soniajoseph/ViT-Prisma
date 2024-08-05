@@ -19,6 +19,7 @@ from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.training.activations_store import ActivationsStore
 
 from vit_prisma.sae.evals import EvalConfig, run_evals
+from vit_prisma.utils.saving_utils import get_version
 
 # to add
 from sae_lens.training.optim import L1Scheduler, get_lr_scheduler
@@ -41,6 +42,7 @@ def _update_sae_lens_training_version(sae: TrainingSAE) -> None:
     """
     Make sure we record the version of SAELens used for the training run
     """
+    __version__ = get_version()
     sae.cfg.sae_lens_training_version = str(__version__)
 
 @dataclass

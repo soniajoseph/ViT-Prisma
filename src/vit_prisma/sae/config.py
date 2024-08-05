@@ -428,3 +428,15 @@ class VisionModelSAERunnerConfig:
         with open(path + "cfg.json", "r") as f:
             cfg = json.load(f)
         return cls(**cfg)
+
+
+def _default_cached_activations_path(
+    dataset_path: str,
+    model_name: str,
+    hook_name: str,
+    hook_head_index: int | None,
+) -> str:
+    path = f"activations/{dataset_path.replace('/', '_')}/{model_name.replace('/', '_')}/{hook_name}"
+    if hook_head_index is not None:
+        path += f"_{hook_head_index}"
+    return path
