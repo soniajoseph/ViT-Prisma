@@ -21,9 +21,10 @@ from vit_prisma.sae.training.activations_store import ActivationsStore
 from vit_prisma.sae.evals import EvalConfig, run_evals
 from vit_prisma.utils.saving_utils import get_version
 
+from vit_prisma.sae.training.training_sae import TrainingSAE, TrainStepOutput
+
 # to add
 from sae_lens.training.optim import L1Scheduler, get_lr_scheduler
-from sae_lens.training.training_sae import TrainingSAE, TrainStepOutput
 
 
 # used to map between parameters which are updated during finetuning and the config str.
