@@ -17,10 +17,10 @@ from vit_prisma.sae.config import VisionModelSAERunnerConfig, HfDataset
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.sae import SAE_CFG_PATH, SAE_WEIGHTS_PATH, SPARSITY_PATH
+from vit_prisma.sae.training.activations_store import ActivationsStore
 
 
 # Import in new code (TO DO)
-from sae_lens.training.activations_store import ActivationsStore
 from sae_lens.training.geometric_median import compute_geometric_median
 from sae_lens.training.sae_trainer import SAETrainer
 from sae_lens.training.training_sae import TrainingSAE, TrainingSAEConfig
@@ -28,7 +28,6 @@ from sae_lens.training.training_sae import TrainingSAE, TrainingSAEConfig
 
 class InterruptedException(Exception):
     pass
-
 
 def interrupt_callback(sig_num: Any, stack_frame: Any):
     raise InterruptedException()

@@ -24,7 +24,6 @@ from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule, HookPoi
 from vit_prisma.sae.config import DTYPE_MAP
 
 from vit_prisma.sae.toolkit.pretrained_sae_loaders import (
-    NAMED_PRETRAINED_SAE_LOADERS,
     handle_config_defaulting,
     read_sae_from_disk,
 )

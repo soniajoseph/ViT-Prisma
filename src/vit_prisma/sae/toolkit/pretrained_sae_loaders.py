@@ -1,3 +1,7 @@
+'''
+Based on Joseph Bloom repo: https://github.com/jbloomAus/SAELens/blob/main/sae_lens/toolkit/pretrained_sae_loaders.py
+'''
+
 import json
 import re
 from typing import Any, Dict, Optional, Protocol
