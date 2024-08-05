@@ -421,7 +421,7 @@ class VisionModelSAERunnerConfig:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def from_json(cls, path: str) -> "LanguageModelSAERunnerConfig":
+    def from_json(cls, path: str) -> "VisionModelSAERunnerConfig":
         with open(path + "cfg.json", "r") as f:
             cfg = json.load(f)
         return cls(**cfg)
