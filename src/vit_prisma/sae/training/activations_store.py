@@ -19,7 +19,9 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformer_lens.hook_points import HookedRootModule
+
+
+from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from vit_prisma.sae.config import (

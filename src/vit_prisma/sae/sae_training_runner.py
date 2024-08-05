@@ -18,10 +18,10 @@ from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.sae import SAE_CFG_PATH, SAE_WEIGHTS_PATH, SPARSITY_PATH
 from vit_prisma.sae.training.activations_store import ActivationsStore
+from vit_prisma.sae.training.geometric_median import compute_geometric_median
 
 
 # Import in new code (TO DO)
-from sae_lens.training.geometric_median import compute_geometric_median
 from sae_lens.training.sae_trainer import SAETrainer
 from sae_lens.training.training_sae import TrainingSAE, TrainingSAEConfig
 
