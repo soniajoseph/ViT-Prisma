@@ -73,7 +73,8 @@ class TrainingSAEConfig(SAEConfig):
             finetuning_scaling_factor=cfg.finetuning_method is not None,
             sae_lens_training_version=cfg.sae_lens_training_version,
             context_size=cfg.context_size,
-            dataset_path=cfg.dataset_path,
+            dataset_train_path=cfg.dataset_train_path,
+            dataset_val_path=cfg.dataset_val_path,
             prepend_bos=cfg.prepend_bos,
             # Training cfg
             l1_coefficient=cfg.l1_coefficient,
@@ -136,7 +137,8 @@ class TrainingSAEConfig(SAEConfig):
             "prepend_bos": self.prepend_bos,
             "finetuning_scaling_factor": self.finetuning_scaling_factor,
             "normalize_activations": self.normalize_activations,
-            "dataset_path": self.dataset_path,
+            "dataset_train_path": self.dataset_train_path,
+            "dataset_val_path": self.dataset_val_path,
             "dataset_trust_remote_code": self.dataset_trust_remote_code,
             "sae_lens_training_version": self.sae_lens_training_version,
         }
@@ -356,7 +358,7 @@ class TrainingSAE(SAE):
         # 2.
         # ghost grads use an exponentional activation function, ignoring whatever
         # the activation function is in the SAE. The forward pass uses the dead neurons only.
-        feature_acts_dead_neurons_only = torch.exp(hidden_pre[:, dead_neuron_mask])
+        feature_acts_dead_neurons_only = torch.exp(hidden_pre[:,dead_neuron_mask])
         ghost_out = feature_acts_dead_neurons_only @ self.W_dec[dead_neuron_mask, :]
         l2_norm_ghost_out = torch.norm(ghost_out, dim=-1)
         norm_scaling_factor = l2_norm_residual / (1e-6 + l2_norm_ghost_out * 2)

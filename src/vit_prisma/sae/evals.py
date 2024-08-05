@@ -155,7 +155,7 @@ def get_downstream_reconstruction_metrics(
         metrics_dict["ce_loss_with_ablation"] = []
 
     for _ in range(n_batches):
-        batch_tokens = activation_store.get_batch_tokens(eval_batch_size_prompts)
+        batch_tokens = activation_store.get_batch_images('val')
         for metric_name, metric_value in get_recons_loss(
             sae,
             model,
@@ -215,7 +215,7 @@ def get_sparsity_and_variance_metrics(
         metric_dict["mse"] = []
 
     for _ in range(n_batches):
-        batch_tokens = activation_store.get_batch_tokens(eval_batch_size_prompts)
+        batch_tokens = activation_store.get_batch_images('val')
 
         # get cache
         _, cache = model.run_with_cache(

@@ -20,6 +20,7 @@ from jaxtyping import Float
 from safetensors.torch import save_file
 from torch import nn
 
+
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule, HookPoint
 from vit_prisma.sae.config import DTYPE_MAP
 
@@ -55,7 +56,8 @@ class SAEConfig:
     hook_layer: int
     hook_head_index: Optional[int]
     prepend_bos: bool
-    dataset_path: str
+    dataset_train_path: str
+    dataset_val_path: str
     dataset_trust_remote_code: bool
     normalize_activations: str
 
@@ -104,7 +106,8 @@ class SAEConfig:
             "finetuning_scaling_factor": self.finetuning_scaling_factor,
             "sae_lens_training_version": self.sae_lens_training_version,
             "prepend_bos": self.prepend_bos,
-            "dataset_path": self.dataset_path,
+            "dataset_train_path": self.dataset_train_path,
+            "dataset_val_path": self.dataset_val_path,
             "dataset_trust_remote_code": self.dataset_trust_remote_code,
             "context_size": self.context_size,
             "normalize_activations": self.normalize_activations,

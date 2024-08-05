@@ -10,20 +10,23 @@ import signal
 from typing import Any, cast
 
 import torch
+import torchvision
+
+
 import wandb
 from safetensors.torch import save_file
 
-from vit_prisma.sae.config import VisionModelSAERunnerConfig, HfDataset
+from vit_prisma.sae.config import VisionModelSAERunnerConfig, HfDataset, print_config_prettily
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.sae import SAE_CFG_PATH, SAE_WEIGHTS_PATH, SPARSITY_PATH
 from vit_prisma.sae.training.activations_store import ActivationsStore
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 
+from vit_prisma.sae.training.sae_trainer import SAETrainer
+from vit_prisma.sae.training.training_sae import TrainingSAE, TrainingSAEConfig
 
-# Import in new code (TO DO)
-from sae_lens.training.sae_trainer import SAETrainer
-from sae_lens.training.training_sae import TrainingSAE, TrainingSAEConfig
+
 
 
 class InterruptedException(Exception):
@@ -70,10 +73,13 @@ class SAETrainingRunner:
         else:
             self.model = override_model
 
+        dataset_train, dataset_val = self.setup_datasets()
+
         self.activations_store = ActivationsStore.from_config(
             self.model,
             self.cfg,
-            override_dataset=override_dataset,
+            dataset_train = dataset_train,
+            dataset_val = dataset_val,
         )
 
         if self.cfg.from_pretrained_path is not None:
@@ -87,6 +93,24 @@ class SAETrainingRunner:
                 )
             )
             self._init_sae_group_b_decs()
+    
+
+    def setup_datasets(self):
+        if self.cfg.dataset_name == 'imagenet1k': # Feel free to change this for your particular file structure
+            from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+            from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms, ImageNetValidationDataset
+            data_transforms = get_imagenet_transforms()
+            imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
+            train_data = torchvision.datasets.ImageFolder(self.cfg.dataset_train_path, transform=data_transforms)
+            val_data = ImageNetValidationDataset(self.cfg.dataset_val_path, 
+                                            imagenet_paths['label_strings'], 
+                                            imagenet_paths['val_labels'], 
+                                            data_transforms)
+        else:
+            # raise not implemented
+            raise NotImplementedError(f"Dataset {self.cfgdataset_name} not implemented yet")
+        
+        return train_data, val_data
 
     def run(self):
         """
@@ -100,6 +124,9 @@ class SAETrainingRunner:
                 name=self.cfg.run_name,
                 id=self.cfg.wandb_id,
             )
+
+        print_config_prettily(self.cfg) if self.cfg.verbose else None
+        print("Starting training") if self.cfg.verbose else None
 
         trainer = SAETrainer(
             model=self.model,
@@ -173,15 +200,17 @@ class SAETrainingRunner:
         """
 
         if self.cfg.b_dec_init_method == "geometric_median":
-            layer_acts = self.activations_store.storage_buffer.detach()[:, 0, :]
-            # get geometric median of the activations if we're using those.
+            print("Initializing b_dec with geometric median") if self.cfg.verbose else None
+            layer_acts = self.activations_store.storage_buffer_train.detach()[:, 0, :] # (batches x patches) x layers x dimensionality
             median = compute_geometric_median(
                 layer_acts,
                 maxiter=100,
             ).median
             self.sae.initialize_b_dec_with_precalculated(median)  # type: ignore
         elif self.cfg.b_dec_init_method == "mean":
-            layer_acts = self.activations_store.storage_buffer.detach().cpu()[:, 0, :]
+            # print if option is met
+            print("Initializing b_dec with mean") if self.cfg.verbose else None
+            layer_acts = self.activations_store.storage_buffer_train.detach().cpu()[:, 0, :]
             self.sae.initialize_b_dec_with_mean(layer_acts)  # type: ignore
 
     def save_checkpoint(

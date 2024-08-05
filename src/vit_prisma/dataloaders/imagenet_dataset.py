@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
  
+from torchvision import transforms
 
 import json
 
@@ -23,6 +24,13 @@ def get_imagenet_index_to_name(imagenet_path):
 
     return ind_to_name
 
+def get_imagenet_transforms(size=224):
+    return transforms.Compose([
+        transforms.Resize((size, size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                             std=[0.229, 0.224, 0.225])
+    ])
 
 class ImageNetValidationDataset(torch.utils.data.Dataset):
         def __init__(self, images_dir, imagenet_class_index, validation_labels,  transform=None, return_index=False):

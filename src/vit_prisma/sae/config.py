@@ -5,8 +5,9 @@ https://github.com/jbloomAus/SAELens/blob/main/sae_lens/config.py
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Any, Literal, Optional, cast
+
 
 import torch
 import wandb
@@ -37,7 +38,7 @@ class VisionModelSAERunnerConfig:
 
     Args:
         model_name (str): The name of the model to use. This should be the name of the model in the Hugging Face model hub.
-        model_class_name (str): The name of the class of the model to use. This should be either `HookedTransformer` or `HookedMamba`.
+        model_class_name (str): The name of the class of the model to use. This should be 'HookedViT'.
         hook_name (str): The name of the hook to use. This should be a valid TransformerLens hook.
         hook_eval (str): NOT CURRENTLY IN USE. The name of the hook to use for evaluation.
         hook_layer (int): The index of the layer to hook. Used to stop forward passes early and speed up processing.
@@ -121,17 +122,29 @@ class VisionModelSAERunnerConfig:
     l1_loss_wd_norm: bool = False # Not sure what this means either
 
     # Data Generating Function (Model + Training Distibuion)
-    model_name: str = "gelu-2l"
+    model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
     model_class_name: str = "HookedViT"
-    hook_name: str = "blocks.0.hook_mlp_out"
+    
+    # Add a property for hook_name
+    @property
+    def hook_name(self) -> str:
+        return f"blocks.{self.hook_layer}.hook_mlp_out"
+
     hook_eval: str = "NOT_IN_USE"
-    hook_layer: int = 0
+    hook_layer: int = 8
     hook_head_index: Optional[int] = None
-    dataset_path: str = ""
+    
+    # Dataset path names
+    dataset_name = 'imagenet1k' # Some datasets have hardcoded pre-processing functions
+    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
     dataset_trust_remote_code: bool = True
+    
+    # More dataset functionality
     streaming: bool = True
     is_dataset_tokenized: bool = True
-    context_size: int = 128 # this is the patch_size
+    context_size: int = 50 # this is the path number
     use_cached_activations: bool = False
     cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_head_index}"
@@ -142,20 +155,20 @@ class VisionModelSAERunnerConfig:
     d_in: int = 512
     d_sae: Optional[int] = None
     b_dec_init_method: str = "geometric_median"
-    expansion_factor: int = 4
+    expansion_factor: int = 16
     activation_fn: str = "relu"  # relu, tanh-relu, topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)  # for topk
     normalize_sae_decoder: bool = True
     noise_scale: float = 0.0
     from_pretrained_path: Optional[str] = None
     apply_b_dec_to_input: bool = True
-    decoder_orthogonal_init: bool = False
+    decoder_orthogonal_init: bool = True
     decoder_heuristic_init: bool = False
-    init_encoder_as_decoder_transpose: bool = False
+    init_encoder_as_decoder_transpose: bool = True
 
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
-    training_tokens: int = 2_000_000
+    training_tokens: int = 50_000_000
     finetuning_tokens: int = 0
     store_batch_size_prompts: int = 32
     train_batch_size_tokens: int = 4096
@@ -189,17 +202,17 @@ class VisionModelSAERunnerConfig:
 
     ## Loss Function
     mse_loss_normalization: Optional[str] = None
-    l1_coefficient: float = 1e-3
+    l1_coefficient: float = 0.00008
     lp_norm: float = 1
     scale_sparsity_penalty_by_decoder_norm: bool = False
     l1_warm_up_steps: int = 0
 
     ## Learning Rate Schedule
-    lr: float = 3e-4
+    lr: float = 0.0004
     lr_scheduler_name: str = (
         "constant"  # constant, cosineannealing, cosineannealingwarmrestarts
     )
-    lr_warm_up_steps: int = 0
+    lr_warm_up_steps: int = 5000
     lr_end: Optional[float] = None  # only used for cosine annealing, default is lr / 10
     lr_decay_steps: int = 0
     n_restart_cycles: int = 1  # used only for cosineannealingwarmrestarts
@@ -236,8 +249,7 @@ class VisionModelSAERunnerConfig:
     verbose: bool = True
     model_kwargs: dict[str, Any] = field(default_factory=dict)
     model_from_pretrained_kwargs: dict[str, Any] = field(default_factory=dict)
-    sae_lens_version: str = field(default_factory=lambda: __version__)
-    sae_lens_training_version: str = field(default_factory=lambda: __version__)
+    vit_prisma_version: str = field(default_factory=lambda: __version__)
 
     def __post_init__(self):
 
@@ -262,7 +274,7 @@ class VisionModelSAERunnerConfig:
         )
 
         if self.run_name is None:
-            self.run_name = f"{self.d_sae}-L1-{self.l1_coefficient}-LR-{self.lr}-Tokens-{self.training_tokens:3.3e}"
+            self.run_name = f"Expansion-{self.expansion_factor}-L1-{self.l1_coefficient}-LR-{self.lr}-Tokens-{self.training_tokens:3.3e}"
 
         if self.b_dec_init_method not in ["geometric_median", "mean", "zeros"]:
             raise ValueError(
@@ -380,7 +392,8 @@ class VisionModelSAERunnerConfig:
             "apply_b_dec_to_input": self.apply_b_dec_to_input,
             "context_size": self.context_size,
             "prepend_bos": self.prepend_bos,
-            "dataset_path": self.dataset_path,
+            "dataset_train_path": self.dataset_train_path,
+            "dataset_val_path": self.dataset_val_path,
             "dataset_trust_remote_code": self.dataset_trust_remote_code,
             "finetuning_scaling_factor": self.finetuning_method is not None,
             "sae_lens_training_version": self.sae_lens_training_version,
@@ -430,6 +443,7 @@ class VisionModelSAERunnerConfig:
         return cls(**cfg)
 
 
+
 def _default_cached_activations_path(
     dataset_path: str,
     model_name: str,
@@ -440,3 +454,108 @@ def _default_cached_activations_path(
     if hook_head_index is not None:
         path += f"_{hook_head_index}"
     return path
+
+
+
+def print_config_prettily(config: VisionModelSAERunnerConfig):
+    print("\n=== Vision Model SAE Runner Configuration ===\n")
+
+    # Get all fields from the dataclass
+    all_fields = fields(config)
+
+    # Group fields by their comment sections
+    grouped_fields = {}
+    current_group = "Miscellaneous"
+    
+    for field in all_fields:
+        if field.name.isupper() and field.name.endswith("PARAMETERS"):
+            current_group = field.name
+            continue
+        
+        if current_group not in grouped_fields:
+            grouped_fields[current_group] = []
+        
+        grouped_fields[current_group].append(field)
+
+    # Print each group
+    for group, group_fields in grouped_fields.items():
+        print(f"\n--- {group} ---\n")
+        
+        max_name_length = max(len(field.name) for field in group_fields)
+        
+        for field in group_fields:
+            value = getattr(config, field.name)
+            if isinstance(value, str) and len(value) > 50:
+                value = value[:47] + "..."
+            print(f"{field.name:<{max_name_length}} : {value}")
+
+    print("\n=== End of Configuration ===\n")
+
+# Usage:
+# config = VisionModelSAERunnerConfig()
+# print_config_prettily(config)
+
+
+@dataclass
+class CacheActivationsRunnerConfig:
+    """
+    Configuration for caching activations of an LLM.
+    """
+
+    # Data Generating Function (Model + Training Distibuion)
+    model_name: str = "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M"
+    model_class_name: str = "HookedVit"
+    hook_name: str = "blocks.{layer}.hook_mlp_out"
+    hook_layer: int = 0
+    hook_head_index: Optional[int] = None
+    dataset_train_path: str = ""
+    dataset_val_path: str = ""
+    dataset_trust_remote_code: bool | None = None
+    streaming: bool = True
+    is_dataset_tokenized: bool = True
+    context_size: int = 50
+    new_cached_activations_path: Optional[str] = (
+        None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_head_index}"
+    )
+    # dont' specify this since you don't want to load from disk with the cache runner.
+    cached_activations_path: Optional[str] = None
+    # SAE Parameters
+    d_in: int = 512
+
+    # Activation Store Parameters
+    n_batches_in_buffer: int = 20
+    training_tokens: int = 2_000_000
+    store_batch_size_prompts: int = 32
+    train_batch_size_tokens: int = 4096
+    normalize_activations: str = "none"  # should always be none for activation caching
+
+    # Misc
+    device: str = "cpu"
+    act_store_device: str = "with_model"  # will be set by post init if with_model
+    seed: int = 42
+    dtype: str = "float32"
+    prepend_bos: bool = True
+    autocast_lm: bool = False  # autocast lm during activation fetching
+
+    # Activation caching stuff
+    shuffle_every_n_buffers: int = 10
+    n_shuffles_with_last_section: int = 10
+    n_shuffles_in_entire_dir: int = 10
+    n_shuffles_final: int = 100
+    model_kwargs: dict[str, Any] = field(default_factory=dict)
+    model_from_pretrained_kwargs: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        # Autofill cached_activations_path unless the user overrode it
+        if self.new_cached_activations_path is None:
+            self.new_cached_activations_path = _default_cached_activations_path(
+                self.dataset_path,
+                self.model_name,
+                self.hook_name,
+                self.hook_head_index,
+            )
+
+        if self.act_store_device == "with_model":
+            self.act_store_device = self.device
+
+
