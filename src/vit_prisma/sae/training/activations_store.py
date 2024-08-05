@@ -30,6 +30,7 @@ class ActivationsStore:
         self.dataset_train = dataset_train
         self.dataset_val = dataset_val
         self.num_workers = num_workers
+        self.store_batch_size_prompts = cfg.store_batch_size_prompts
 
         self.setup_dataloaders()
 
@@ -40,6 +41,33 @@ class ActivationsStore:
             self.dataloader_train = self.get_data_loader('train')
             if self.dataset_val is not None:
                 self.dataloader_val = self.get_data_loader('val')
+
+        self.initialize_from_config()
+
+    def initialize_from_config(self):
+        config_dict = {
+            "model": self.model,
+            "streaming": self.cfg.streaming,
+            "hook_name": self.cfg.hook_name,
+            "hook_layer": self.cfg.hook_layer,
+            "hook_head_index": self.cfg.hook_head_index,
+            "context_size": self.cfg.context_size,
+            "d_in": self.cfg.d_in,
+            "n_batches_in_buffer": self.cfg.n_batches_in_buffer,
+            "total_training_tokens": self.cfg.training_tokens,
+            "store_batch_size_prompts": self.cfg.store_batch_size_prompts,
+            "train_batch_size_tokens": self.cfg.train_batch_size_tokens,
+            "prepend_bos": self.cfg.prepend_bos,
+            "normalize_activations": self.cfg.normalize_activations,
+            "device": torch.device(self.cfg.act_store_device),
+            "dtype": self.cfg.dtype,
+            "model_kwargs": self.cfg.model_kwargs,
+            "autocast_lm": self.cfg.autocast_lm,
+            "dataset_trust_remote_code": self.cfg.dataset_trust_remote_code,
+        }
+
+        for key, value in config_dict.items():
+            setattr(self, key, value)
 
     def setup_dataloaders(self):
         self.train_dataloader = DataLoader(
@@ -253,49 +281,7 @@ class ActivationsStore:
 #     _storage_buffer: torch.Tensor | None = None
 #     device: torch.device
 
-#     @classmethod
-#     def from_config(
-#         cls,
-#         model: HookedRootModule,
-#         cfg: VisionModelSAERunnerConfig | CacheActivationsRunnerConfig,
-#         override_dataset: HfDataset | None = None,
-#     ) -> "ActivationsStore":
-#         cached_activations_path = cfg.cached_activations_path
-#         # set cached_activations_path to None if we're not using cached activations
-#         if (
-#             isinstance(cfg, VisionModelSAERunnerConfig)
-#             and not cfg.use_cached_activations
-#         ):
-#             cached_activations_path = None
 
-#         if override_dataset is None and cfg.dataset_train_path == "" and cfg.dataset_val_path == "":
-#             raise ValueError(
-#                 "You must either pass in a dataset or specify a dataset_path in your configuration."
-#             )
-
-#         return cls(
-#             model=model,
-#             dataset_train_path=override_dataset or cfg.dataset_train_path,
-#             dataset_val_path=cfg.dataset_val_path,
-#             streaming=cfg.streaming,
-#             hook_name=cfg.hook_name,
-#             hook_layer=cfg.hook_layer,
-#             hook_head_index=cfg.hook_head_index,
-#             context_size=cfg.context_size,
-#             d_in=cfg.d_in,
-#             n_batches_in_buffer=cfg.n_batches_in_buffer,
-#             total_training_tokens=cfg.training_tokens,
-#             store_batch_size_prompts=cfg.store_batch_size_prompts,
-#             train_batch_size_tokens=cfg.train_batch_size_tokens,
-#             prepend_bos=cfg.prepend_bos,
-#             normalize_activations=cfg.normalize_activations,
-#             device=torch.device(cfg.act_store_device),
-#             dtype=cfg.dtype,
-#             cached_activations_path=cached_activations_path,
-#             model_kwargs=cfg.model_kwargs,
-#             autocast_lm=cfg.autocast_lm,
-#             dataset_trust_remote_code=cfg.dataset_trust_remote_code,
-#         )
 
 #     @classmethod
 #     def from_sae(

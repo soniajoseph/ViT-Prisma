@@ -66,7 +66,7 @@ def run_evals(
     eval_config: EvalConfig = EvalConfig(),
     model_kwargs: Mapping[str, Any] = {},
 ) -> dict[str, Any]:
-
+    
     hook_name = sae.cfg.hook_name
     actual_batch_size = (
         eval_config.batch_size_prompts or activation_store.store_batch_size_prompts
@@ -84,7 +84,7 @@ def run_evals(
 
     if eval_config.compute_kl or eval_config.compute_ce_loss:
         assert eval_config.n_eval_reconstruction_batches > 0
-        metrics |= get_downstream_reconstruction_metrics(
+        metrics |= get_downstream_reconstruction_metrics( # Sonia --> temporarily disable before fixing CLIP loss function
             sae,
             model,
             activation_store,
@@ -220,7 +220,6 @@ def get_sparsity_and_variance_metrics(
         # get cache
         _, cache = model.run_with_cache(
             batch_tokens,
-            prepend_bos=False,
             names_filter=[hook_name],
             **model_kwargs,
         )
@@ -301,7 +300,8 @@ def get_recons_loss(
     head_index = sae.cfg.hook_head_index
 
     original_logits, original_ce_loss = model(
-        batch_tokens, return_type="both", **model_kwargs
+        batch_tokens, **model_kwargs
+        # batch_tokens, return_type="both", **model_kwargs
     )
 
     metrics = {}

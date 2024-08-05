@@ -158,8 +158,6 @@ class HookedViT(HookedRootModule):
                 If not None, we return the last residual stream computed.
         """
 
-
-
         batch_size = input.shape[0]
 
         embed = self.hook_embed(self.embed(input))

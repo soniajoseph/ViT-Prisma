@@ -46,7 +46,6 @@ class VisionModelSAERunnerConfig:
         dataset_path (str): A Hugging Face dataset path.
         dataset_trust_remote_code (bool): Whether to trust remote code when loading datasets from Huggingface.
         streaming (bool): Whether to stream the dataset. Streaming large datasets is usually practical.
-        is_dataset_tokenized (bool): NOT IN USE. We used to use this but now automatically detect if the dataset is tokenized.
         context_size (int): The context size to use when generating activations on which to train the SAE.
         use_cached_activations (bool): Whether to use cached activations. This is useful when doing sweeps over the same activations.
         cached_activations_path (str, optional): The path to the cached activations.
@@ -171,7 +170,6 @@ class VisionModelSAERunnerConfig:
     training_tokens: int = 50_000_000
     finetuning_tokens: int = 0
     store_batch_size_prompts: int = 32
-    train_batch_size_tokens: int = 4096
     normalize_activations: str = (
         "none"  # none, expected_average_only_in (Anthropic April Update), constant_norm_rescale (Anthropic Feb Update)
     )
@@ -239,13 +237,13 @@ class VisionModelSAERunnerConfig:
     wandb_id: Optional[str] = None
     run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 10
-    eval_every_n_wandb_logs: int = 100  # logs every 1000 steps.
+    wandb_log_frequency: int = 1 #10
+    eval_every_n_wandb_logs: int = 1 #100  # logs every 1000 steps.
 
     # Misc
     resume: bool = False
     n_checkpoints: int = 0
-    checkpoint_path: str = "checkpoints"
+    checkpoint_path: str = "/network/scratch/s/sonia.joseph/checkpoints"
     verbose: bool = True
     model_kwargs: dict[str, Any] = field(default_factory=dict)
     model_from_pretrained_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -396,7 +394,7 @@ class VisionModelSAERunnerConfig:
             "dataset_val_path": self.dataset_val_path,
             "dataset_trust_remote_code": self.dataset_trust_remote_code,
             "finetuning_scaling_factor": self.finetuning_method is not None,
-            "sae_lens_training_version": self.sae_lens_training_version,
+            "sae_lens_training_version": self.vit_prisma_version,
             "normalize_activations": self.normalize_activations,
             "activation_fn_kwargs": self.activation_fn_kwargs,
         }
@@ -441,7 +439,6 @@ class VisionModelSAERunnerConfig:
         with open(path + "cfg.json", "r") as f:
             cfg = json.load(f)
         return cls(**cfg)
-
 
 
 def _default_cached_activations_path(
@@ -512,7 +509,6 @@ class CacheActivationsRunnerConfig:
     dataset_val_path: str = ""
     dataset_trust_remote_code: bool | None = None
     streaming: bool = True
-    is_dataset_tokenized: bool = True
     context_size: int = 50
     new_cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_head_index}"
