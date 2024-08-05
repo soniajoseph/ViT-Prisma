@@ -411,7 +411,7 @@ class SAETrainer:
 
         if self.n_training_steps % update_interval == 0:
             pbar.set_description(
-                f"{self.n_training_steps}| MSE Loss {step_output.mse_loss:.3f} | L1 {step_output.l1_loss:.3f}"
+                f"{self.n_training_steps}| MSE Loss {step_output.mse_loss:.3f} | L1 {step_output.l1_loss:.3f} | L0 {step_output.l0:.3f}"
             )
             pbar.update(update_interval * self.cfg.train_batch_size_tokens)
 

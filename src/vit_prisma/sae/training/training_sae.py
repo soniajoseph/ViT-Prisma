@@ -29,6 +29,7 @@ class TrainStepOutput:
     sae_in: torch.Tensor
     sae_out: torch.Tensor
     feature_acts: torch.Tensor
+    l0: float
     loss: torch.Tensor  # we need to call backwards on this
     mse_loss: float
     l1_loss: float
@@ -277,6 +278,8 @@ class TrainingSAE(SAE):
         per_item_mse_loss = self.mse_loss_fn(sae_out, sae_in)
         mse_loss = per_item_mse_loss.sum(dim=-1).mean()
 
+        l0 = (feature_acts > 0).float().sum(-1).mean()
+
         # GHOST GRADS
         if self.cfg.use_ghost_grads and self.training and dead_neuron_mask is not None:
 
@@ -327,9 +330,12 @@ class TrainingSAE(SAE):
 
             aux_reconstruction_loss = torch.tensor(0.0)
 
+
+
         return TrainStepOutput(
             sae_in=sae_in,
             sae_out=sae_out,
+            l0 = l0, 
             feature_acts=feature_acts,
             loss=loss,
             mse_loss=mse_loss.item(),
