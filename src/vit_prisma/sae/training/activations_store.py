@@ -120,6 +120,8 @@ class ActivationsStore:
         act_names = [self.cfg.hook_name.format(layer=layer) for layer in layers]
         hook_point_max_layer = max(layers)
 
+        batch_images = batch_images.to(self.cfg.device)
+
         layerwise_activations = self.model.run_with_cache(
             batch_images,
             names_filter=act_names,

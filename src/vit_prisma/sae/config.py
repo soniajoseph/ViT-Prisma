@@ -117,7 +117,11 @@ class VisionModelSAERunnerConfig:
     """
 
     # VISION-SPECIFIC HYPERPARAMETERS
-    store_batch_size: int = 32 # num images ## Sonia: ?? Can we make this beter-named? 
+    store_batch_size: int = 32 # num images ## Sonia: ?? Can we make this better-named? 
+
+    # TO DO
+    # put number of imges, number of tokens, but calculate automatically
+
     l1_loss_wd_norm: bool = False # Not sure what this means either
 
     # Data Generating Function (Model + Training Distibuion)
@@ -130,7 +134,7 @@ class VisionModelSAERunnerConfig:
         return f"blocks.{self.hook_layer}.hook_mlp_out"
 
     hook_eval: str = "NOT_IN_USE"
-    hook_layer: int = 8
+    hook_layer: int = 9
     hook_head_index: Optional[int] = None
     
     # Dataset path names
@@ -143,7 +147,7 @@ class VisionModelSAERunnerConfig:
     # More dataset functionality
     streaming: bool = True
     is_dataset_tokenized: bool = True
-    context_size: int = 50 # this is the path number
+    context_size: int = 50 # this is the patch number
     use_cached_activations: bool = False
     cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_head_index}"
@@ -157,17 +161,17 @@ class VisionModelSAERunnerConfig:
     expansion_factor: int = 16
     activation_fn: str = "relu"  # relu, tanh-relu, topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)  # for topk
-    normalize_sae_decoder: bool = True
+    normalize_sae_decoder: bool = False
     noise_scale: float = 0.0
     from_pretrained_path: Optional[str] = None
     apply_b_dec_to_input: bool = True
-    decoder_orthogonal_init: bool = True
+    decoder_orthogonal_init: bool = False
     decoder_heuristic_init: bool = False
     init_encoder_as_decoder_transpose: bool = True
 
     # Activation Store Parameters
-    n_batches_in_buffer: int = 20
-    training_tokens: int = 50_000_000
+    n_batches_in_buffer: int = 200
+    training_tokens: int = 100_000_000  # Can we calculate this automatically from train? 
     finetuning_tokens: int = 0
     store_batch_size_prompts: int = 32
     normalize_activations: str = (
@@ -175,7 +179,7 @@ class VisionModelSAERunnerConfig:
     )
 
     # Misc
-    device: str = "cpu"
+    device: str = "cuda"
     act_store_device: str = "with_model"  # will be set by post init if with_model
     seed: int = 42
     dtype: str = "float32"  # type: ignore #
@@ -200,13 +204,13 @@ class VisionModelSAERunnerConfig:
 
     ## Loss Function
     mse_loss_normalization: Optional[str] = None
-    l1_coefficient: float = 0.00008
+    l1_coefficient: float = 0.0008 # 0.00008
     lp_norm: float = 1
     scale_sparsity_penalty_by_decoder_norm: bool = False
     l1_warm_up_steps: int = 0
 
     ## Learning Rate Schedule
-    lr: float = 0.0004
+    lr: float = 0.0002 # 0.0004
     lr_scheduler_name: str = (
         "constant"  # constant, cosineannealing, cosineannealingwarmrestarts
     )
@@ -219,9 +223,9 @@ class VisionModelSAERunnerConfig:
     finetuning_method: Optional[str] = None  # scale, decoder or unrotated_decoder
 
     # Resampling protocol args
-    use_ghost_grads: bool = True  # want to change this to true on some timeline.
-    feature_sampling_window: int = 2000
-    dead_feature_window: int = 1000  # unless this window is larger feature sampling,
+    use_ghost_grads: bool = True  
+    feature_sampling_window: int = 1000
+    dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8
 
@@ -237,8 +241,8 @@ class VisionModelSAERunnerConfig:
     wandb_id: Optional[str] = None
     run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 1 #10
-    eval_every_n_wandb_logs: int = 1 #100  # logs every 1000 steps.
+    wandb_log_frequency: int = 10 #10
+    eval_every_n_wandb_logs: int = 100 #100  # logs every 1000 steps.
 
     # Misc
     resume: bool = False

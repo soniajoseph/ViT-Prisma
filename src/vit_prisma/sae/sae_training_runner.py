@@ -70,6 +70,8 @@ class SAETrainingRunner:
                 device=self.cfg.device,
                 model_from_pretrained_kwargs=self.cfg.model_from_pretrained_kwargs,
             )
+            self.model.to(self.cfg.device)
+
         else:
             self.model = override_model
 
@@ -127,6 +129,8 @@ class SAETrainingRunner:
 
         print_config_prettily(self.cfg) if self.cfg.verbose else None
         print("Starting training") if self.cfg.verbose else None
+        
+
 
         trainer = SAETrainer(
             model=self.model,

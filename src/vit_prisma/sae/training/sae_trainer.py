@@ -339,11 +339,17 @@ class SAETrainer:
             self.cfg.wandb_log_frequency * self.cfg.eval_every_n_wandb_logs
         ) == 0:
             self.sae.eval()
+
+            # Get feature density histogram
+            sparsity_log_dict = self._build_sparsity_log_dict()
+            wandb.log(sparsity_log_dict, step=self.n_training_steps)
+
             eval_metrics = run_evals(
                 sae=self.sae,
                 activation_store=self.activation_store,
                 model=self.model,
                 eval_config=self.trainer_eval_config,
+                n_training_steps = self.n_training_steps,
                 model_kwargs=self.cfg.model_kwargs,
             )
 
@@ -353,9 +359,6 @@ class SAETrainer:
             eval_metrics.pop("metrics/l0", None)
             eval_metrics.pop("metrics/l1", None)
             eval_metrics.pop("metrics/mse", None)
-
-            # Remove metrics that are not useful for wandb logging
-            eval_metrics.pop("metrics/total_tokens_evaluated", None)
 
             W_dec_norm_dist = self.sae.W_dec.detach().float().norm(dim=1).cpu().numpy()
             eval_metrics["weights/W_dec_norms"] = wandb.Histogram(W_dec_norm_dist)  # type: ignore

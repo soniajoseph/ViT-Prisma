@@ -64,6 +64,7 @@ def run_evals(
     activation_store: ActivationsStore,
     model: HookedRootModule,
     eval_config: EvalConfig = EvalConfig(),
+    n_training_steps: int = 0,
     model_kwargs: Mapping[str, Any] = {},
 ) -> dict[str, Any]:
     
@@ -93,6 +94,7 @@ def run_evals(
             n_batches=eval_config.n_eval_reconstruction_batches,
             eval_batch_size_prompts=actual_batch_size,
         )
+
 
         activation_store.reset_input_dataset()
 
@@ -131,8 +133,6 @@ def run_evals(
         * eval_config.n_eval_reconstruction_batches
         * actual_batch_size
     )
-    metrics["metrics/total_tokens_evaluated"] = total_tokens_evaluated
-
     return metrics
 
 
