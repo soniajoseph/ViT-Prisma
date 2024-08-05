@@ -208,7 +208,7 @@ class VisionModelSAERunnerConfig:
     finetuning_method: Optional[str] = None  # scale, decoder or unrotated_decoder
 
     # Resampling protocol args
-    use_ghost_grads: bool = False  # want to change this to true on some timeline.
+    use_ghost_grads: bool = True  # want to change this to true on some timeline.
     feature_sampling_window: int = 2000
     dead_feature_window: int = 1000  # unless this window is larger feature sampling,
 
