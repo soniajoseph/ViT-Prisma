@@ -12,6 +12,8 @@ import torch
 import wandb
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 
+from vit_prisma.utils.saving_utils import get_version
+
 DTYPE_MAP = {
     "float32": torch.float32,
     "float64": torch.float64,
@@ -24,6 +26,7 @@ DTYPE_MAP = {
 }
 
 HfDataset = DatasetDict | Dataset | IterableDatasetDict | IterableDataset
+__version__ = get_version()
 
 @dataclass
 class VisionModelSAERunnerConfig:

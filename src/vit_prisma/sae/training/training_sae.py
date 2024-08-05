@@ -53,7 +53,7 @@ class TrainingSAEConfig(SAEConfig):
 
     @classmethod
     def from_sae_runner_config(
-        cls, cfg: LanguageModelSAERunnerConfig
+        cls, cfg: VisionModelSAERunnerConfig
     ) -> "TrainingSAEConfig":
 
         return cls(
