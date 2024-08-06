@@ -158,7 +158,7 @@ class VisionModelSAERunnerConfig:
     d_in: int = 512
     d_sae: Optional[int] = None
     b_dec_init_method: str = "geometric_median"
-    expansion_factor: int = 16
+    expansion_factor: int = 32
     activation_fn: str = "relu"  # relu, tanh-relu, topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)  # for topk
     normalize_sae_decoder: bool = False
@@ -199,22 +199,22 @@ class VisionModelSAERunnerConfig:
     train_batch_size_tokens: int = 4096
 
     ## Adam
-    adam_beta1: float = 0
+    adam_beta1: float = 0.9
     adam_beta2: float = 0.999
 
     ## Loss Function
     mse_loss_normalization: Optional[str] = None
-    l1_coefficient: float = 0.0008 # 0.00008
+    l1_coefficient: float = 0.01 # 0.00008 # doubled this from 0.00008
     lp_norm: float = 1
     scale_sparsity_penalty_by_decoder_norm: bool = False
     l1_warm_up_steps: int = 0
 
     ## Learning Rate Schedule
-    lr: float = 0.0002 # 0.0004
+    lr: float = 0.0004 # 0.0004
     lr_scheduler_name: str = (
         "constant"  # constant, cosineannealing, cosineannealingwarmrestarts
     )
-    lr_warm_up_steps: int = 5000
+    lr_warm_up_steps: int = 0
     lr_end: Optional[float] = None  # only used for cosine annealing, default is lr / 10
     lr_decay_steps: int = 0
     n_restart_cycles: int = 1  # used only for cosineannealingwarmrestarts
@@ -242,7 +242,7 @@ class VisionModelSAERunnerConfig:
     run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
     wandb_log_frequency: int = 10 #10
-    eval_every_n_wandb_logs: int = 100 #100  # logs every 1000 steps.
+    eval_every_n_wandb_logs: int = 30 #100  # logs every 1000 steps.
 
     # Misc
     resume: bool = False
@@ -491,10 +491,6 @@ def print_config_prettily(config: VisionModelSAERunnerConfig):
             print(f"{field.name:<{max_name_length}} : {value}")
 
     print("\n=== End of Configuration ===\n")
-
-# Usage:
-# config = VisionModelSAERunnerConfig()
-# print_config_prettily(config)
 
 
 @dataclass

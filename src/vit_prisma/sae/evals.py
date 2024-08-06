@@ -216,6 +216,7 @@ def get_sparsity_and_variance_metrics(
 
     for _ in range(n_batches):
         batch_tokens = activation_store.get_batch_images('val')
+        batch_tokens = batch_tokens.to(sae.device)
 
         # get cache
         _, cache = model.run_with_cache(
