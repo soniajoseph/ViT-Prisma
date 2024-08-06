@@ -9,7 +9,6 @@ import wandb
 import re
 
 
-
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
@@ -20,11 +19,28 @@ class VisionSAETrainer:
 
     def initialize_sae(self):
         return SparseAutoencoder(self.cfg)
+    
+    def load_dataset(self):
+        if self.cfg.dataset_name == 'imagenet1k':
+            # Imagenet-specific logic
+            from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+            from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms, ImageNetValidationDataset
+            data_transforms = get_imagenet_transforms()
+            imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
+            train_data = torchvision.datasets.ImageFolder(self.cfg.dataset_train_path, transform=data_transforms)
+            val_data = ImageNetValidationDataset(self.cfg.dataset_val_path, 
+                                            imagenet_paths['label_strings'], 
+                                            imagenet_paths['val_labels'], 
+                                            data_transforms
+            )
+            return train_data, val_data
+        else:
+            return print("Specify dataset name")
 
     def initialize_activations_store(self):
         # Initialize activations store here
-        activations_loader = VisionActivationsStore()
-        pass
+        activations_loader = VisionActivationsStore(self.cfg, self.model, self.dataset, self.eval_dataset)
+        return activations_loader
 
     def get_checkpoint_thresholds(self):
         if self.cfg.n_checkpoints > 0:

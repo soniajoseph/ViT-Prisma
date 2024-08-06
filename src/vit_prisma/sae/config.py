@@ -18,12 +18,17 @@ class RunnerConfig(ABC):
     hook_point_layer: int = 9
     hook_point_head_index: Optional[int] = None
     # dataset_path: str = "NeelNanda/c4-tokenized-2b"
-    is_dataset_tokenized: bool = True
     context_size: int = 50
     use_cached_activations: bool = False
     cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_point_head_index}"
     )
+
+    # Imagenet1k
+    dataset_name = 'imagenet1k' 
+    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
 
     # SAE Parameters
     d_in: int = 512

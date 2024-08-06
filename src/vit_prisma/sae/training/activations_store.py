@@ -40,7 +40,6 @@ class VisionActivationsStore:
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()
 
-        #TODO does this actually still work?
         if self.cfg.use_cached_activations:  # EDIT: load from multi-layer acts
             assert self.cfg.cached_activations_path is not None  # keep pyright happy
             # Sanity check: does the cache directory exist?
@@ -68,6 +67,7 @@ class VisionActivationsStore:
             # fill buffer half a buffer, so we can mix it with a new buffer
             self.storage_buffer = self.get_buffer(self.cfg.n_batches_in_buffer // 2)
             self.dataloader = self.get_data_loader()
+
     def get_batch_tokens_internal(self):
         """
         Streams a batch of tokens from a dataset.
@@ -101,8 +101,6 @@ class VisionActivationsStore:
                 image_data.requires_grad_(False)
                 labels.requires_grad_(False)
                 yield image_data.to(device), labels.to(device)
-
-
     
     def get_val_batch_tokens(self):
         return next(self.image_dataloader_eval_iter)
@@ -230,6 +228,7 @@ class VisionActivationsStore:
         new_buffer = new_buffer[torch.randperm(new_buffer.shape[0])]
 
         return new_buffer
+    
     def get_data_loader(
         self,
     ) -> Iterator[Any]:
@@ -265,6 +264,7 @@ class VisionActivationsStore:
         )
 
         return dataloader
+    
     def next_batch(self):
         """
         Get the next batch from the current DataLoader.
