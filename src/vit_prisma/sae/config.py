@@ -33,7 +33,7 @@ class RunnerConfig(ABC):
     store_batch_size: int = 32
     num_epochs = 2
     total_training_images = int(1_300_000*num_epochs) # To do: make this not hardcoded
-    total_training_tokens: total_training_images * context_size # Images x tokens
+    total_training_tokens: int = total_training_images * context_size # Images x tokens
 
     # Misc
     device: str | torch.device = "cpu"

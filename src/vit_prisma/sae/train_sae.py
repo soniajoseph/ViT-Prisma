@@ -5,6 +5,7 @@ from vit_prisma.training.activations_store import VisionActivationsStore
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
+from vit_prisma.sae.evals import run_evals_vision
 
 import torch
 from torch.optim import Adam
@@ -227,7 +228,7 @@ class VisionSAETrainer:
                     run_evals_vision(
                         sparse_autoencoder,
                         self.activations_store,
-                        model,
+                        self.model,
                         n_training_steps,
                         suffix=suffix,
                     )
@@ -264,6 +265,7 @@ class VisionSAETrainer:
         if len(self.checkpoint_thresholds) == 0:
             n_checkpoints = 0
         if self.cfg.log_to_wandb:
+            hyperparams = sae.cfg
             self.save_to_wandb(sae, hyperparams, path, log_feature_sparsity_path)
 
     def save_to_wandb(self, sae, hyperparams, path, log_feature_sparsity_path):
