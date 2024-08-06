@@ -24,12 +24,6 @@ class RunnerConfig(ABC):
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_point_head_index}"
     )
 
-    # Imagenet1k
-    dataset_name = 'imagenet1k' 
-    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
-    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
-    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
-
     # SAE Parameters
     d_in: int = 512
 
@@ -62,6 +56,9 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     Configuration for training a sparse autoencoder on a language model.
     """
 
+    # Logging
+    verbose: bool = True
+
     # SAE Parameters
     b_dec_init_method: str = "geometric_median"
     expansion_factor: int = 16
@@ -78,6 +75,11 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     lr_warm_up_steps: int = 5000
     train_batch_size: int = 1024*4
 
+    # Imagenet1k
+    dataset_name = 'imagenet1k' 
+    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
    
     # Resampling protocol args
     use_ghost_grads: bool = True
@@ -181,6 +183,4 @@ class CacheActivationsRunnerConfig(RunnerConfig):
         super().__post_init__()
         if self.use_cached_activations:
             # this is a dummy property in this context; only here to avoid class compatibility headaches
-            raise ValueError(
-                "use_cached_activations should be False when running cache_activations_runner"
-            )
+            raise ValueError("use_cached_activations should be False when running cache_activations_runner")
