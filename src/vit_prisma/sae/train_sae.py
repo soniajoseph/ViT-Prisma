@@ -12,8 +12,31 @@ from tqdm import tqdm
 import wandb
 import re
 
+import os
+
 import torchvision
 
+from typing import Any
+
+import uuid
+
+@staticmethod
+def wandb_log_suffix(cfg: Any, hyperparams: Any):
+# Create a mapping from cfg list keys to their corresponding hyperparams attributes
+    key_mapping = {
+        "hook_point_layer": "layer",
+        "l1_coefficient": "coeff",
+        "lp_norm": "l",
+        "lr": "lr",
+    }
+
+    # Generate the suffix by iterating over the keys that have list values in cfg
+    suffix = "".join(
+        f"_{key_mapping.get(key, key)}{getattr(hyperparams, key, '')}"
+        for key, value in vars(cfg).items()
+        if isinstance(value, list)
+    )
+    return suffix
 
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
@@ -25,12 +48,12 @@ class VisionSAETrainer:
         self.activations_store = VisionActivationsStore(self.cfg, self.model, dataset, eval_dataset)
 
         self.cfg.unique_hash = uuid.uuid4().hex[:8]  # Generate a random 8-character hex string
-        self.cfg.run_name = self.cfg.unique_hash + "_" + self.cfg.model_name
+        self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.model_name + "-expansion-" + str(self.cfg.expansion_factor)
 
         self.checkpoint_thresholds = self.get_checkpoint_thresholds()
         self.setup_checkpoint_path()
     
-    def setup_checkpoint_path():
+    def setup_checkpoint_path(self):
         self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
         os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
         print(f"Checkpoint path: {self.cfg.checkpoint_path}") if self.cfg.verbose else None
@@ -92,8 +115,9 @@ class VisionSAETrainer:
         self.sae.train()
         return geometric_medians
 
-    def train_step(self, sparse_autoencoder, optimizer, scheduler, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, layer_acts, n_training_steps):
-        hyperparams = sasparse_autoencoder.cfg
+    def train_step(self, sparse_autoencoder, optimizer, scheduler, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, 
+                   layer_acts, n_training_steps, n_training_images):
+        hyperparams = sparse_autoencoder.cfg
         layer_id = hyperparams.hook_point_layer
         sae_in = layer_acts[:, layer_id, :]
         sparse_autoencoder.train()
@@ -106,7 +130,7 @@ class VisionSAETrainer:
                 torch.log10(feature_sparsity + 1e-10).detach().cpu()
             )
 
-            if use_wandb:
+            if self.cfg.log_to_wandb:
                 suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
                 wandb_histogram = wandb.Histogram(log_feature_sparsity.numpy())
                 wandb.log(
@@ -123,10 +147,10 @@ class VisionSAETrainer:
                     step=n_training_steps,
                 )
 
-            act_freq_scores[i] = torch.zeros(
+            act_freq_scores = torch.zeros(
                 sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device
             )
-            n_frac_active_tokens[i] = 0
+            n_frac_active_tokens = 0
 
         scheduler.step()
         optimizer.zero_grad()
@@ -155,10 +179,11 @@ class VisionSAETrainer:
         with torch.no_grad():
             # Calculate the sparsities, and add it to a list, calculate sparsity metrics
             act_freq_scores += (feature_acts.abs() > 0).float().sum(0)
-            n_frac_active_tokens[i] += batch_size
-            feature_sparsity = act_freq_scores[i] / n_frac_active_tokens[i]
+            batch_size = sae_in.shape[0]
+            n_frac_active_tokens += batch_size 
+            feature_sparsity = act_freq_scores / n_frac_active_tokens
 
-            if use_wandb and ((n_training_steps + 1) % wandb_log_frequency == 0):
+            if self.cfg.log_to_wandb and ((n_training_steps + 1) % self.cfg.wandb_log_frequency == 0):
                 # metrics for currents acts
                 l0 = (feature_acts > 0).float().sum(-1).mean()
                 current_learning_rate = optimizer.param_groups[0]["lr"]
@@ -167,7 +192,7 @@ class VisionSAETrainer:
                 total_variance = (sae_in - sae_in.mean(0)).pow(2).sum(-1)
                 explained_variance = 1 - per_token_l2_loss / total_variance
 
-                suffix = wandb_log_suffix(sae.cfg, hyperparams)
+                suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
                 metrics = {
                         # losses
                         f"losses/mse_loss{suffix}": mse_loss.item(),
@@ -180,11 +205,7 @@ class VisionSAETrainer:
                         f"metrics/explained_variance_std{suffix}": explained_variance.std().item(),
                         f"metrics/l0{suffix}": l0.item(),
                         # sparsity
-                        f"sparsity/mean_passes_since_fired{suffix}": n_forward_passes_since_fired[
-                            i
-                        ]
-                        .mean()
-                        .item(),
+                        f"sparsity/mean_passes_since_fired{suffix}": n_forward_passes_since_fired.mean().item(),
                         f"sparsity/dead_features{suffix}": ghost_grad_neuron_mask.sum().item(),
                         f"details/current_learning_rate{suffix}": current_learning_rate,
                         "details/n_training_images": n_training_images,
@@ -195,17 +216,17 @@ class VisionSAETrainer:
                 )
 
             # record loss frequently, but not all the time.
-            if use_wandb and (
-                (n_training_steps + 1) % (wandb_log_frequency * 10) == 0
+            if self.cfg.log_to_wandb and (
+                (n_training_steps + 1) % (self.cfg.wandb_log_frequency * 10) == 0
             ):
                 sparse_autoencoder.eval()
-                suffix = wandb_log_suffix(sae_group.cfg, hyperparams)
+                suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
                 #TODO fix for clip!!
                 print("eval only set up for classifier models..")
                 try: 
                     run_evals_vision(
                         sparse_autoencoder,
-                        activation_store,
+                        self.activations_store,
                         model,
                         n_training_steps,
                         suffix=suffix,
@@ -218,7 +239,6 @@ class VisionSAETrainer:
         sparse_autoencoder.remove_gradient_parallel_to_decoder_directions()
         optimizer.step()
         return loss, metrics, act_freq_scores
-
 
     def log_metrics(self, sae, hyperparams, metrics, n_training_steps):
         if self.cfg.use_wandb and ((n_training_steps + 1) % self.cfg.wandb_log_frequency == 0):
@@ -285,7 +305,8 @@ class VisionSAETrainer:
             mse_loss = torch.tensor(0.0)
             l1_loss = torch.tensor(0.0)
 
-            loss, metrics, act_freq_scores = self.train_step(self.sae, optimizer, scheduler, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, layer_acts, n_training_steps)
+            loss, metrics, act_freq_scores = self.train_step(self.sae, optimizer, scheduler, act_freq_scores, n_forward_passes_since_fired, 
+                                                             n_frac_active_tokens, layer_acts, n_training_steps, n_training_images)
             self.log_metrics(self.sae, self.sae.cfg, metrics, n_training_steps)
 
             if self.cfg.n_checkpoints > 0 and n_training_images > self.checkpoint_thresholds[0]:
@@ -302,49 +323,8 @@ class VisionSAETrainer:
         self.checkpoint(self.sae, n_training_images, act_freq_scores, n_frac_active_tokens)
         print(f"Final checkpoint saved at {n_training_images} images") if self.cfg.verbose else None
 
+        pbar.close()
+
         return self.sae
 
-    # def final_checkpoint(self, n_training_images, act_freq_scores):
-    #     final_name  = self.cfg.checkpoint_path + f"/final.pt"
-    #     self.sae.set_decoder_norm_to_unit_norm()
-    #     self.sae.save_model(final_name)
-    #     if self.cfg.log_to_wandb:
-    #         suffix = self.wandb_log_suffix(self.sae.cfg, hyperparams)
-    #         name_for_log = re.sub(self.cfg.unique_hash, '_', suffix)
-    #         try:
-    #             model_artifact = wandb.Artifact(
-    #                 f"{name_for_log}",
-    #                 type="model",
-    #                 metadata=dict(sae.cfg.__dict__),
-    #             )
-    #             model_artifact.add_file(path)
-    #             wandb.log_artifact(model_artifact)
-
-    #             sparsity_artifact = wandb.Artifact(
-    #                 f"{name_for_log}_log_feature_sparsity",
-    #                 type="log_feature_sparsity",
-    #                 metadata=dict(sae.cfg.__dict__),
-    #             )
-    #             sparsity_artifact.add_file(log_feature_sparsity_path)
-    #             wandb.log_artifact(sparsity_artifact)
-    #         except:
-    #             pass
-    #     print(f"Final checkpoint saved at {n_training_images} images") if self.cfg.verbose else None
-
-    @staticmethod
-    def wandb_log_suffix(cfg: Any, hyperparams: Any):
-    # Create a mapping from cfg list keys to their corresponding hyperparams attributes
-        key_mapping = {
-            "hook_point_layer": "layer",
-            "l1_coefficient": "coeff",
-            "lp_norm": "l",
-            "lr": "lr",
-        }
-
-        # Generate the suffix by iterating over the keys that have list values in cfg
-        suffix = "".join(
-            f"_{key_mapping.get(key, key)}{getattr(hyperparams, key, '')}"
-            for key, value in vars(cfg).items()
-            if isinstance(value, list)
-        )
-        return suffix
+    

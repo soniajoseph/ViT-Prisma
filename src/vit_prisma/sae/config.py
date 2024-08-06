@@ -91,7 +91,6 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     # WANDB
     log_to_wandb: bool = True
     wandb_project: str = "mats_sae_training_language_model"
-    run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
     wandb_log_frequency: int = 10
 
@@ -106,10 +105,6 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         self.tokens_per_buffer = (
             self.train_batch_size * self.context_size * self.n_batches_in_buffer
         )
-
-        if self.run_name is None:
-            self.run_name = f'Exp-{self.expansion_factor}-{self.d_sae}-L1-{self.l1_coefficient}-LR-{self.lr}-Tokens-{self.total_training_tokens:3.3e}"
-
         if self.b_dec_init_method not in ["geometric_median", "mean", "zeros"]:
             raise ValueError(
                 f"b_dec_init_method must be geometric_median, mean, or zeros. Got {self.b_dec_init_method}"
@@ -121,14 +116,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
         self.device = torch.device(self.device)
 
-        unique_id = cast(
-            Any, wandb
-        ).util.generate_id()  # not sure why this type is erroring
-        self.checkpoint_path = f"{self.checkpoint_path}/{unique_id}"
 
-        print(
-            f"Run name: {self.run_name}"
-        )
         # Print out some useful info:
         n_tokens_per_buffer = (
             self.store_batch_size * self.context_size * self.n_batches_in_buffer
@@ -163,24 +151,22 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         )
         # print("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
         print(
-            f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}"
-        )
+            f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}")
 
+
+from dataclasses import dataclass;
 
 @dataclass
 class CacheActivationsRunnerConfig(RunnerConfig):
-    """
-    Configuration for caching activations of an LLM.
-    """
+    """Configuration for caching activations of an LLM.""";
 
     # Activation caching stuff
-    shuffle_every_n_buffers: int = 10
-    n_shuffles_with_last_section: int = 10
-    n_shuffles_in_entire_dir: int = 10
-    n_shuffles_final: int = 100
+    shuffle_every_n_buffers: int = 10;
+    n_shuffles_with_last_section: int = 10;
+    n_shuffles_in_entire_dir: int = 10;
+    n_shuffles_final: int = 100;
 
     def __post_init__(self):
-        super().__post_init__()
+        super().__post_init__();
         if self.use_cached_activations:
-            # this is a dummy property in this context; only here to avoid class compatibility headaches
-            raise ValueError("use_cached_activations should be False when running cache_activations_runner")
+            raise ValueError("Use_cached_activations should be False when running cache_activations_runner");
