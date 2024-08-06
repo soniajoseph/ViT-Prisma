@@ -14,10 +14,9 @@ from torch import nn
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.prisma_tools.hook_point import HookPoint
 
-
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
-from sae.language.geom_median.src.geom_median.torch import compute_geometric_median
+from vit_prisma.sae.training.geometric_median import compute_geometric_median # Note: this is the SAE Lens 3 version, not SAE Lens 2 version
 
 
 class SparseAutoencoder(HookedRootModule):

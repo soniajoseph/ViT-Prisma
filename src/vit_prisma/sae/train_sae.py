@@ -1,5 +1,7 @@
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
+from vit_prisma.sae.sae import SparseAutoencoder
+
 import torch
 from torch.optim import Adam
 from tqdm import tqdm
@@ -7,21 +9,21 @@ import wandb
 import re
 
 
+
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
         self.model = load_model(cfg.model_class_name, cfg.model_name)
-        self.sae_group = self.initialize_sae()
+        self.sae = self.initialize_sae()
         self.activations_store = self.initialize_activations_store()
-        self.total_training_steps = self.cfg.total_training_tokens // self.cfg.batch_size
         self.checkpoint_thresholds = self.get_checkpoint_thresholds()
 
     def initialize_sae(self):
-        # Initialize SAE group here
-        pass
+        return SparseAutoencoder(self.cfg)
 
     def initialize_activations_store(self):
         # Initialize activations store here
+        activations_loader = VisionActivationsStore()
         pass
 
     def get_checkpoint_thresholds(self):
