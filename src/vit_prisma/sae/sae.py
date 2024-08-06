@@ -10,7 +10,9 @@ from typing import Any
 import einops
 import torch
 from torch import nn
-from transformer_lens.hook_points import HookedRootModule, HookPoint
+
+from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
+from vit_prisma.prisma_tools.hook_point import HookPoint
 
 
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
