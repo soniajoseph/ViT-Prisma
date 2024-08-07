@@ -24,12 +24,14 @@ def get_imagenet_index_to_name(imagenet_path):
 
     return ind_to_name
 
-def get_imagenet_transforms(size=224):
+def get_imagenet_transforms_clip(model_name, size=224):
+    from transformers import CLIPProcessor
+    clip_processor = CLIPProcessor.from_pretrained(model_name)
     return transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                             std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=clip_processor.image_processor.image_mean,
+                         std=clip_processor.image_processor.image_std),
     ])
 
 class ImageNetValidationDataset(torch.utils.data.Dataset):

@@ -2,8 +2,9 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Optional, cast
 
+from dataclasses import fields
+
 import torch
-import wandb
 
 
 @dataclass
@@ -13,11 +14,10 @@ class RunnerConfig(ABC):
     """
 
     # Data Generating Function (Model + Training Distibuion)
-    model_classs_name: str = "HookedViT"
+    model_class_name: str = "HookedViT"
     model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
     hook_point_layer: int = 9
     hook_point_head_index: Optional[int] = None
-    # dataset_path: str = "NeelNanda/c4-tokenized-2b"
     context_size: int = 50
     use_cached_activations: bool = False
     cached_activations_path: Optional[str] = (
@@ -29,10 +29,11 @@ class RunnerConfig(ABC):
 
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
-
     store_batch_size: int = 32
-    num_epochs = 2
-    total_training_images = int(1_300_000*num_epochs) # To do: make this not hardcoded
+
+    # Training length parameters
+    num_epochs: 2
+    total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
     total_training_tokens: int = total_training_images * context_size # Images x tokens
 
     # Misc
@@ -48,6 +49,16 @@ class RunnerConfig(ABC):
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
             if self.hook_point_head_index is not None:
                 self.cached_activations_path += f"_{self.hook_point_head_index}"
+
+    def pretty_print(self):
+        print("Configuration:")
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if isinstance(value, torch.dtype):
+                value = str(value).split('.')[-1]  # Convert torch.dtype to string
+            elif isinstance(value, torch.device):
+                value = str(value)  # Convert torch.device to string
+            print(f"  {field.name}: {value}")
 
 
 @dataclass
@@ -73,6 +84,8 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         "constantwithwarmup"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     )
     lr_warm_up_steps: int = 5000
+
+    
     train_batch_size: int = 1024*4
 
     # Imagenet1k
@@ -92,7 +105,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     log_to_wandb: bool = True
     wandb_project: str = "mats_sae_training_language_model"
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 10
+    wandb_log_frequency: int = 100
 
     # Misc
     n_checkpoints: int = 2
@@ -127,15 +140,17 @@ class VisionModelSAERunnerConfig(RunnerConfig):
             f"Lower bound: n_contexts_per_buffer (millions): {n_contexts_per_buffer / 10 **6}"
         )
 
-        total_training_steps = self.total_training_tokens // self.train_batch_size
-        print(f"Total training steps: {total_training_steps}")
+        self.total_training_steps = self.total_training_tokens // self.train_batch_size
+        print(f"Total training steps: {self.total_training_steps}")
 
-        total_wandb_updates = total_training_steps // self.wandb_log_frequency
+        print(f"Total training images: {self.total_training_images}")
+
+        total_wandb_updates = self.total_training_steps // self.wandb_log_frequency
         print(f"Total wandb updates: {total_wandb_updates}")
 
         # how many times will we sample dead neurons?
         # assert self.dead_feature_window <= self.feature_sampling_window, "dead_feature_window must be smaller than feature_sampling_window"
-        n_feature_window_samples = total_training_steps // self.feature_sampling_window
+        n_feature_window_samples = self.total_training_steps // self.feature_sampling_window
         print(
             f"n_tokens_per_feature_sampling_window (millions): {(self.feature_sampling_window * self.context_size * self.train_batch_size) / 10 **6}"
         )

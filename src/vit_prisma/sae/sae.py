@@ -157,9 +157,7 @@ class SparseAutoencoder(HookedRootModule):
 
     @torch.no_grad()
     def initialize_b_dec_with_precalculated(self, origin: torch.Tensor):
-
         out = torch.tensor(origin, dtype=self.dtype, device=self.device)
-      
         self.b_dec.data = out
 
     @torch.no_grad()
