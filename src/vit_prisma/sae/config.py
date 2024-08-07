@@ -32,7 +32,7 @@ class RunnerConfig(ABC):
     store_batch_size: int = 32
 
     # Training length parameters
-    num_epochs: 2
+    num_epochs: int = 2
     total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
     total_training_tokens: int = total_training_images * context_size # Images x tokens
 
@@ -105,10 +105,10 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     log_to_wandb: bool = True
     wandb_project: str = "mats_sae_training_language_model"
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 100
+    wandb_log_frequency: int = 10
 
     # Misc
-    n_checkpoints: int = 2
+    n_checkpoints: int = 5
     checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints"
 
     def __post_init__(self):
