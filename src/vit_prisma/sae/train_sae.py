@@ -17,6 +17,8 @@ import os
 
 import torchvision
 
+import numpy as np
+
 from typing import Any, cast
 
 import uuid
@@ -134,7 +136,7 @@ class VisionSAETrainer:
         return geometric_medians
     
     def train_step(self, sparse_autoencoder, optimizer, scheduler, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, 
-               layer_acts, n_training_steps, n_training_images):
+               layer_acts, n_training_steps, n_training_tokens):
     
         hyperparams = sparse_autoencoder.cfg
 
@@ -177,7 +179,7 @@ class VisionSAETrainer:
 
             if self.cfg.log_to_wandb and ((n_training_steps + 1) % self.cfg.wandb_log_frequency == 0):
                 self._log_metrics(sparse_autoencoder, hyperparams, optimizer, sae_in, sae_out, n_forward_passes_since_fired, 
-                                ghost_grad_neuron_mask, mse_loss, l1_loss, ghost_grad_loss, loss, l0, n_training_steps, n_training_images)
+                                ghost_grad_neuron_mask, mse_loss, l1_loss, ghost_grad_loss, loss, l0, n_training_steps, n_training_tokens)
 
             if self.cfg.log_to_wandb and ((n_training_steps + 1) % (self.cfg.wandb_log_frequency * 10) == 0):
                 self._run_evals(sparse_autoencoder, hyperparams, n_training_steps)
@@ -188,22 +190,71 @@ class VisionSAETrainer:
         
         return loss, mse_loss, l1_loss, l0, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens
 
+    # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
+    #     suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
+    #     wandb_histogram = wandb.Histogram(log_feature_sparsity.numpy())
+    #     wandb.log({
+    #         f"metrics/mean_log10_feature_sparsity{suffix}": log_feature_sparsity.mean().item(),
+    #         f"plots/feature_density_line_chart{suffix}": wandb_histogram,
+    #         f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
+    #         f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
+    #     }, step=n_training_steps)
+
     def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
         suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
-        wandb_histogram = wandb.Histogram(log_feature_sparsity.numpy())
+        
+        # Original feature-level sparsity calculations
+        log_sparsity_np = log_feature_sparsity.detach().cpu().numpy()
+        log_sparsity_histogram = wandb.Histogram(log_sparsity_np)
+        
+        # Calculate 1/sparsity values for feature-level
+        inverse_sparsity_np = 10 ** (-log_sparsity_np)
+        hist, bin_edges = np.histogram(np.log10(inverse_sparsity_np), bins=50)
+        total_tokens = len(inverse_sparsity_np)
+        proportion = hist / total_tokens
+        x_labels = 10 ** ((bin_edges[:-1] + bin_edges[1:]) / 2)
+        
+        # Create custom wandb chart for inverse feature-level sparsity
+        data = [[x, y] for (x, y) in zip(x_labels, proportion)]
+        table = wandb.Table(data=data, columns=["1/Sparsity", "Proportion of Tokens"])
+        inverse_sparsity_chart = wandb.plot.bar(table, 
+                                                "1/Sparsity", 
+                                                "Proportion of Tokens",
+                                                title="Inverse Feature Density Distribution")
+
+        # New image-level sparsity calculations
+        n_images = feature_sparsity.shape[0] // self.cfg.context_size
+        reshaped_sparsity = feature_sparsity.view(n_images, self.cfg.context_size, -1)
+        per_image_sparsity = reshaped_sparsity.mean(dim=(1, 2))
+        per_image_log_sparsity = torch.log10(per_image_sparsity)
+        per_image_log_sparsity_np = per_image_log_sparsity.detach().cpu().numpy()
+
+        # Create wandb Histogram for image-level log sparsity (matching original format)
+        image_log_sparsity_histogram = wandb.Histogram(per_image_log_sparsity_np)
+
         wandb.log({
+            # Original metrics
             f"metrics/mean_log10_feature_sparsity{suffix}": log_feature_sparsity.mean().item(),
-            f"plots/feature_density_line_chart{suffix}": wandb_histogram,
+            f"plots/log_feature_density_histogram{suffix}": log_sparsity_histogram,
+            f"plots/inverse_feature_density_histogram{suffix}": inverse_sparsity_chart,
             f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
             f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
+            
+            # New image-level metrics
+            f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+            f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+            f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+            f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
         }, step=n_training_steps)
 
     def _log_metrics(self, sparse_autoencoder, hyperparams, optimizer, sae_in, sae_out, n_forward_passes_since_fired, 
-                    ghost_grad_neuron_mask, mse_loss, l1_loss, ghost_grad_loss, loss, l0, n_training_steps, n_training_images):
+                    ghost_grad_neuron_mask, mse_loss, l1_loss, ghost_grad_loss, loss, l0, n_training_steps, n_training_tokens):
         current_learning_rate = optimizer.param_groups[0]["lr"]
         per_token_l2_loss = (sae_out - sae_in).pow(2).sum(dim=-1).squeeze()
         total_variance = (sae_in - sae_in.mean(0)).pow(2).sum(-1)
         explained_variance = 1 - per_token_l2_loss / total_variance
+
+        n_training_images = n_training_tokens // self.cfg.context_size
 
         suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
         metrics = {
@@ -217,6 +268,7 @@ class VisionSAETrainer:
             f"sparsity/mean_passes_since_fired{suffix}": n_forward_passes_since_fired.mean().item(),
             f"sparsity/dead_features{suffix}": ghost_grad_neuron_mask.sum().item(),
             f"details/current_learning_rate{suffix}": current_learning_rate,
+            "details/n_training_tokens": n_training_tokens,
             "details/n_training_images": n_training_images,
         }
         wandb.log(metrics, step=n_training_steps)
@@ -366,7 +418,7 @@ class VisionSAETrainer:
 
     def log_metrics(self, sae, hyperparams, metrics, n_training_steps):
         if self.cfg.log_to_wandb and ((n_training_steps + 1) % self.cfg.wandb_log_frequency == 0):
-            suffix = self.wandb_log_suffix(self.cfg, hyperparams)
+            suffix = wandb_log_suffix(self.cfg, hyperparams)
             wandb.log(metrics, step=n_training_steps)
 
     def checkpoint(self, sae, n_training_images, act_freq_scores, n_frac_active_tokens):
@@ -377,7 +429,7 @@ class VisionSAETrainer:
         sae.save_model(path)
 
         # Save log feature sparsity
-        log_feature_sparsity_path = self.cfg.checkpoint_path + f"/n_images_{self.cfg.n_training_images}_log_feature_sparsity.pt"
+        log_feature_sparsity_path = self.cfg.checkpoint_path + f"/n_images_{n_training_images}_log_feature_sparsity.pt"
         feature_sparsity = (
             act_freq_scores / n_frac_active_tokens
         )
@@ -392,7 +444,7 @@ class VisionSAETrainer:
             self.save_to_wandb(sae, hyperparams, path, log_feature_sparsity_path)
 
     def save_to_wandb(self, sae, hyperparams, path, log_feature_sparsity_path):
-        suffix = self.wandb_log_suffix(sae.cfg, hyperparams)
+        suffix = wandb_log_suffix(sae.cfg, hyperparams)
         name_for_log = re.sub(self.cfg.unique_hash, '_', suffix)
         try:
             model_artifact = wandb.Artifact(
@@ -423,10 +475,10 @@ class VisionSAETrainer:
         print("Starting training") if self.cfg.verbose else None
 
         n_training_steps = 0
-        n_training_images = 0
+        n_training_tokens = 0
         
         pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE")        
-        while n_training_images < self.cfg.total_training_images:
+        while n_training_tokens < self.cfg.total_training_tokens:
             layer_acts = self.activations_store.next_batch()
 
             # init these here to avoid uninitialized vars
@@ -444,13 +496,12 @@ class VisionSAETrainer:
             n_forward_passes_since_fired=n_forward_passes_since_fired,
             n_frac_active_tokens=n_frac_active_tokens)
 
-
             n_training_steps += 1
-            n_training_images += self.cfg.train_batch_size
+            n_training_tokens += self.cfg.train_batch_size
 
-            if self.cfg.n_checkpoints > 0 and n_training_images > self.checkpoint_thresholds[0]:
-                self.checkpoint(self.sae, n_training_images, act_freq_scores, n_frac_active_tokens)
-                print(f"Checkpoint saved at {n_training_images} images") if self.cfg.verbose else None
+            if self.cfg.n_checkpoints > 0 and n_training_tokens > self.checkpoint_thresholds[0]:
+                self.checkpoint(self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens)
+                print(f"Checkpoint saved at {n_training_tokens} tokens") if self.cfg.verbose else None
 
             pbar.update(self.cfg.train_batch_size)
         
@@ -458,8 +509,8 @@ class VisionSAETrainer:
                 f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}")
         
         # Final checkpoint
-        self.checkpoint(self.sae, n_training_images, act_freq_scores, n_frac_active_tokens)
-        print(f"Final checkpoint saved at {n_training_images} images") if self.cfg.verbose else None
+        self.checkpoint(self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens)
+        print(f"Final checkpoint saved at {n_training_tokens} tokens") if self.cfg.verbose else None
 
         pbar.close()
 

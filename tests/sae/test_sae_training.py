@@ -1,9 +1,8 @@
-from vit_prisma.sae.sae_training_runner import SAETrainingRunner
-
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
+from vit_prisma.sae.train_sae import VisionSAETrainer
 
 cfg = VisionModelSAERunnerConfig()
+print("Config created")
 
-runner = SAETrainingRunner(cfg)
-
-runner.run()
+trainer = VisionSAETrainer(cfg)
+sae = trainer.run()

@@ -77,13 +77,13 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     d_sae: Optional[int] = None
 
     # Training Parameters
-    l1_coefficient: float = 0.00008
+    l1_coefficient: float = 0.00016 # 0.00008
     lp_norm: float = 1
-    lr: float = 0.0004
+    lr: float = 0.0008
     lr_scheduler_name: str = (
-        "constantwithwarmup"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
+        "cosineannealing"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     )
-    lr_warm_up_steps: int = 5000
+    lr_warm_up_steps: int = 0
 
     
     train_batch_size: int = 1024*4
@@ -96,7 +96,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
    
     # Resampling protocol args
     use_ghost_grads: bool = True
-    feature_sampling_window: int = 1000
+    feature_sampling_window: int = 50
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8
@@ -108,7 +108,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     wandb_log_frequency: int = 10
 
     # Misc
-    n_checkpoints: int = 5
+    n_checkpoints: int = 10
     checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints"
 
     def __post_init__(self):
