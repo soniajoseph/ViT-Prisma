@@ -8,21 +8,26 @@ from torchvision import transforms
 
 import json
 
-def get_imagenet_index_to_name(imagenet_path):
+def get_imagenet_index_to_name(imagenet_path=None):
     ind_to_name = {}
 
-    json_file_path = os.path.join(imagenet_path, "imagenet_index.json")
-    
-    with open(json_file_path, 'r') as file:
-        index_data = json.load(file)
+    if imagenet_path:
+        json_file_path = os.path.join(imagenet_path, "imagenet_index.json")
         
-        for index, item in index_data.items():
-            # Assuming the JSON structure is like {"0": ["n01440764", "tench"], ...}
-            # where the first element is the synset ID and the second is the class name
-            class_name = item[1]
-            ind_to_name[int(index)] = class_name
+    
+        with open(json_file_path, 'r') as file:
+            index_data = json.load(file)
+            
+            for index, item in index_data.items():
+                # Assuming the JSON structure is like {"0": ["n01440764", "tench"], ...}
+                # where the first element is the synset ID and the second is the class name
+                class_name = item[1]
+                ind_to_name[int(index)] = class_name
 
-    return ind_to_name
+        return ind_to_name
+    else:
+        from vit_prisma.dataloaders.imagenet_index import imagenet_index
+        return imagenet_index
 
 def get_imagenet_transforms_clip(model_name, size=224):
     from transformers import CLIPProcessor
