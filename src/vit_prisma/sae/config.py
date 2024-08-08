@@ -77,7 +77,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     d_sae: Optional[int] = None
 
     # Training Parameters
-    l1_coefficient: float = 0.00016 # 0.00008
+    l1_coefficient: float = 0.0002 # 0.00008
     lp_norm: float = 1
     lr: float = 0.0008
     lr_scheduler_name: str = (
@@ -96,7 +96,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
    
     # Resampling protocol args
     use_ghost_grads: bool = True
-    feature_sampling_window: int = 50
+    feature_sampling_window: int = 100 # 1000
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8
@@ -105,7 +105,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     log_to_wandb: bool = True
     wandb_project: str = "mats_sae_training_language_model"
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 10
+    wandb_log_frequency: int = 30
 
     # Misc
     n_checkpoints: int = 10

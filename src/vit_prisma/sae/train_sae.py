@@ -207,24 +207,31 @@ class VisionSAETrainer:
         log_sparsity_np = log_feature_sparsity.detach().cpu().numpy()
         log_sparsity_histogram = wandb.Histogram(log_sparsity_np)
         
-        # Calculate 1/sparsity values for feature-level
-        inverse_sparsity_np = 10 ** (-log_sparsity_np)
-        hist, bin_edges = np.histogram(np.log10(inverse_sparsity_np), bins=50)
-        total_tokens = len(inverse_sparsity_np)
-        proportion = hist / total_tokens
-        x_labels = 10 ** ((bin_edges[:-1] + bin_edges[1:]) / 2)
+        # # Calculate 1/sparsity values for feature-level
+        # inverse_sparsity_np = 10 ** (-log_sparsity_np)
+        # hist, bin_edges = np.histogram(np.log10(inverse_sparsity_np), bins=50)
+        # total_tokens = len(inverse_sparsity_np)
+        # proportion = hist / total_tokens
+        # x_labels = 10 ** ((bin_edges[:-1] + bin_edges[1:]) / 2)
         
-        # Create custom wandb chart for inverse feature-level sparsity
-        data = [[x, y] for (x, y) in zip(x_labels, proportion)]
-        table = wandb.Table(data=data, columns=["1/Sparsity", "Proportion of Tokens"])
-        inverse_sparsity_chart = wandb.plot.bar(table, 
-                                                "1/Sparsity", 
-                                                "Proportion of Tokens",
-                                                title="Inverse Feature Density Distribution")
+        # # Create custom wandb chart for inverse feature-level sparsity
+        # data = [[x, y] for (x, y) in zip(x_labels, proportion)]
+        # table = wandb.Table(data=data, columns=["1/Sparsity", "Proportion of Tokens"])
+        # inverse_sparsity_chart = wandb.plot.bar(table, 
+        #                                         "1/Sparsity", 
+        #                                         "Proportion of Tokens",
+        #                                         title="Inverse Feature Density Distribution")
 
-        # New image-level sparsity calculations
-        n_images = feature_sparsity.shape[0] // self.cfg.context_size
-        reshaped_sparsity = feature_sparsity.view(n_images, self.cfg.context_size, -1)
+         # New image-level sparsity calculations
+        total_tokens = feature_sparsity.shape[0]
+        n_features = feature_sparsity.shape[1] if len(feature_sparsity.shape) > 1 else 1
+        
+        # Adjust total_tokens to discard remainder, but don't exceed original value
+        remainder = total_tokens % self.cfg.context_size
+        total_tokens_adjusted = total_tokens - remainder
+
+        n_images = total_tokens_adjusted // self.cfg.context_size
+        reshaped_sparsity = feature_sparsity[:total_tokens_adjusted].view(n_images, self.cfg.context_size, n_features)
         per_image_sparsity = reshaped_sparsity.mean(dim=(1, 2))
         per_image_log_sparsity = torch.log10(per_image_sparsity)
         per_image_log_sparsity_np = per_image_log_sparsity.detach().cpu().numpy()
@@ -236,7 +243,7 @@ class VisionSAETrainer:
             # Original metrics
             f"metrics/mean_log10_feature_sparsity{suffix}": log_feature_sparsity.mean().item(),
             f"plots/log_feature_density_histogram{suffix}": log_sparsity_histogram,
-            f"plots/inverse_feature_density_histogram{suffix}": inverse_sparsity_chart,
+            # f"plots/inverse_feature_density_histogram{suffix}": inverse_sparsity_chart,
             f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
             f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
             
@@ -421,10 +428,12 @@ class VisionSAETrainer:
             suffix = wandb_log_suffix(self.cfg, hyperparams)
             wandb.log(metrics, step=n_training_steps)
 
-    def checkpoint(self, sae, n_training_images, act_freq_scores, n_frac_active_tokens):
+    def checkpoint(self, sae, n_training_tokens, act_freq_scores, n_frac_active_tokens):
         # NOTE fix htis code to not be sae groups anymore
         # path = f"{sae_group.cfg.checkpoint_path}/{n_training_images}_{sae_group.get_name()}.pt"
-        path = self.cfg.checkpoint_path + f"/{n_training_images}.pt"
+
+        n_training_images = n_training_tokens // self.cfg.context_size
+        path = self.cfg.checkpoint_path + f"/n_images_{n_training_images}.pt"
         sae.set_decoder_norm_to_unit_norm()
         sae.save_model(path)
 
@@ -491,7 +500,7 @@ class VisionSAETrainer:
             scheduler=scheduler,
             layer_acts=layer_acts,
             n_training_steps=n_training_steps,
-            n_training_images=n_training_images,
+            n_training_tokens=n_training_tokens,
             act_freq_scores=act_freq_scores,
             n_forward_passes_since_fired=n_forward_passes_since_fired,
             n_frac_active_tokens=n_frac_active_tokens)
