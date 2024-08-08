@@ -8,6 +8,15 @@ from torchvision import transforms
 
 import json
 
+def extract_and_parse_text_labels(imagenet_index):
+    text_labels = []
+    for value in imagenet_index.values():
+        if isinstance(value, list) and len(value) > 1:
+            # Extract the label, replace underscores with spaces, and capitalize each word
+            parsed_label = ' '.join(word.capitalize() for word in value[1].replace('_', ' ').split())
+            text_labels.append(parsed_label)
+    return text_labels
+
 def get_imagenet_index_to_name(imagenet_path=None):
     ind_to_name = {}
 
@@ -28,6 +37,10 @@ def get_imagenet_index_to_name(imagenet_path=None):
     else:
         from vit_prisma.dataloaders.imagenet_index import imagenet_index
         return imagenet_index
+
+def get_imagenet_text_labels():
+    from vit_prisma.dataloaders.imagenet_index import imagenet_index
+    return extract_and_parse_text_labels(imagenet_index)
 
 def get_imagenet_transforms_clip(model_name, size=224):
     from transformers import CLIPProcessor
