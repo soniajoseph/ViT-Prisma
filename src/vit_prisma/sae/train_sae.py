@@ -185,6 +185,10 @@ class VisionSAETrainer:
                 self._run_evals(sparse_autoencoder, hyperparams, n_training_steps)
 
         loss.backward()
+        
+        if self.cfg.max_grad_norm: # Gradient clipping 
+            torch.nn.utils.clip_grad_norm_(sparse_autoencoder.parameters(), max_norm=self.cfg.max_grad_norm)
+
         sparse_autoencoder.remove_gradient_parallel_to_decoder_directions()
         optimizer.step()
         

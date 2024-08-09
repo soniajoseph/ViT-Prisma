@@ -18,6 +18,8 @@ from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median # Note: this is the SAE Lens 3 version, not SAE Lens 2 version
 
+import math
+
 
 class SparseAutoencoder(HookedRootModule):
     """ """
@@ -39,26 +41,27 @@ class SparseAutoencoder(HookedRootModule):
         self.lp_norm = cfg.lp_norm
         self.dtype = cfg.dtype
         self.device = cfg.device
+        self.initialization_method = cfg.initialization_method
 
-        # NOTE: if using resampling neurons method, you must ensure that we initialise the weights in the order W_enc, b_enc, W_dec, b_dec
-        self.W_enc = nn.Parameter(
-            torch.nn.init.kaiming_uniform_(
-                torch.empty(self.d_in, self.d_sae, dtype=self.dtype, device=self.device)
+        # Initialize weights based on the chosen method
+        if self.initialization_method == "independent":
+            self.W_dec = nn.Parameter(
+                self.initialize_weights(self.d_sae, self.d_in)
             )
-        )
+            self.W_enc = nn.Parameter(
+                self.initialize_weights(self.d_in, self.d_sae)
+            )
+        elif self.initialization_method == "encoder_transpose_decoder":
+            self.W_dec = nn.Parameter(
+                self.initialize_weights(self.d_sae, self.d_in)
+            )
+            self.W_enc = nn.Parameter(self.W_dec.data.t().clone())
+        else:
+            raise ValueError(f"Unknown initialization method: {self.initialization_method}")
+
         self.b_enc = nn.Parameter(
             torch.zeros(self.d_sae, dtype=self.dtype, device=self.device)
         )
-
-        self.W_dec = nn.Parameter(
-            torch.nn.init.kaiming_uniform_(
-                torch.empty(self.d_sae, self.d_in, dtype=self.dtype, device=self.device)
-            )
-        )
-
-        with torch.no_grad():
-            # Anthropic normalize this to have unit columns
-            self.W_dec.data /= torch.norm(self.W_dec.data, dim=1, keepdim=True)
 
         self.b_dec = nn.Parameter(
             torch.zeros(self.d_in, dtype=self.dtype, device=self.device)
@@ -69,10 +72,34 @@ class SparseAutoencoder(HookedRootModule):
         self.hook_hidden_post = HookPoint()
         self.hook_sae_out = HookPoint()
 
-
         self.zero_loss = None
 
         self.setup()  # Required for `HookedRootModule`s
+
+    def initialize_weights(self, out_features, in_features):
+        """
+        Initialize weights for the Sparse Autoencoder.
+        
+        This function uses Kaiming uniform initialization and then normalizes
+        the weights to have unit norm along the output dimension.
+        
+        Args:
+        out_features (int): Number of output features
+        in_features (int): Number of input features
+        
+        Returns:
+        torch.Tensor: Initialized weight matrix
+        """
+        weight = torch.empty(out_features, in_features, dtype=self.dtype, device=self.device)
+        
+        # Kaiming uniform initialization
+        nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+        
+        # Normalize to unit norm along output dimension
+        with torch.no_grad():
+            weight /= torch.norm(weight, dim=1, keepdim=True)
+        
+        return weight
 
 
     from line_profiler import profile

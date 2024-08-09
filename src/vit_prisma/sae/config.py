@@ -27,12 +27,16 @@ class RunnerConfig(ABC):
     # SAE Parameters
     d_in: int = 512
 
+    # New changes
+    max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
+    initialization_method: str = "encoder_transpose_decoder" # or independent
+
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
     store_batch_size: int = 32
 
     # Training length parameters
-    num_epochs: int = 2
+    num_epochs: int = 1
     total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
     total_training_tokens: int = total_training_images * context_size # Images x tokens
 
@@ -68,7 +72,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     """
 
     # Logging
-    verbose: bool = True
+    verbose: bool = False
 
     # SAE Parameters
     b_dec_init_method: str = "geometric_median"
@@ -103,7 +107,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
     # WANDB
     log_to_wandb: bool = True
-    wandb_project: str = "mats_sae_training_language_model"
+    wandb_project: str = "tinyclip_sae_16_hyperparam_sweep_lr"
     wandb_entity: Optional[str] = None
     wandb_log_frequency: int = 30
 
@@ -167,6 +171,14 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         # print("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
         print(
             f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}")
+        
+        if self.max_grad_norm:
+            print(f"Gradient clipping with max_norm={self.max_grad_norm}")
+        
+        # Print initialization method
+        print(
+            f"Using SAE initialization method: {self.initialization_method}"
+        )
 
 
 from dataclasses import dataclass;
