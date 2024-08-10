@@ -262,7 +262,7 @@ class EvaluationRunner(EvalConfig):
 
     def visualize_sparsities(log_freq, conditions, condition_texts, name):
         # Visualise sparsities for each instance
-        hist(
+        self.hist(
             log_freq,
             f"{name}_frequency_histogram",
             show=True,
@@ -297,22 +297,150 @@ class EvaluationRunner(EvalConfig):
         condition_texts[-2] = condition_texts[-2].replace('-inf', '-∞')
         condition_texts[-1] = condition_texts[-1].replace('inf', '∞')
 
-        visualize_sparsities(log_freq, conditions, condition_texts, "TOTAL")
+        self.visualize_sparsities(log_freq, conditions, condition_texts, "TOTAL")
 
+    def get_reconstruction_loss(
+        images,
+        model,
+        autoencoder,
+    ):
+        '''
+        Returns the reconstruction loss of each autoencoder instance on the given batch of tokens (i.e.
+        the L2 loss between the activations and the autoencoder's reconstructions, averaged over all tokens).
+        '''
+
+        logits, cache = model.run_with_cache(images, names_filter=[sparse_autoencoder.cfg.hook_point])
+        sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid = sparse_autoencoder(
+            cache[sparse_autoencoder.cfg.hook_point]
+        )
+
+        # Print out the avg L2 norm of activations
+        print("Avg L2 norm of acts: ", cache[sparse_autoencoder.cfg.hook_point].pow(2).mean().item())
+
+        # Print out the cosine similarity between original neuron activations & reconstructions (averaged over neurons)
+        print("Avg cos sim of neuron reconstructions: ", torch.cosine_similarity(einops.rearrange( cache[sparse_autoencoder.cfg.hook_point], "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                                einops.rearrange( sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                                    dim=0).mean(-1).tolist())
+        print("l1", l1_loss.sum().item())
+        return mse_loss.item()        
     
+    def sample_reconstruction_loss(
+            self
+    ):
+        print("Calculating sample reconstruction loss")
+        this_max = 4
+        count = 0
+        for batch_idx, (total_images, total_labels, total_indices) in enumerate(val_dataloader):
+                total_images = total_images.to(cfg.device)
+                reconstruction_loss = self.get_reconstruction_loss(total_images, model, sparse_autoencoder)
+                print("mse", reconstruction_loss)
+                if batch_idx >= this_max:
+                    break
+
+    def get_text_embeddings(model_name, original_text, batch_size=32):
+        vanilla_model = CLIPModel.from_pretrained(model_name)
+        
+        processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
+
+        # Split the text into batches
+        text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
+
+        all_embeddings = []
+
+        for batch in text_batches:
+            inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
+            # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+
+            with torch.no_grad():
+                text_embeddings = vanilla_model.get_text_features(**inputs)
+
+            text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+            all_embeddings.append(text_embeddings)
+
+        # Concatenate all batches
+        final_embeddings = torch.cat(all_embeddings, dim=0)
+
+        return final_embeddings
+
+
+
+    def get_similarity(image_features, text_features, k=5, device='cuda'):
+        image_features = image_features.to(device)
+        text_features = text_features.to(device)
+
+        softmax_values = (image_features @ text_features.T).softmax(dim=-1)
+        top_k_values, top_k_indices = torch.topk(softmax_values, k, dim=-1)
+        return softmax_values, top_k_indices
+
+    @torch.no_grad()
+    def get_substitution_loss(
+        sparse_autoencoder: SparseAutoencoder,
+        model: HookedViT,
+        batch_tokens: torch.Tensor,
+        gt_labels: torch.Tensor,
+        all_labels: List[str],
+        text_embeddings: torch.Tensor,
+        device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    ):
+        # Move model to device if it's not already there
+        model = model.to(device)
+        
+        # Move all tensors to the same device
+        batch_tokens = batch_tokens.to(device)
+        gt_labels = gt_labels.to(device)
+        text_embeddings = text_embeddings.to(device)
+
+        # Get image embeddings
+        image_embeddings, _ = model.run_with_cache(batch_tokens)
+
+        # Calculate similarity scores
+        softmax_values, top_k_indices = get_similarity(image_embeddings, text_embeddings, device=device)
+
+        # Calculate cross-entropy loss
+        loss = F.cross_entropy(softmax_values, gt_labels)
+        # Safely extract the loss value
+        loss_value = loss.item() if torch.isfinite(loss).all() else float('nan')
+
+
+        head_index = sparse_autoencoder.cfg.hook_point_head_index
+        hook_point = sparse_autoencoder.cfg.hook_point
+
+        def standard_replacement_hook(activations: torch.Tensor, hook: Any):
+            activations = sparse_autoencoder.forward(activations)[0].to(activations.dtype)
+            return activations
+
+        def head_replacement_hook(activations: torch.Tensor, hook: Any):
+            new_activations = sparse_autoencoder.forward(activations[:, :, head_index])[0].to(activations.dtype)
+            activations[:, :, head_index] = new_activations
+            return activations
+
+        replacement_hook = standard_replacement_hook if head_index is None else head_replacement_hook
+
+        recons_image_embeddings = model.run_with_hooks(
+            batch_tokens,
+            fwd_hooks=[(hook_point, partial(replacement_hook))],
+        )
+        recons_softmax_values, _ = get_similarity(recons_image_embeddings, text_embeddings, device=device)
+        recons_loss = F.cross_entropy(recons_softmax_values, gt_labels)
+
+        zero_abl_image_embeddings = model.run_with_hooks(
+            batch_tokens, fwd_hooks=[(hook_point, zero_ablate_hook)]
+        )
+        zero_abl_softmax_values, _ = get_similarity(zero_abl_image_embeddings, text_embeddings, device=device)
+        zero_abl_loss = F.cross_entropy(zero_abl_softmax_values, gt_labels)
+
+        score = (zero_abl_loss - recons_loss) / (zero_abl_loss - loss)
+
+        return score, loss, recons_loss, zero_abl_loss
+        
     # Main function
     def run():
-        cfg = setup_environment()
-        model = load_model(cfg)
-        train_data, val_data, val_data_visualize = load_datasets(cfg)
-        val_dataloader = create_dataloader(val_data, cfg)
-        sparse_autoencoder = load_pretrained_sae(cfg)
-
-        average_l0_test(cfg)
-        log_frequencies = get_feature_sparsity_across_dataset(cfg)
-        visualize_sparsity_data_in_intervals(log_frequencies)
-        get_reconstruction_loss(cfg)
-
+        average_l0_test()
+        log_frequencies = get_feature_sparsity_across_dataset()
+        visualize_sparsity_data_in_intervals()
+        get_reconstruction_loss()
+        get_substitution_loss()
+        
 
 
     # Add your evaluation code here
