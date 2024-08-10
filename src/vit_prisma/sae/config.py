@@ -83,7 +83,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     # Training Parameters
     l1_coefficient: float = 0.0002 # 0.00008
     lp_norm: float = 1
-    lr: float = 0.0001
+    lr: float = 0.001
     lr_scheduler_name: str = (
         "cosineannealing"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     )

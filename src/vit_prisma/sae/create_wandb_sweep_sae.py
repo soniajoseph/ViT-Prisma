@@ -4,23 +4,7 @@ import torch
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.train_sae import VisionSAETrainer
 
-
-def train():
-    # Initialize wandb
-    run = wandb.init()
-    cfg = VisionModelSAERunnerConfig()
-    cfg.lr = wandb.config.learning_rate
-    cfg.expansion_factor = wandb.config.expansion_factor
-    print("Config created with lr" + str(cfg.lr))
-
-    # Manually call __post_init__ to recalculate dependent values
-    cfg.__post_init__()
-
-    print(f"Config created with lr: {cfg.lr}, expansion_factor: {cfg.expansion_factor}, d_sae: {cfg.d_sae}")
-
-    trainer = VisionSAETrainer(cfg)
-    sae = trainer.run()
-
+  
 def create_sweep():
     sweep_configuration = {
         'method': 'grid',
@@ -39,7 +23,7 @@ def create_sweep():
                 'values': [16, 32, 64, 128]
             }
         },
-        'program': 'wandb_sweep_sae.py',
+        'program': 'run_wandb_sweep_sae.py',
     }
     # create sweep
     sweep_id = wandb.sweep(sweep_configuration, project="tinyclip40M_sae_sweep_l1_coefficient")
@@ -53,4 +37,3 @@ if __name__ == "__main__":
 
     create_sweep()
 
-    # train()
