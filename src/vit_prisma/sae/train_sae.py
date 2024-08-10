@@ -5,7 +5,7 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
-from vit_prisma.sae.evals import run_evals_vision
+# from vit_prisma.sae.evals import run_evals_vision
 
 import torch
 from torch.optim import Adam
@@ -20,6 +20,8 @@ import torchvision
 import numpy as np
 
 from typing import Any, cast
+
+from dataclasses import is_dataclass, fields
 
 import uuid
 
@@ -227,21 +229,21 @@ class VisionSAETrainer:
         #                                         title="Inverse Feature Density Distribution")
 
          # New image-level sparsity calculations
-        total_tokens = feature_sparsity.shape[0]
-        n_features = feature_sparsity.shape[1] if len(feature_sparsity.shape) > 1 else 1
+        # total_tokens = feature_sparsity.shape[0]
+        # n_features = feature_sparsity.shape[1] if len(feature_sparsity.shape) > 1 else 1
         
-        # Adjust total_tokens to discard remainder, but don't exceed original value
-        remainder = total_tokens % self.cfg.context_size
-        total_tokens_adjusted = total_tokens - remainder
+        # # Adjust total_tokens to discard remainder, but don't exceed original value
+        # remainder = total_tokens % self.cfg.context_size
+        # total_tokens_adjusted = total_tokens - remainder
 
-        n_images = total_tokens_adjusted // self.cfg.context_size
-        reshaped_sparsity = feature_sparsity[:total_tokens_adjusted].view(n_images, self.cfg.context_size, n_features)
-        per_image_sparsity = reshaped_sparsity.mean(dim=(1, 2))
-        per_image_log_sparsity = torch.log10(per_image_sparsity)
-        per_image_log_sparsity_np = per_image_log_sparsity.detach().cpu().numpy()
+        # n_images = total_tokens_adjusted // self.cfg.context_size
+        # reshaped_sparsity = feature_sparsity[:total_tokens_adjusted].view(n_images, self.cfg.context_size, n_features)
+        # per_image_sparsity = reshaped_sparsity.mean(dim=(1, 2))
+        # per_image_log_sparsity = torch.log10(per_image_sparsity)
+        # per_image_log_sparsity_np = per_image_log_sparsity.detach().cpu().numpy()
 
-        # Create wandb Histogram for image-level log sparsity (matching original format)
-        image_log_sparsity_histogram = wandb.Histogram(per_image_log_sparsity_np)
+        # # Create wandb Histogram for image-level log sparsity (matching original format)
+        # image_log_sparsity_histogram = wandb.Histogram(per_image_log_sparsity_np)
 
         wandb.log({
             # Original metrics
@@ -251,11 +253,11 @@ class VisionSAETrainer:
             f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
             f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
             
-            # New image-level metrics
-            f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
-            f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
-            f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
-            f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+            # # New image-level metrics
+            # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+            # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+            # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+            # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
         }, step=n_training_steps)
 
     def _log_metrics(self, sparse_autoencoder, hyperparams, optimizer, sae_in, sae_out, n_forward_passes_since_fired, 
@@ -477,10 +479,24 @@ class VisionSAETrainer:
             wandb.log_artifact(sparsity_artifact)
         except:
             pass
+
+    @staticmethod
+    def dataclass_to_dict(obj):
+        if not is_dataclass(obj):
+            return obj
+        result = {}
+        for field in fields(obj):
+            value = getattr(obj, field.name)
+            if is_dataclass(value):
+                result[field.name] = dataclass_to_dict(value)
+            else:
+                result[field.name] = value
+        return result
         
     def run(self):
         if self.cfg.log_to_wandb:
-            wandb.init(project=self.cfg.wandb_project, config=cast(Any, self.cfg), name=self.cfg.run_name)
+            config_dict = self.dataclass_to_dict(self.cfg)
+            wandb.init(project=self.cfg.wandb_project, config=config_dict, name=self.cfg.run_name)
 
         act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, optimizer, scheduler = self.initialize_training_variables()
         geometric_medians = self.initialize_geometric_medians()

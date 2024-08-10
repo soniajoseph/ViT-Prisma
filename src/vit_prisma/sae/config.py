@@ -83,7 +83,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     # Training Parameters
     l1_coefficient: float = 0.0002 # 0.00008
     lp_norm: float = 1
-    lr: float = 0.0008
+    lr: float = 0.0001
     lr_scheduler_name: str = (
         "cosineannealing"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     )
@@ -151,6 +151,9 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
         total_wandb_updates = self.total_training_steps // self.wandb_log_frequency
         print(f"Total wandb updates: {total_wandb_updates}")
+
+        # print expansion factor
+        print(f"Expansion factor: {self.expansion_factor}")
 
         # how many times will we sample dead neurons?
         # assert self.dead_feature_window <= self.feature_sampling_window, "dead_feature_window must be smaller than feature_sampling_window"
