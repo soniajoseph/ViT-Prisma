@@ -1,117 +1,133 @@
 import torch
 import torchvision
+
 import plotly.express as px
+
 from tqdm import tqdm
+
 import einops
+
 import numpy as np
 import os
 import requests
+
 from dataclasses import dataclass
+from vit_prisma.sae.config import VisionModelSAERunnerConfig
+
+from vit_prisma.sae.training.activations_store import VisionActivationsStore
+# import dataloader
 from torch.utils.data import DataLoader
 
-# Importing custom modules
-from vit_prisma.sae.config import VisionModelSAERunnerConfig
-from vit_prisma.models.base_vit import HookedViT
 from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
+
 from vit_prisma.sae.sae import SparseAutoencoder
 
-import matplotlib.pyplot as plt
+
+def create_eval_config():
+    @dataclass
+    class EvalConfig(VisionModelSAERunnerConfig):
+        sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
+        model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
+        model_type: str =  "clip"
+        patch_size: str = 32
+
+        dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+        dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+        dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
+
+        verbose: bool = True
+
+        device: bool = 'cuda'
+
+        eval_max: int = 50_000 # 50_000
+        batch_size: int = 32
+
+        # make the max image output folder a subfolder of the sae path
 
 
-from plotly.io import write_image
+        @property
+        def max_image_output_folder(self) -> str:
+            # Get the base directory of sae_checkpoints
+            sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
+            
+            # Get the name of the original SAE checkpoint folder
+            sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
+            
+            # Create a new folder path in sae_checkpoints/images with the original name
+            output_folder = os.path.join(sae_base_dir, 'max_images', sae_folder_name)
+            output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
+
+            # Ensure the directory exists
+            os.makedirs(output_folder, exist_ok=True)
+            
+            return output_folder
+        
+        @property
+        def save_figure_dir(self) -> str:
+            # Get the base directory of sae_checkpoints
+            sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
+            
+            # Get the name of the original SAE checkpoint folder
+            sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
+            
+            # Create a new folder path in sae_checkpoints/images with the original name
+            output_folder = os.path.join(sae_base_dir, 'save_fig_dir', sae_folder_name)
+            output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
+
+            # Ensure the directory exists
+            os.makedirs(output_folder, exist_ok=True)
+            return output_folder   
+        
+
+    cfg = EvalConfig()
+    return cfg
+
+def setup_environment():
+    torch.set_grad_enabled(False)
+
+def load_model(cfg):
+    from vit_prisma.models.base_vit import HookedViT
+    model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True).to(cfg.device)
+    model.eval()
+    return model
+
+def load_sae(cfg):
+    sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
+    sparse_autoencoder.to(cfg.device)
+    sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who 
+    return sparse_autoencoder
 
 
-@dataclass
-class EvalConfig(VisionModelSAERunnerConfig):
-    sae_path: str = 'n_images_130007_log_feature_sparsity.pt'
-    model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
-    model_type: str =  "clip"
-    patch_size: str = 32
-    dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
-    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
-    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
-    verbose: bool = True
-    device: str = 'cuda'
-    eval_max: int = 50_000
-    batch_size: int = 32
-
-    # post init functions
-    def __post_init__(self):
-        torch.set_grad_enabled(False)
-
-
-class EvaluationRunner(EvalConfig):
-    # initialize
-    def __init__(self, cfg: EvalConfig):
-        self.cfg = cfg
-        self.model = self.load_model(cfg)
-        self.train_data, self.val_data, self.val_data_visualize = self.load_datasets(cfg)
-        self.val_dataloader = self.create_dataloader(self.val_data, cfg)
-        self.sparse_autoencoder = self.load_pretrained_sae(cfg)
-        print("Evaluation Runner initialized")
-
-    @property
-    def eval_stats_save_dir(self) -> str:
-        sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
-        sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
-        output_folder = os.path.join(sae_base_dir, 'eval_stats', sae_folder_name, f"layer_{self.hook_point_layer}")
-        os.makedirs(output_folder, exist_ok=True)
-        return output_folder
-
-    @property
-    def max_image_output_folder(self) -> str:
-        sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
-        sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
-        output_folder = os.path.join(sae_base_dir, 'max_images', sae_folder_name, f"layer_{self.hook_point_layer}")
-        os.makedirs(output_folder, exist_ok=True)
-        return output_folder
-
-    def load_model(cfg):
-        model = HookedViT.from_pretrained(cfg.model_name, is_timm=False, is_clip=True).to(cfg.device)
-        return model
-
-    def load_datasets(cfg):
+def load_dataset(cfg):
+    if cfg.model_type == 'clip':
         data_transforms = get_imagenet_transforms_clip(cfg.model_name)
-        imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
-        
-        train_data = torchvision.datasets.ImageFolder(cfg.dataset_train_path, transform=data_transforms)
-        
-        val_data = ImageNetValidationDataset(
-            cfg.dataset_val_path, 
-            imagenet_paths['label_strings'], 
-            imagenet_paths['val_labels'], 
-            data_transforms,
-            return_index=True
-        )
-        
-        val_data_visualize = ImageNetValidationDataset(
-            cfg.dataset_val_path, 
-            imagenet_paths['label_strings'], 
-            imagenet_paths['val_labels'],
-            torchvision.transforms.Compose([
-                torchvision.transforms.Resize((224, 224)),
-                torchvision.transforms.ToTensor(),
-            ]), 
-            return_index=True
-        )
-        if cfg.verbose:
-            print(f"Validation data length: {len(val_data)}")
+    else:
+        raise ValueError("Invalid model type")
+    imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
+    # train_data = torchvision.datasets.ImageFolder(cfg.dataset_train_path, transform=data_transforms)
+    val_data = ImageNetValidationDataset(cfg.dataset_val_path, 
+                                    imagenet_paths['label_strings'], 
+                                    imagenet_paths['val_labels'], 
+                                    data_transforms,
+                                    return_index=True,
+    )
+    val_data_visualize = ImageNetValidationDataset(cfg.dataset_val_path, 
+                                    imagenet_paths['label_strings'], 
+                                    imagenet_paths['val_labels'],
+                                    torchvision.transforms.Compose([
+        torchvision.transforms.Resize((224, 224)),
+        torchvision.transforms.ToTensor(),]), return_index=True)
 
-        return train_data, val_data, val_data_visualize
+    print(f"Validation data length: {len(val_data)}") if cfg.verbose else None
+    # activations_loader = VisionActivationsStore(cfg, model, train_data, eval_dataset=val_data)
+    val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=False, num_workers=4)
+    return val_data, val_data_visualize, val_dataloader
 
-    def create_dataloader(dataset, cfg):
-        return DataLoader(dataset, batch_size=cfg.batch_size, shuffle=False, num_workers=4)
-
-    def load_pretrained_sae(cfg):
-        sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
-        sparse_autoencoder.to(cfg.device)
-        sparse_autoencoder.eval()
-        return sparse_autoencoder
-
-    def average_l0_test(cfg):
-        print("Calculating average l0")
-        with torch.no_grad():
+def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_max=100):
+    total_l0 = []
+    with torch.no_grad():
+        for i in range(evaluation_max):
             batch_tokens, labels, indices = next(iter(val_dataloader))
             batch_tokens = batch_tokens.to(cfg.device)
             _, cache = model.run_with_cache(batch_tokens, names_filter = sparse_autoencoder.cfg.hook_point)
@@ -122,580 +138,188 @@ class EvaluationRunner(EvalConfig):
 
             # ignore the bos token, get the number of features that activated in each token, averaged accross batch and position
             l0 = (feature_acts[:, :] > 0).float().sum(-1).detach()
-            l0_cls = (feature_acts[:, :] > 0).float().sum(-1).mean(-1).detach()
-            print("Average l0", l0.mean().item())
+            total_l0.append(l0)
+    average_l0 = torch.cat(total_l0).mean(0)
+    print(f"Average L0: {average_l0.mean()}") if cfg.verbose else None
+    px.histogram(average_l0.flatten().cpu().numpy()).show()
+    fig.write_image(os.path.join(cfg.save_figure_dir,"average_l0.png"))  # Save as PNG
+    print(f"Saved average l0 figure to {cfg.save_figure_dir}") if cfg.verbose else None
+
+import torch
+import plotly.express as px
+import numpy as np
+
+def process_dataset(model, sparse_autoencoder, dataloader, cfg):
+    all_l0 = []
+    all_l0_cls = []
+    total_loss = 0
+    total_mse_loss = 0
+    total_l1_loss = 0
+    total_samples = 0
+
+    model.eval()
+    sparse_autoencoder.eval()
+
+    with torch.no_grad():
+        for batch_tokens, labels, indices in dataloader:
+            batch_tokens = batch_tokens.to(cfg.device)
+            batch_size = batch_tokens.size(0)
+            total_samples += batch_size
+
+            _, cache = model.run_with_cache(batch_tokens, names_filter=sparse_autoencoder.cfg.hook_point)
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(
+                cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
+            )
+
+            # Ignore the bos token, get the number of features that activated in each token
+            l0 = (feature_acts[:, :] > 0).float().sum(-1).detach()
+            l0_cls = l0.mean(-1).detach()
+
+            all_l0.extend(l0.flatten().cpu().numpy())
+            all_l0_cls.extend(l0_cls.cpu().numpy())
+
+            total_loss += loss.item() * batch_size
+            total_mse_loss += mse_loss.item() * batch_size
+            total_l1_loss += l1_loss.item() * batch_size
+
+    # Calculate average metrics
+    avg_loss = total_loss / total_samples
+    avg_mse_loss = total_mse_loss / total_samples
+    avg_l1_loss = total_l1_loss / total_samples
+    avg_l0 = np.mean(all_l0)
+
+    return all_l0, all_l0_cls, avg_loss, avg_mse_loss, avg_l1_loss, avg_l0
+
+
+import torch
+import plotly.express as px
+import numpy as np
+
+def process_dataset(model, sparse_autoencoder, dataloader, cfg):
+    all_l0 = []
+    all_l0_cls = []
+    total_loss = 0
+    total_mse_loss = 0
+    total_l1_loss = 0
+    total_substitution_loss = 0
+    total_reconstruction_loss = 0
+    total_samples = 0
+
+    model.eval()
+    sparse_autoencoder.eval()
+
+    with torch.no_grad():
+        for batch_tokens, labels, indices in dataloader:
+            batch_tokens = batch_tokens.to(cfg.device)
+            batch_size = batch_tokens.size(0)
+            total_samples += batch_size
+
+            _, cache = model.run_with_cache(batch_tokens, names_filter=sparse_autoencoder.cfg.hook_point)
+            hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
             
-            # Create histogram using matplotlib
-            plt.figure(figsize=(10, 6))
-            plt.hist(l0.flatten().cpu().numpy(), bins=50)
-            plt.title('Histogram of L0')
-            plt.xlabel('L0 Values')
-            plt.ylabel('Frequency')
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+
+            # Calculate substitution loss
+            substitution_loss = torch.norm(sae_out - hook_point_activation) / torch.norm(hook_point_activation)
             
-            # Create directory if it doesn't exist
-            
-            # Save the figure as png
-            save_path = os.path.join(cfg.eval_stats_save_dir, 'l0_histogram.png')
-            plt.savefig(save_path)
+            # Calculate reconstruction loss
+            reconstruction_loss = torch.nn.functional.mse_loss(sae_out, hook_point_activation)
 
-            # Save svg
-            svg_path = os.path.join(save_dir, 'l0_histogram.svg')
-            plt.savefig(svg_path, format='svg', bbox_inches='tight')
+            # Ignore the bos token, get the number of features that activated in each token
+            l0 = (feature_acts[:, :] > 0).float().sum(-1).detach()
+            l0_cls = l0.mean(-1).detach()
 
-            plt.close()  # Close the figure to free up memory
-            
-            print(f"Histogram saved to {save_path}")
+            all_l0.extend(l0.flatten().cpu().numpy())
+            all_l0_cls.extend(l0_cls.cpu().numpy())
 
-    def get_feature_probability(images, model, sparse_autoencoder):
-        _, cache = model.run_with_cache(images, names_filter=[sparse_autoencoder.cfg.hook_point])
-        sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(
-            cache[sparse_autoencoder.cfg.hook_point]
-        )
+            total_loss += loss.item() * batch_size
+            total_mse_loss += mse_loss.item() * batch_size
+            total_l1_loss += l1_loss.item() * batch_size
+            total_substitution_loss += substitution_loss.item() * batch_size
+            total_reconstruction_loss += reconstruction_loss.item() * batch_size
 
-        # Flatten first two dimensions (batch, position) to get a 2D tensor of activations
-        return (feature_acts.abs() > 0).float().flatten(0, 1)
+    # Calculate average metrics
+    avg_loss = total_loss / total_samples
+    avg_mse_loss = total_mse_loss / total_samples
+    avg_l1_loss = total_l1_loss / total_samples
+    avg_substitution_loss = total_substitution_loss / total_samples
+    avg_reconstruction_loss = total_reconstruction_loss / total_samples
+    avg_l0 = np.mean(all_l0)
 
-    def process_dataset(val_dataloader, model, sparse_autoencoder, cfg):
-        total_acts = None
-        total_tokens = 0
-        
-        for idx, batch in tqdm(enumerate(val_dataloader), total=cfg.eval_max//cfg.batch_size):
-            images = batch[0]
-
-            images = images.to(cfg.device)
-            sae_activations = get_feature_probability(images, model, sparse_autoencoder)
-            
-            if total_acts is None:
-                total_acts = sae_activations.sum(0)
-            else:
-                total_acts += sae_activations.sum(0)
-            
-            total_tokens += sae_activations.shape[0]
-            
-            # if total_tokens >= cfg.eval_max:
-            #     break
-        
-        return total_acts, total_tokens
-
-    def calculate_log_frequencies(total_acts, total_tokens):
-        feature_probs = total_acts / total_tokens
-        log_feature_probs = torch.log10(feature_probs)
-        return log_feature_probs.cpu().numpy()
-
-    def get_feature_sparsity_across_dataset(cfg):
-        print("Calculating feature sparsity across dataset")
-        total_acts, total_tokens = process_dataset(val_dataloader, model, sparse_autoencoder, cfg)
-        log_frequencies = calculate_log_frequencies(total_acts, total_tokens)
-        plot_histogram_px(log_frequencies)
-        return log_frequencies
-
-    def plot_histogram_px(log_frequencies, num_bins=100, save_dir='path/to/your/directory'):
-        fig = px.histogram(
-            x=log_frequencies,
-            nbins=num_bins,
-            labels={'x': 'Log10 Feature Frequency', 'y': 'Count'},
-            title='Log Feature Density Histogram',
-            opacity=0.7,
-        )
-        fig.update_layout(
-            bargap=0.1,
-            xaxis_title='Log10 Feature Frequency',
-            yaxis_title='Count',
-            plot_bgcolor='rgba(240, 240, 240, 0.8)',  # Light gray background
-            xaxis=dict(showgrid=True, gridwidth=1, gridcolor='White'),
-            yaxis=dict(showgrid=True, gridwidth=1, gridcolor='White'),
-        )
-        
-        # Create directory if it doesn't exist
-        os.makedirs(save_dir, exist_ok=True)
-        
-        # Save as PNG
-        png_path = os.path.join(save_dir, 'log_feature_density_histogram.png')
-        write_image(fig, png_path, scale=2)
-        
-        # Save as SVG
-        svg_path = os.path.join(save_dir, 'log_feature_density_histogram.svg')
-        write_image(fig, svg_path)
-        
-        print(f"Histogram saved as PNG: {png_path}")
-        print(f"Histogram saved as SVG: {svg_path}")
-        
-        # Display the plot
+    return all_l0, all_l0_cls, avg_loss, avg_mse_loss, avg_l1_loss, avg_substitution_loss, avg_reconstruction_loss, avg_l0
 
 
-    # helper functions
-    update_layout_set = {"xaxis_range", "yaxis_range", "hovermode", "xaxis_title", "yaxis_title", "colorbar", "colorscale", "coloraxis", "title_x", "bargap", "bargroupgap", "xaxis_tickformat", "yaxis_tickformat", "title_y", "legend_title_text", "xaxis_showgrid", "xaxis_gridwidth", "xaxis_gridcolor", "yaxis_showgrid", "yaxis_gridwidth", "yaxis_gridcolor", "showlegend", "xaxis_tickmode", "yaxis_tickmode", "margin", "xaxis_visible", "yaxis_visible", "bargap", "bargroupgap", "coloraxis_showscale"}
-    def to_numpy(tensor):
-        """
-        Helper function to convert a tensor to a numpy array. Also works on lists, tuples, and numpy arrays.
-        """
-        if isinstance(tensor, np.ndarray):
-            return tensor
-        elif isinstance(tensor, (list, tuple)):
-            array = np.array(tensor)
-            return array
-        elif isinstance(tensor, (torch.Tensor, torch.nn.parameter.Parameter)):
-            return tensor.detach().cpu().numpy()
-        elif isinstance(tensor, (int, float, bool, str)):
-            return np.array(tensor)
-        else:
-            raise ValueError(f"Input to to_numpy has invalid type: {type(tensor)}")
-
-    def hist(tensor, save_name, show=True, renderer=None, **kwargs):
-        '''
-        '''
-        kwargs_post = {k: v for k, v in kwargs.items() if k in update_layout_set}
-        kwargs_pre = {k: v for k, v in kwargs.items() if k not in update_layout_set}
-        if "bargap" not in kwargs_post:
-            kwargs_post["bargap"] = 0.1
-        if "margin" in kwargs_post and isinstance(kwargs_post["margin"], int):
-            kwargs_post["margin"] = dict.fromkeys(list("tblr"), kwargs_post["margin"])
-
-        histogram_fig = px.histogram(x=to_numpy(tensor), **kwargs_pre)
-        histogram_fig.update_layout(**kwargs_post)
-
-        # Save the figure as a PNG file
-        # histogram_fig.write_image(os.path.join(OUTPUT_FOLDER, f"{save_name}.png"))
-        if show:
-            px.histogram(x=to_numpy(tensor), **kwargs_pre).update_layout(**kwargs_post).show(renderer)
 
 
-    def visualize_sparsities(log_freq, conditions, condition_texts, name):
-        # Visualise sparsities for each instance
-        self.hist(
-            log_freq,
-            f"{name}_frequency_histogram",
-            show=True,
-            title=f"{name} Log Frequency of Features",
-            labels={"x": "log<sub>10</sub>(freq)"},
-            histnorm="percent",
-            template="ggplot2"
-        )
+def evaluate():
 
-        #TODO these conditions need to be tuned to distribution of your data!
+    cfg = create_eval_config()
+    setup_environment()
+    model = load_model(cfg)
+    sparse_autoencoder = load_sae(cfg)
+    val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
+    print("Loaded model and data") if cfg.verbose else None
 
-    # Define intervals based on the specified ranges
-    def visualize_sparsity_data_in_intervals(log_freq):
-        print("Visualizing sparsity data in intervals")
-        intervals = [
-            (-8, -6),
-            (-6, -5),
-            (-5, -4),
-            (-4, -3),
-            (-3, -2),
-            (-2, -1),
-            (-float('inf'), -8),  # This covers the [-8, -4] range and below
-            (-1, float('inf'))    # This covers everything above -1
-        ]
+    print("Running average l0 test") if cfg.verbose else None
+    average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_max=1)
 
-        conditions = [torch.logical_and(log_freq >= lower, log_freq < upper) for lower, upper in intervals]
-        condition_texts = [
-            f"TOTAL_logfreq_[{lower},{upper}]" for lower, upper in intervals
-        ]
+    print("Processing dataset...")
 
-        # Replace infinity with appropriate text for readability
-        condition_texts[-2] = condition_texts[-2].replace('-inf', '-∞')
-        condition_texts[-1] = condition_texts[-1].replace('inf', '∞')
+    all_l0, all_l0_cls, avg_loss, avg_mse_loss, avg_l1_loss, avg_l0 = process_dataset(model, sparse_autoencoder, val_dataloader, cfg)
 
-        self.visualize_sparsities(log_freq, conditions, condition_texts, "TOTAL")
+    # Print the results
+    print(f"Average Loss: {avg_loss:.4f}")
+    print(f"Average MSE Loss: {avg_mse_loss:.4f}")
+    print(f"Average L1 Loss: {avg_l1_loss:.4f}")
+    print(f"Average L0 (features activated): {avg_l0:.4f}")
 
-    def get_reconstruction_loss(
-        images,
-        model,
-        autoencoder,
-    ):
-        '''
-        Returns the reconstruction loss of each autoencoder instance on the given batch of tokens (i.e.
-        the L2 loss between the activations and the autoencoder's reconstructions, averaged over all tokens).
-        '''
+    # Create and save the histogram
+    fig = px.histogram(all_l0, title="Distribution of Activated Features per Token")
+    fig.update_layout(
+        xaxis_title="Number of Activated Features",
+        yaxis_title="Count"
+    )
+    fig.write_image("histogram_activated_features.svg")
 
-        logits, cache = model.run_with_cache(images, names_filter=[sparse_autoencoder.cfg.hook_point])
-        sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid = sparse_autoencoder(
-            cache[sparse_autoencoder.cfg.hook_point]
-        )
+    # Create and save the CLS token histogram
+    fig_cls = px.histogram(all_l0_cls, title="Distribution of Avg Activated Features per Sample")
+    fig_cls.update_layout(
+        xaxis_title="Average Number of Activated Features",
+        yaxis_title="Count"
+    )
+    fig_cls.write_image("histogram_avg_activated_features.svg")
 
-        # Print out the avg L2 norm of activations
-        print("Avg L2 norm of acts: ", cache[sparse_autoencoder.cfg.hook_point].pow(2).mean().item())
+    print("Histograms saved as 'histogram_activated_features.svg' and 'histogram_avg_activated_features.svg'")
 
-        # Print out the cosine similarity between original neuron activations & reconstructions (averaged over neurons)
-        print("Avg cos sim of neuron reconstructions: ", torch.cosine_similarity(einops.rearrange( cache[sparse_autoencoder.cfg.hook_point], "batch seq d_mlp -> (batch seq) d_mlp"),
-                                                                                einops.rearrange( sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
-                                                                                    dim=0).mean(-1).tolist())
-        print("l1", l1_loss.sum().item())
-        return mse_loss.item()        
+    all_l0, all_l0_cls, avg_loss, avg_mse_loss, avg_l1_loss, avg_substitution_loss, avg_reconstruction_loss, avg_l0 = process_dataset(model, sparse_autoencoder, val_dataloader, cfg)
+
+    # Print the results
+    print(f"Average Loss: {avg_loss:.4f}")
+    print(f"Average MSE Loss: {avg_mse_loss:.4f}")
+    print(f"Average L1 Loss: {avg_l1_loss:.4f}")
+    print(f"Average Substitution Loss: {avg_substitution_loss:.4f}")
+    print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.4f}")
+    print(f"Average L0 (features activated): {avg_l0:.4f}")
+
+    # Create and save the histogram
+    fig = px.histogram(all_l0, title="Distribution of Activated Features per Token")
+    fig.update_layout(
+        xaxis_title="Number of Activated Features",
+        yaxis_title="Count"
+    )
+    fig.write_image("histogram_activated_features.svg")
+
+    # Create and save the CLS token histogram
+    fig_cls = px.histogram(all_l0_cls, title="Distribution of Avg Activated Features per Sample")
+    fig_cls.update_layout(
+        xaxis_title="Average Number of Activated Features",
+        yaxis_title="Count"
+    )
+    fig_cls.write_image("histogram_avg_activated_features.svg")
+
+    print("Histograms saved as 'histogram_activated_features.svg' and 'histogram_avg_activated_features.svg'")
+
+if __name__ == '__main__':
+    evaluate()
+
     
-    def sample_reconstruction_loss(
-            self
-    ):
-        print("Calculating sample reconstruction loss")
-        this_max = 4
-        count = 0
-        for batch_idx, (total_images, total_labels, total_indices) in enumerate(val_dataloader):
-                total_images = total_images.to(cfg.device)
-                reconstruction_loss = self.get_reconstruction_loss(total_images, model, sparse_autoencoder)
-                print("mse", reconstruction_loss)
-                if batch_idx >= this_max:
-                    break
-
-    def get_text_embeddings(model_name, original_text, batch_size=32):
-        vanilla_model = CLIPModel.from_pretrained(model_name)
-        
-        processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
-
-        # Split the text into batches
-        text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
-
-        all_embeddings = []
-
-        for batch in text_batches:
-            inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
-            # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
-
-            with torch.no_grad():
-                text_embeddings = vanilla_model.get_text_features(**inputs)
-
-            text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
-            all_embeddings.append(text_embeddings)
-
-        # Concatenate all batches
-        final_embeddings = torch.cat(all_embeddings, dim=0)
-
-        return final_embeddings
-
-
-
-    def get_similarity(image_features, text_features, k=5, device='cuda'):
-        image_features = image_features.to(device)
-        text_features = text_features.to(device)
-
-        softmax_values = (image_features @ text_features.T).softmax(dim=-1)
-        top_k_values, top_k_indices = torch.topk(softmax_values, k, dim=-1)
-        return softmax_values, top_k_indices
-
-    @torch.no_grad()
-    def get_substitution_loss(
-        sparse_autoencoder: SparseAutoencoder,
-        model: HookedViT,
-        batch_tokens: torch.Tensor,
-        gt_labels: torch.Tensor,
-        all_labels: List[str],
-        text_embeddings: torch.Tensor,
-        device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    ):
-        # Move model to device if it's not already there
-        model = model.to(device)
-        
-        # Move all tensors to the same device
-        batch_tokens = batch_tokens.to(device)
-        gt_labels = gt_labels.to(device)
-        text_embeddings = text_embeddings.to(device)
-
-        # Get image embeddings
-        image_embeddings, _ = model.run_with_cache(batch_tokens)
-
-        # Calculate similarity scores
-        softmax_values, top_k_indices = get_similarity(image_embeddings, text_embeddings, device=device)
-
-        # Calculate cross-entropy loss
-        loss = F.cross_entropy(softmax_values, gt_labels)
-        # Safely extract the loss value
-        loss_value = loss.item() if torch.isfinite(loss).all() else float('nan')
-
-
-        head_index = sparse_autoencoder.cfg.hook_point_head_index
-        hook_point = sparse_autoencoder.cfg.hook_point
-
-        def standard_replacement_hook(activations: torch.Tensor, hook: Any):
-            activations = sparse_autoencoder.forward(activations)[0].to(activations.dtype)
-            return activations
-
-        def head_replacement_hook(activations: torch.Tensor, hook: Any):
-            new_activations = sparse_autoencoder.forward(activations[:, :, head_index])[0].to(activations.dtype)
-            activations[:, :, head_index] = new_activations
-            return activations
-
-        replacement_hook = standard_replacement_hook if head_index is None else head_replacement_hook
-
-        recons_image_embeddings = model.run_with_hooks(
-            batch_tokens,
-            fwd_hooks=[(hook_point, partial(replacement_hook))],
-        )
-        recons_softmax_values, _ = get_similarity(recons_image_embeddings, text_embeddings, device=device)
-        recons_loss = F.cross_entropy(recons_softmax_values, gt_labels)
-
-        zero_abl_image_embeddings = model.run_with_hooks(
-            batch_tokens, fwd_hooks=[(hook_point, zero_ablate_hook)]
-        )
-        zero_abl_softmax_values, _ = get_similarity(zero_abl_image_embeddings, text_embeddings, device=device)
-        zero_abl_loss = F.cross_entropy(zero_abl_softmax_values, gt_labels)
-
-        score = (zero_abl_loss - recons_loss) / (zero_abl_loss - loss)
-
-        return score, loss, recons_loss, zero_abl_loss
-        
-    # Main function
-    def run():
-        average_l0_test()
-        log_frequencies = get_feature_sparsity_across_dataset()
-        visualize_sparsity_data_in_intervals()
-        get_reconstruction_loss()
-        get_substitution_loss()
-        
-
-
-    # Add your evaluation code here
-    # For example:
-    # evaluate_sae(model, sparse_autoencoder, val_dataloader, cfg)
-
-if __name__ == "__main__":
-    
-    cfg = EvalConfig()
-    runner = EvaluationRunner(cfg)
-    runner.run()
-
-
-# from functools import partial
-# from typing import Any, cast
-
-# import pandas as pd
-# import torch
-# import wandb
-# from tqdm import tqdm
-
-# from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-# from vit_prisma.prisma_tools.hook_point import HookPoint
-
-# from vit_prisma.utils.prisma_utils import get_act_name
-
-# from vit_prisma.sae.training.activations_store import VisionActivationsStore
-# from vit_prisma.sae.sae import SparseAutoencoder
-
-# from vit_prisma.models.base_vit import HookedViT
-
-# import torch.nn.functional as F
-
-
-# @torch.no_grad()
-# # similar to run_evals for language but adapted slightly for vision. 
-# def run_evals_vision(
-#     sparse_autoencoder: SparseAutoencoder,
-#     activation_store: VisionActivationsStore,
-#     model: HookedViT,
-#     n_training_steps: int,
-#     suffix: str = "",
-# ):
-#     hook_point = sparse_autoencoder.cfg.hook_point
-#     hook_point_layer = sparse_autoencoder.cfg.hook_point_layer
-#     hook_point_head_index = sparse_autoencoder.cfg.hook_point_head_index
-
-#     ### Evals
-#     eval_tokens = activation_store.get_batch_tokens()
-
-#     # Get Reconstruction Score
-#     # losses_df = recons_loss_batched(
-#     #     sparse_autoencoder,
-#     #     model,
-#     #     activation_store,
-#     #     n_batches=10,
-#     # )
-
-
-#     # recons_score = losses_df["score"].mean()
-#     # ntp_loss = losses_df["loss"].mean()
-#     # recons_loss = losses_df["recons_loss"].mean()
-#     # zero_abl_loss = losses_df["zero_abl_loss"].mean()
-
-#     # get cache
-#     _, cache = model.run_with_cache(
-#         eval_tokens,
-#         names_filter=[get_act_name("pattern", hook_point_layer), hook_point],
-#     )
-
-#     # get act
-#     if sparse_autoencoder.cfg.hook_point_head_index is not None:
-#         original_act = cache[sparse_autoencoder.cfg.hook_point][
-#             :, :, sparse_autoencoder.cfg.hook_point_head_index
-#         ]
-#     else:
-#         original_act = cache[sparse_autoencoder.cfg.hook_point]
-
-#     sae_out, _feature_acts, _, _, _, _ = sparse_autoencoder(original_act)
-#     patterns_original = (
-#         cache[get_act_name("pattern", hook_point_layer)][:, hook_point_head_index]
-#         .detach()
-#         .cpu()
-#     )
-#     del cache
-
-#     if "cuda" in str(model.cfg.device):
-#         torch.cuda.empty_cache()
-
-#     l2_norm_in = torch.norm(original_act, dim=-1)
-#     l2_norm_out = torch.norm(sae_out, dim=-1)
-#     l2_norm_ratio = l2_norm_out / l2_norm_in
-
-#     wandb.log(
-#         {
-#             # l2 norms
-#             f"metrics/l2_norm{suffix}": l2_norm_out.mean().item(),
-#             f"metrics/l2_ratio{suffix}": l2_norm_ratio.mean().item(),
-#             # CE Loss
-#             # f"metrics/CE_loss_score{suffix}": recons_score,
-#             # f"metrics/ce_loss_without_sae{suffix}": ntp_loss,
-#             # f"metrics/ce_loss_with_sae{suffix}": recons_loss,
-#             # f"metrics/ce_loss_with_ablation{suffix}": zero_abl_loss,
-#         },
-#         step=n_training_steps,
-#     )
-
-#     head_index = sparse_autoencoder.cfg.hook_point_head_index
-
-#     def standard_replacement_hook(activations: torch.Tensor, hook: Any):
-#         activations = sparse_autoencoder.forward(activations)[0].to(activations.dtype)
-#         return activations
-
-#     def head_replacement_hook(activations: torch.Tensor, hook: Any):
-#         new_actions = sparse_autoencoder.forward(activations[:, :, head_index])[0].to(
-#             activations.dtype
-#         )
-#         activations[:, :, head_index] = new_actions
-#         return activations
-
-#     head_index = sparse_autoencoder.cfg.hook_point_head_index
-#     replacement_hook = (
-#         standard_replacement_hook if head_index is None else head_replacement_hook
-#     )
-
-#     # get attn when using reconstructed activations
-#     with model.hooks(fwd_hooks=[(hook_point, partial(replacement_hook))]):
-#         _, new_cache = model.run_with_cache(
-#             eval_tokens, names_filter=[get_act_name("pattern", hook_point_layer)]
-#         )
-#         patterns_reconstructed = (
-#             new_cache[get_act_name("pattern", hook_point_layer)][
-#                 :, hook_point_head_index
-#             ]
-#             .detach()
-#             .cpu()
-#         )
-#         del new_cache
-
-#     # get attn when using reconstructed activations
-#     with model.hooks(fwd_hooks=[(hook_point, partial(zero_ablate_hook))]):
-#         _, zero_ablation_cache = model.run_with_cache(
-#             eval_tokens, names_filter=[get_act_name("pattern", hook_point_layer)]
-#         )
-#         patterns_ablation = (
-#             zero_ablation_cache[get_act_name("pattern", hook_point_layer)][
-#                 :, hook_point_head_index
-#             ]
-#             .detach()
-#             .cpu()
-#         )
-#         del zero_ablation_cache
-
-#     if sparse_autoencoder.cfg.hook_point_head_index:
-#         kl_result_reconstructed = kl_divergence_attention(
-#             patterns_original, patterns_reconstructed
-#         )
-#         kl_result_reconstructed = kl_result_reconstructed.sum(dim=-1).numpy()
-
-#         kl_result_ablation = kl_divergence_attention(
-#             patterns_original, patterns_ablation
-#         )
-#         kl_result_ablation = kl_result_ablation.sum(dim=-1).numpy()
-
-#         if wandb.run is not None:
-#             wandb.log(
-#                 {
-#                     f"metrics/kldiv_reconstructed{suffix}": kl_result_reconstructed.mean().item(),
-#                     f"metrics/kldiv_ablation{suffix}": kl_result_ablation.mean().item(),
-#                 },
-#                 step=n_training_steps,
-#             )
-
-# def recons_loss_batched(
-#     sparse_autoencoder: SparseAutoencoder,
-#     model: HookedViT,
-#     activation_store: VisionActivationsStore,
-#     n_batches: int = 100,
-# ):
-#     losses = []
-#     for _ in tqdm(range(n_batches)):
-#         batch_tokens, labels = activation_store.get_val_batch_tokens()
-        
-#         score, loss, recons_loss, zero_abl_loss = get_recons_loss(
-#             sparse_autoencoder, model, batch_tokens, labels,
-#         )
-#         losses.append(
-#             (
-#                 score.mean().item(),
-#                 loss.mean().item(),
-#                 recons_loss.mean().item(),
-#                 zero_abl_loss.mean().item(),
-#             )
-#         )
-
-#     losses = pd.DataFrame(
-#         losses, columns=cast(Any, ["score", "loss", "recons_loss", "zero_abl_loss"])
-#     )
-
-#     return losses
-
-
-# @torch.no_grad()
-# def get_recons_loss(
-#     sparse_autoencoder: SparseAutoencoder,
-#     model: HookedViT,
-#     batch_tokens: torch.Tensor,
-#     labels:torch.Tensor
-# ):
-#     hook_point = sparse_autoencoder.cfg.hook_point
-#     class_logits = model(batch_tokens)
-#     loss = F.cross_entropy(class_logits, labels)
-
-
-
-#     head_index = sparse_autoencoder.cfg.hook_point_head_index
-
-#     def standard_replacement_hook(activations: torch.Tensor, hook: Any):
-#         activations = sparse_autoencoder.forward(activations)[0].to(activations.dtype)
-#         return activations
-
-#     def head_replacement_hook(activations: torch.Tensor, hook: Any):
-#         new_activations = sparse_autoencoder.forward(activations[:, :, head_index])[
-#             0
-#         ].to(activations.dtype)
-#         activations[:, :, head_index] = new_activations
-#         return activations
-
-#     replacement_hook = (
-#         standard_replacement_hook if head_index is None else head_replacement_hook
-#     )
-#     recons_class_logits = model.run_with_hooks(
-#         batch_tokens,
-#         fwd_hooks=[(hook_point, partial(replacement_hook))],
-#     )
-#     recons_loss = F.cross_entropy(recons_class_logits, labels)
-
-#     zero_abl_class_logits = model.run_with_hooks(
-#         batch_tokens, fwd_hooks=[(hook_point, zero_ablate_hook)]
-#     )
-#     zero_abl_loss = F.cross_entropy(zero_abl_class_logits, labels)
-
-#     score = (zero_abl_loss - recons_loss) / (zero_abl_loss - loss)
-
-#     return score, loss, recons_loss, zero_abl_loss
-
-
-# def zero_ablate_hook(activations: torch.Tensor, hook: Any):
-#     activations = torch.zeros_like(activations)
-#     return activations
-
-
-# def kl_divergence_attention(y_true: torch.Tensor, y_pred: torch.Tensor):
-#     # Compute log probabilities for KL divergence
-#     log_y_true = torch.log2(y_true + 1e-10)
-#     log_y_pred = torch.log2(y_pred + 1e-10)
-
-#     return y_true * (log_y_true - log_y_pred)
