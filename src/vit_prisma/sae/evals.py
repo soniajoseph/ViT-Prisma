@@ -53,7 +53,7 @@ class EvalConfig(VisionModelSAERunnerConfig):
     model_type: str =  "clip"
     patch_size: str = 32
 
-    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
     dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
     dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
 
@@ -61,8 +61,10 @@ class EvalConfig(VisionModelSAERunnerConfig):
 
     device: bool = 'cuda'
 
-    eval_max: int = 50
+    eval_max: int = 500
     batch_size: int = 32
+
+
 
     @property
     def max_image_output_folder(self) -> str:
@@ -110,9 +112,7 @@ def create_eval_config(args):
         verbose=args.verbose,
         eval_max=args.eval_max,
         batch_size=args.batch_size,
-        samples_per_bin=args.samples_per_bin,
-        max_images_per_feature=args.max_images_per_feature,
-        output_folder=args.output_folder
+
     )
 
 def setup_environment():
@@ -411,10 +411,10 @@ def plot_log_frequency_histogram(log_frequencies, bins=300):
     plt.ylabel("Count")
     
     # Save as PNG
-    plt.savefig("log_frequency_histogram.png", dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.save_figure_dir, "log_frequency_histogram.png"), dpi=300, bbox_inches='tight')
     
     # Save as SVG
-    plt.savefig("log_frequency_histogram.svg", format='svg', bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.save_figure_dir, "log_frequency_histogram.svg"), format='svg', bbox_inches='tight')
     
     plt.close()  
 
@@ -675,9 +675,16 @@ def save_heatmap_plot(fig, category, logfreq, feature_id, output_folder):
 
 def generate_feature_heatmaps(top_per_feature, sampled_indices, sampled_bin_labels, sampled_values,
                               val_data_visualize, val_data, ind_to_name, model, sparse_autoencoder, cfg):
+
+    print("Sampled indices", sampled_indices)
+    print("Sampled bin labels", sampled_bin_labels)
+    print("Sampled values", sampled_values)
+
     print("Generating feature heatmaps...")
     for feature_id, category, logfreq in tqdm(zip(sampled_indices, sampled_bin_labels, sampled_values), 
                                               total=len(sampled_bin_labels)):
+        
+        print(f"Generating heatmap for feature {feature_id} in category {category} with log frequency {logfreq}")
         images, model_images, gt_labels, max_vals, max_inds = prepare_image_data(
             top_per_feature, feature_id, val_data_visualize, val_data, ind_to_name
         )
@@ -688,8 +695,7 @@ def generate_feature_heatmaps(top_per_feature, sampled_indices, sampled_bin_labe
         save_heatmap_plot(fig, category, logfreq, feature_id, cfg.max_image_output_folder)
 
 
-def evaluate():
-    cfg = create_eval_config()
+def evaluate(cfg):
     setup_environment()
     model = load_model(cfg)
     sparse_autoencoder = load_sae(cfg)
@@ -710,7 +716,7 @@ def evaluate():
     log_freq=log_freq,
     conditions=conditions,
     condition_labels=conditions_texts,
-    samples_per_bin=50
+    samples_per_bin=30
 )
     
     top_per_feature = collect_max_activating_images(
@@ -754,12 +760,9 @@ if __name__ == '__main__':
                         help="Path to the validation dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
-    parser.add_argument("--eval_max", type=int, default=50, help="Maximum number of samples to evaluate")
+    parser.add_argument("--eval_max", type=int, default=50_000, help="Maximum number of samples to evaluate")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--samples_per_bin", type=int, default=50, help="Number of samples per bin")
-    parser.add_argument("--max_images_per_feature", type=int, default=16, help="Maximum number of images per feature")
-    parser.add_argument("--output_folder", type=str, default="output", help="Output folder")
     
     args = parser.parse_args()
-    cfg = create_config(args)
+    cfg = create_eval_config(args)
     evaluate(cfg)

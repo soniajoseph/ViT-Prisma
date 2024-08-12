@@ -16,11 +16,14 @@ def create_sweep():
             # 'learning_rate': {
             #     'values': [1e-4, 1.778e-4, 3.162e-4, 5.623e-4, 1e-3, 1.778e-3, 3.162e-3, 5.623e-3, 1e-2]
             # },
-            'l1_coefficient': {
-                'values': [1e-5, 5e-5, 1e-4, 0.0002, 0.0003, 0.0005, 0.001, 0.01, 0.1]
-            },
+            # 'l1_coefficient': {
+            #     'values': [1e-5, 5e-5, 1e-4, 0.0002, 0.0003, 0.0005, 0.001, 0.01, 0.1]
+            # },
             'expansion_factor': {
                 'values': [16, 32, 64, 128]
+            },
+            'hook_point_layer': {
+                'values': list(range(12))  # 0 to 11 inclusive
             }
         },
         'program': 'run_wandb_sweep_sae.py',

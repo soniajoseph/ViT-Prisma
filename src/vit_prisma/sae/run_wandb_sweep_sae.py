@@ -9,11 +9,13 @@ def train():
     # Initialize wandb
     run = wandb.init()
     cfg = VisionModelSAERunnerConfig()
-    # cfg.lr = wandb.config.learning_rate
-    cfg.expansion_factor = wandb.config.expansion_factor
-    # print("Config created with lr" + str(cfg.lr))
 
-    cfg.l1_coefficient = wandb.config.l1_coefficient
+    cfg.expansion_factor = wandb.config.expansion_factor
+    cfg.hook_point_layer = wandb.config.hook_point_layer
+
+    # Hold these fixed
+    cfg.l1_coefficient = 0.0001
+    cfg.learning_rate = 0.001
 
     # Manually call __post_init__ to recalculate dependent values
     cfg.__post_init__()
