@@ -51,7 +51,7 @@ def create_eval_config():
 
         device: bool = 'cuda'
 
-        eval_max: int = 50_000 # 50_000
+        eval_max: int = 1 # 50_000
         batch_size: int = 32
 
         # make the max image output folder a subfolder of the sae path
@@ -302,6 +302,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
     total_reconstruction_loss = 0
     total_zero_abl_loss = 0
     total_samples = 0
+    all_cosine_similarity = []
 
     model.eval()
     sparse_autoencoder.eval()
@@ -320,37 +321,46 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
             
             sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
 
+            # Get L0 stats
+            l0 = (feature_acts[:, 1:, :] > 0).float().sum(-1).detach()
+            all_l0.extend(l0.mean(dim=1).cpu().numpy())
+            l0_cls = (feature_acts[:, 0, :] > 0).float().sum(-1).detach()
+            all_l0_cls.extend(l0_cls.flatten().cpu().numpy())
+
+            # Calculate cosine similarity between original activations and sae output
+            cos_sim = torch.cosine_similarity(einops.rearrange(hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                              einops.rearrange(sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                                dim=0).mean(-1).tolist()
+            all_cosine_similarity.append(cos_sim)
+
             # Calculate substitution loss
             score, loss, recons_loss, zero_abl_loss = get_recons_loss(sparse_autoencoder, model, batch_tokens, gt_labels, all_labels, 
                                                                       text_embeddings, device=cfg.device)
 
-            print("recons_loss", recons_loss.item())
-
-            # Ignore the bos token, get the number of features that activated in each token
-            l0 = (feature_acts[:, :] > 0).float().sum(-1).detach()
-            all_l0.extend(l0.flatten().cpu().numpy())
-            l0_cls = (feature_acts[:, 0] > 0).float().sum(-1).detach()
-
-            # add everything to total
             total_loss += loss.item()
             total_reconstruction_loss += recons_loss.item()
             total_zero_abl_loss += zero_abl_loss.item()
 
-            break
+            if total_samples >= cfg.eval_max:
+                break
 
     # Calculate average metrics
     avg_loss = total_loss / total_samples
     avg_reconstruction_loss = total_reconstruction_loss / total_samples
     avg_zero_abl_loss = total_zero_abl_loss / total_samples
     avg_l0 = np.mean(all_l0)
+    avg_l0_cls = np.mean(all_l0_cls)
+    avg_cos_sim = np.mean(all_cosine_similarity)
 
     # print out everything above
+    print(f"Average L0 (features activated): {avg_l0:.4f}")
+    print(f"Average L0 (features activated) per CLS token: {avg_l0_cls:.4f}")
+    print(f"Average Cosine Similarity: {avg_cos_sim:.4f}")
     print(f"Average Loss: {avg_loss:.4f}")
     print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.4f}")
     print(f"Average Zero Ablation Loss: {avg_zero_abl_loss:.4f}")
-    print(f"Average L0 (features activated): {avg_l0:.4f}")
 
-    return avg_loss, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0
+    return avg_loss, avg_cos_sim, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0, avg_l0_cls
 
 
 def evaluate():
@@ -364,17 +374,11 @@ def evaluate():
 
     print("Processing dataset...")
 
-    avg_loss, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0 = process_dataset(model, sparse_autoencoder, val_dataloader, cfg)
-
-    # Print the results
-    print(f"Average Loss: {avg_loss:.4f}")
-    print(f"Average MSE Loss: {avg_mse_loss:.4f}")
-    print(f"Average L1 Loss: {avg_l1_loss:.4f}")
-    print(f"Average L0 (features activated): {avg_l0:.4f}")
+    avg_loss, avg_cos_sim, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0, avg_l0_cls = process_dataset(model, sparse_autoencoder, val_dataloader, cfg)
 
     # Create and save the histogram
     # Create and save the histogram of activated features per token
-    fig_activated = px.histogram(all_l0, title="Distribution of Activated Features per Token")
+    fig_activated = px.histogram(avg_l0, title="Distribution of Activated Features per Token")
     fig_activated.update_layout(
         xaxis_title="Number of Activated Features",
         yaxis_title="Count"
@@ -382,12 +386,12 @@ def evaluate():
     fig_activated.write_image("histogram_activated_features.svg")
 
     # Create and save the histogram of avg activated features per sample
-    fig_cls = px.histogram(all_l0_cls, title="Distribution of Avg Activated Features per Sample")
+    fig_cls = px.histogram(avg_l0_cls, title="Distribution of Avg Activated Features per CLS token")
     fig_cls.update_layout(
         xaxis_title="Average Number of Activated Features",
         yaxis_title="Count"
     )
-    fig_cls.write_image("histogram_avg_activated_features.svg")
+    fig_cls.write_image("histogram_activated_features_cls.svg")
 
     # Create and save the histogram of feature sparsity
     fig_sparsity = px.histogram(feature_sparsity.cpu().numpy(), title="Distribution of Feature Sparsity")
