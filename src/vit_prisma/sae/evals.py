@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 import einops
 
+import argparse
+
 import random
 
 import numpy as np
@@ -44,66 +46,74 @@ import torch.nn.functional as F
 # import partial
 from functools import partial
 
+@dataclass
+class EvalConfig(VisionModelSAERunnerConfig):
+    sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
+    model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
+    model_type: str =  "clip"
+    patch_size: str = 32
 
+    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
 
-def create_eval_config():
-    @dataclass
-    class EvalConfig(VisionModelSAERunnerConfig):
-        sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
-        model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
-        model_type: str =  "clip"
-        patch_size: str = 32
+    verbose: bool = True
 
-        dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
-        dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
-        dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
+    device: bool = 'cuda'
 
-        verbose: bool = True
+    eval_max: int = 50
+    batch_size: int = 32
 
-        device: bool = 'cuda'
-
-        eval_max: int = 50
-        batch_size: int = 32
-
-        # make the max image output folder a subfolder of the sae path
-
-
-        @property
-        def max_image_output_folder(self) -> str:
-            # Get the base directory of sae_checkpoints
-            sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
-            
-            # Get the name of the original SAE checkpoint folder
-            sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
-            
-            # Create a new folder path in sae_checkpoints/images with the original name
-            output_folder = os.path.join(sae_base_dir, 'max_images', sae_folder_name)
-            output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
-
-            # Ensure the directory exists
-            os.makedirs(output_folder, exist_ok=True)
-            
-            return output_folder
+    @property
+    def max_image_output_folder(self) -> str:
+        # Get the base directory of sae_checkpoints
+        sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
         
-        @property
-        def save_figure_dir(self) -> str:
-            # Get the base directory of sae_checkpoints
-            sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
-            
-            # Get the name of the original SAE checkpoint folder
-            sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
-            
-            # Create a new folder path in sae_checkpoints/images with the original name
-            output_folder = os.path.join(sae_base_dir, 'save_fig_dir', sae_folder_name)
-            output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
-
-            # Ensure the directory exists
-            os.makedirs(output_folder, exist_ok=True)
-            return output_folder   
+        # Get the name of the original SAE checkpoint folder
+        sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
         
+        # Create a new folder path in sae_checkpoints/images with the original name
+        output_folder = os.path.join(sae_base_dir, 'max_images', sae_folder_name)
+        output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
 
-    cfg = EvalConfig()
-    return cfg
+        # Ensure the directory exists
+        os.makedirs(output_folder, exist_ok=True)
+        
+        return output_folder
+    
+    @property
+    def save_figure_dir(self) -> str:
+        # Get the base directory of sae_checkpoints
+        sae_base_dir = os.path.dirname(os.path.dirname(self.sae_path))
+        
+        # Get the name of the original SAE checkpoint folder
+        sae_folder_name = os.path.basename(os.path.dirname(self.sae_path))
+        
+        # Create a new folder path in sae_checkpoints/images with the original name
+        output_folder = os.path.join(sae_base_dir, 'save_fig_dir', sae_folder_name)
+        output_folder = os.path.join(output_folder, f"layer_{self.hook_point_layer}") # Add layer number
+
+        # Ensure the directory exists
+        os.makedirs(output_folder, exist_ok=True)
+        return output_folder   
+
+def create_eval_config(args):
+    return EvalConfig(
+        sae_path=args.sae_path,
+        model_name=args.model_name,
+        model_type=args.model_type,
+        patch_size=args.patch_size,
+        dataset_path=args.dataset_path,
+        dataset_train_path=args.dataset_train_path,
+        dataset_val_path=args.dataset_val_path,
+        device=args.device,
+        verbose=args.verbose,
+        eval_max=args.eval_max,
+        batch_size=args.batch_size,
+        samples_per_bin=args.samples_per_bin,
+        max_images_per_feature=args.max_images_per_feature,
+        output_folder=args.output_folder
+    )
 
 def setup_environment():
     torch.set_grad_enabled(False)
@@ -721,58 +731,35 @@ def evaluate():
     generate_feature_heatmaps(top_per_feature, sampled_indices, sampled_bin_labels, sampled_values,
                               val_data_visualize, val_data, ind_to_name, model, sparse_autoencoder, cfg)
 
-#     for feature_ids, cat, logfreq in tqdm(zip(top_per_feature.keys(), sampled_bin_labels, sampled_values), total=len(sampled_bin_labels)):
-#   #  print(f"looking at {feature_ids}, {cat}")
-#         max_vals, max_inds = top_per_feature[feature_ids]
-#         images = []
-#         model_images = []
-#         gt_labels = []
-#         for bid, v in zip(max_inds, max_vals):
-
-#             image, label, image_ind = val_data_visualize[bid]
-
-#             assert image_ind.item() == bid
-#             images.append(image)
-
-#             model_img, _, _ = val_data[bid]
-#             model_images.append(model_img)
-#             gt_labels.append(ind_to_name[str(label)][1])
-        
-#         grid_size = int(np.ceil(np.sqrt(len(images))))
-#         fig, axs = plt.subplots(int(np.ceil(len(images)/grid_size)), grid_size, figsize=(15, 15))
-#         name=  f"Category: {cat},  Feature: {feature_ids}"
-#         fig.suptitle(name)#, y=0.95)
-#         for ax in axs.flatten():
-#             ax.axis('off')
-#         complete_bid = []
-
-#         for i, (image_tensor, label, val, bid,model_img) in enumerate(zip(images, gt_labels, max_vals,max_inds,model_images )):
-#             if bid in complete_bid:
-#                 continue 
-#             complete_bid.append(bid)
-
-#             row = i // grid_size
-#             col = i % grid_size
-#             heatmap = get_heatmap(model_img,model,sparse_autoencoder, feature_ids, cfg.device)
-#             heatmap = image_patch_heatmap(heatmap, pixel_num=224//cfg.patch_size)
-
-#             display = image_tensor.numpy().transpose(1, 2, 0)
-
-#             has_zero = False
-            
-#             axs[row, col].imshow(display)
-#             axs[row, col].imshow(heatmap, cmap='viridis', alpha=0.3)  # Overlaying the heatmap
-#             axs[row, col].set_title(f"{label} {val.item():0.03f} {'class token!' if has_zero else ''}")  
-#             axs[row, col].axis('off')  
-
-#         plt.tight_layout()
-#         folder = os.path.join(cfg.max_image_output_folder, f"{cat}")
-#         os.makedirs(folder, exist_ok=True)
-#         plt.savefig(os.path.join(folder, f"neglogfreq_{-logfreq}feauture_id:{feature_ids}.png"))
-#         plt.close()
 
 
 if __name__ == '__main__':
-    evaluate()
-
+    parser = argparse.ArgumentParser(description="Evaluate sparse autoencoder")
+    parser.add_argument("--sae_path", type=str, 
+                        default='/network/scratch/s/sonia.joseph/sae_checkpoints/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt',
+                        help="Path to sparse autoencoder")
+    parser.add_argument("--model_name", type=str, 
+                        default="wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+                        help="Name of the model")
+    parser.add_argument("--model_type", type=str, default="clip", help="Type of the model")
+    parser.add_argument("--patch_size", type=int, default=32, help="Patch size")
+    parser.add_argument("--dataset_path", type=str, 
+                        default="/network/scratch/s/sonia.joseph/datasets/kaggle_datasets",
+                        help="Path to the dataset")
+    parser.add_argument("--dataset_train_path", type=str, 
+                        default="/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train",
+                        help="Path to the training dataset")
+    parser.add_argument("--dataset_val_path", type=str, 
+                        default="/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val",
+                        help="Path to the validation dataset")
+    parser.add_argument("--device", type=str, default="cuda", help="Device to use")
+    parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
+    parser.add_argument("--eval_max", type=int, default=50, help="Maximum number of samples to evaluate")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--samples_per_bin", type=int, default=50, help="Number of samples per bin")
+    parser.add_argument("--max_images_per_feature", type=int, default=16, help="Maximum number of images per feature")
+    parser.add_argument("--output_folder", type=str, default="output", help="Output folder")
     
+    args = parser.parse_args()
+    cfg = create_config(args)
+    evaluate(cfg)
