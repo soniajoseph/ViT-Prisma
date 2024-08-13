@@ -61,9 +61,12 @@ class EvalConfig(VisionModelSAERunnerConfig):
 
     device: bool = 'cuda'
 
-    eval_max: int = 500
+    eval_max: int = 50_000 # Number of images to evaluate
     batch_size: int = 32
 
+    samples_per_bin: int = 30 # Number of features to sample per pre-specified interval
+    num_max_images: int = 20 # Number of max images to collect per feature
+    
 
 
     @property
@@ -439,7 +442,8 @@ def get_intervals_for_sparsities(log_freq):
     condition_texts[-1] = condition_texts[-1].replace('inf', '∞')
     return intervals, conditions, condition_texts
 
-def visualize_sparsities(log_freq, conditions, condition_texts, name, sparse_autoencoder):
+def visualize_sparsities(cfg, log_freq, conditions, condition_texts, name, sparse_autoencoder):
+
     # Create main figure for log frequency histogram
     plt.figure(figsize=(12, 8))
     plt.hist(log_freq.cpu().numpy(), bins=100, density=True, alpha=0.7, edgecolor='black')
@@ -447,9 +451,12 @@ def visualize_sparsities(log_freq, conditions, condition_texts, name, sparse_aut
     plt.xlabel("$log_{10}(freq)$")
     plt.ylabel("Density (%)")
     plt.grid(True, linestyle='--', alpha=0.7)
-    plt.savefig(f"{name}_frequency_histogram.png", dpi=300, bbox_inches='tight')
-    plt.savefig(f"{name}_frequency_histogram.svg", format='svg', bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.save_figure_dir, f"{name}_frequency_histogram.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.save_figure_dir, f"{name}_frequency_histogram.svg"), format='svg', bbox_inches='tight')
     plt.close()
+
+    # Create histograms for each condition
+    print("Creating histograms for each condition...")
 
     for condition, condition_text in zip(conditions, condition_texts):
         percentage = (torch.count_nonzero(condition)/log_freq.shape[0]).item()*100
@@ -494,19 +501,19 @@ def visualize_sparsities(log_freq, conditions, condition_texts, name, sparse_aut
 
         # Adjust layout and save
         plt.tight_layout()
-        plt.savefig(f"{name}_cosine_similarity_{condition_text}.png", dpi=300, bbox_inches='tight')
-        plt.savefig(f"{name}_cosine_similarity_{condition_text}.svg", format='svg', bbox_inches='tight')
+        plt.savefig(os.path.join(cfg.save_figure_dir, f"{name}_cosine_similarity_{condition_text}.png"), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(cfg.save_figure_dir, f"{name}_cosine_similarity_{condition_text}.svg"), format='svg', bbox_inches='tight')
         plt.close()
 
 
-def sample_features_from_bins(log_freq, conditions, condition_labels, samples_per_bin=50):
+def sample_features_from_bins(log_freq, conditions, conditions_labels, samples_per_bin=50):
     sampled_indices = []
     sampled_values = []
     sampled_bin_labels = []
 
-    for condition, bin_label in zip(conditions, condition_labels):
+    for i, (condition, condition_label) in enumerate(zip(conditions, conditions_labels)):
         potential_indices = torch.nonzero(condition, as_tuple=True)[0]
-        
+
         # If there are fewer potential indices than requested samples, use all available
         if len(potential_indices) <= samples_per_bin:
             selected_indices = potential_indices
@@ -515,28 +522,17 @@ def sample_features_from_bins(log_freq, conditions, condition_labels, samples_pe
             selected_indices = potential_indices[torch.randperm(len(potential_indices))[:samples_per_bin]]
         
         values = log_freq[selected_indices]
+
+        # print("Adding bin labels", bin_label)
         
         sampled_indices.extend(selected_indices.tolist())
         sampled_values.extend(values.tolist())
-        sampled_bin_labels.extend([bin_label] * len(selected_indices))
+        sampled_bin_labels.extend([condition_label] * len(selected_indices))
 
-    return sampled_indices, sampled_values, sampled_bin_labels  
+    return sampled_indices, sampled_values, sampled_bin_labels
 
 
-def collect_max_activating_images(
-    data_loader,
-    model,
-    sparse_autoencoder,
-    feature_indices: List[int],
-    feature_categories: List[str],
-    device: torch.device,
-    max_samples: int,
-    batch_size: int,
-    k: int = 16
-):
-    torch.no_grad()
-
-    def highest_activating_tokens(
+def highest_activating_tokens(
         images,
         model,
         sparse_autoencoder,
@@ -546,6 +542,8 @@ def collect_max_activating_images(
         feature_categories: List[str],
         k: int = 10,
     ) -> Dict[int, Tuple[torch.Tensor, torch.Tensor]]:
+
+        torch.no_grad()
         _, cache = model.run_with_cache(images)
         inp = cache[sparse_autoencoder.cfg.hook_point]
         b, seq_len, _ = inp.shape
@@ -557,6 +555,7 @@ def collect_max_activating_images(
             W_enc,
             "... d_in, d_in n -> ... n",
         )
+        
         
         acts = acts + b_enc
         acts = torch.nn.functional.relu(acts)
@@ -573,6 +572,19 @@ def collect_max_activating_images(
             to_return[feature_id] = (top_acts_indices, top_acts_values)
         return to_return
 
+def collect_max_activating_images(
+    data_loader,
+    model,
+    sparse_autoencoder,
+    feature_indices: List[int],
+    feature_categories: List[str],
+    device: torch.device,
+    max_samples: int,
+    batch_size: int,
+    k: int = 16
+):
+    torch.no_grad()
+
     max_indices = {i: None for i in feature_indices}
     max_values = {i: None for i in feature_indices}
     b_enc = sparse_autoencoder.b_enc[feature_indices]
@@ -581,10 +593,11 @@ def collect_max_activating_images(
     for batch_idx, (total_images, _, total_indices) in tqdm(enumerate(data_loader), total=max_samples//batch_size):
         total_images = total_images.to(device)
         total_indices = total_indices.to(device)
-        new_stuff = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, feature_indices, feature_categories, k=k)
+
+        new_tokens = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, feature_indices, feature_categories, k=k)
         
         for feature_id in feature_indices:
-            new_indices, new_values = new_stuff[feature_id]
+            new_indices, new_values = new_tokens[feature_id]
             new_indices = total_indices[new_indices]
             
             if max_indices[feature_id] is None:
@@ -599,6 +612,7 @@ def collect_max_activating_images(
 
         if (batch_idx + 1) * batch_size >= max_samples:
             break
+
 
     top_per_feature = {i: (max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in feature_indices}
     return top_per_feature 
@@ -640,10 +654,10 @@ def prepare_image_data(top_per_feature, feature_id, val_data_visualize, val_data
     return images, model_images, gt_labels, max_vals, max_inds
 
 def create_heatmap_plot(images, model_images, gt_labels, max_vals, max_inds, 
-                        model, sparse_autoencoder, feature_id, category, cfg):
+                        model, sparse_autoencoder, feature_id, category, interval, cfg):
     grid_size = int(np.ceil(np.sqrt(len(images))))
     fig, axs = plt.subplots(int(np.ceil(len(images)/grid_size)), grid_size, figsize=(15, 15))
-    fig.suptitle(f"Category: {category},  Feature: {feature_id}")
+    fig.suptitle(f"Category: {category}, Interval: {interval}, Feature: {feature_id}")
     for ax in axs.flatten():
         ax.axis('off')
 
@@ -667,33 +681,30 @@ def create_heatmap_plot(images, model_images, gt_labels, max_vals, max_inds,
     plt.tight_layout()
     return fig
 
-def save_heatmap_plot(fig, category, logfreq, feature_id, output_folder):
+def save_heatmap_plot(fig, category, interval, feature_id, output_folder):
     folder = os.path.join(output_folder, f"{category}")
     os.makedirs(folder, exist_ok=True)
-    plt.savefig(os.path.join(folder, f"neglogfreq_{-logfreq}feature_id:{feature_id}.png"))
+    plt.savefig(os.path.join(folder, f"{interval}_feature_id_{feature_id}.png"))
     plt.close(fig)
 
 def generate_feature_heatmaps(top_per_feature, sampled_indices, sampled_bin_labels, sampled_values,
                               val_data_visualize, val_data, ind_to_name, model, sparse_autoencoder, cfg):
 
-    print("Sampled indices", sampled_indices)
-    print("Sampled bin labels", sampled_bin_labels)
-    print("Sampled values", sampled_values)
 
     print("Generating feature heatmaps...")
-    for feature_id, category, logfreq in tqdm(zip(sampled_indices, sampled_bin_labels, sampled_values), 
-                                              total=len(sampled_bin_labels)):
+    for i, feature_id in enumerate(tqdm(sampled_indices, total=len(sampled_indices))):
+        max_vals, max_inds = top_per_feature[feature_id]
+        category = sampled_bin_labels[i]  # Use i instead of feature_id
+        interval = sampled_values[i]  # Use i instead of feature_id
         
-        print(f"Generating heatmap for feature {feature_id} in category {category} with log frequency {logfreq}")
-        images, model_images, gt_labels, max_vals, max_inds = prepare_image_data(
-            top_per_feature, feature_id, val_data_visualize, val_data, ind_to_name
-        )
+        print(f"Generating heatmap for feature {feature_id} in category {category} with interval {interval}...") if cfg.verbose else None
+        images, model_images, gt_labels = prepare_image_data(top_per_feature, feature_id, val_data_visualize, val_data, ind_to_name)
         
         fig = create_heatmap_plot(images, model_images, gt_labels, max_vals, max_inds, 
-                                  model, sparse_autoencoder, feature_id, category, cfg)
+                                  model, sparse_autoencoder, feature_id, category, interval, cfg)
         
-        save_heatmap_plot(fig, category, logfreq, feature_id, cfg.max_image_output_folder)
-
+        save_heatmap_plot(fig, category, interval, feature_id, cfg.max_image_output_folder)
+        plt.close(fig)  # Close the figure to free up memory
 
 def evaluate(cfg):
     setup_environment()
@@ -709,16 +720,17 @@ def evaluate(cfg):
     plot_log_frequency_histogram(log_frequencies)
     log_freq = torch.Tensor(log_frequencies)
     intervals, conditions, conditions_texts = get_intervals_for_sparsities(log_freq)
-    visualize_sparsities(log_freq, conditions, conditions_texts, "TOTAL", sparse_autoencoder)
 
-    print("Getting maximally activating images...")
+    visualize_sparsities(cfg, log_freq, conditions, conditions_texts, "TOTAL", sparse_autoencoder)
+
+    print("Sampling features from each pre-specified intervals...")
     sampled_indices, sampled_values, sampled_bin_labels = sample_features_from_bins(
     log_freq=log_freq,
     conditions=conditions,
-    condition_labels=conditions_texts,
-    samples_per_bin=30
+    conditions_labels=conditions_texts,
+    samples_per_bin=cfg.samples_per_bin
 )
-    
+    print("Collecting max activating image for sampled features...")
     top_per_feature = collect_max_activating_images(
     data_loader=val_dataloader,
     model=model,
@@ -728,18 +740,75 @@ def evaluate(cfg):
     device=cfg.device,
     max_samples=cfg.eval_max,
     batch_size=cfg.batch_size,
-    k=16
+    k=cfg.num_max_images
     )
 
-    print("Plotting heatmaps...")
+
+    print("Top per feature", top_per_feature)
+
+    print("Plotting the heatmaps of max images for each feature...")
     ind_to_name = get_imagenet_index_to_name()
 
-    generate_feature_heatmaps(top_per_feature, sampled_indices, sampled_bin_labels, sampled_values,
-                              val_data_visualize, val_data, ind_to_name, model, sparse_autoencoder, cfg)
+    print("Sampled bin labels", sampled_bin_labels)
 
+    for feature_ids, cat, logfreq in tqdm(zip(top_per_feature.keys(), sampled_bin_labels, sampled_values), total=len(sampled_bin_labels)):
+        max_vals, max_inds = top_per_feature[feature_ids]
+        images = []
+        model_images = []
+        gt_labels = []
+        for bid, v in zip(max_inds, max_vals):
+            image, label, image_ind = val_data_visualize[bid]
+            assert image_ind.item() == bid
+            images.append(image)
 
+            model_img, _, _ = val_data[bid]
+            model_images.append(model_img)
+            gt_labels.append(ind_to_name[str(label)])
+        
+        grid_size = int(np.ceil(np.sqrt(len(images))))
+        fig, axs = plt.subplots(int(np.ceil(len(images)/grid_size)), grid_size, figsize=(15, 15))
+        name = f"Category: {cat},  Feature: {feature_ids}"
+        fig.suptitle(name)
+        
+        # Convert axs to 2D array if it's 1D
+        if len(images) == 1:
+            axs = np.array([[axs]])
+        elif len(axs.shape) == 1:
+            axs = axs.reshape(1, -1)
+        
+        for ax in axs.flatten():
+            ax.axis('off')
+        complete_bid = []
 
-if __name__ == '__main__':
+        for i, (image_tensor, label, val, bid, model_img) in enumerate(zip(images, gt_labels, max_vals, max_inds, model_images)):
+            if bid in complete_bid:
+                continue 
+            complete_bid.append(bid)
+
+            row = i // grid_size
+            col = i % grid_size
+            heatmap = get_heatmap(model_img, model, sparse_autoencoder, feature_ids, cfg.device)
+            heatmap = create_patch_heatmap(heatmap, patch_size=cfg.patch_size)
+
+            display = image_tensor.numpy().transpose(1, 2, 0)
+
+            has_zero = False
+
+            axs[row, col].imshow(display)
+            axs[row, col].imshow(heatmap, cmap='viridis', alpha=0.3)
+            axs[row, col].set_title(f"{label} {val.item():0.03f} {'class token!' if has_zero else ''}")  
+            axs[row, col].axis('off')  
+
+        plt.tight_layout()
+        folder = os.path.join(cfg.max_image_output_folder, f"{cat}")
+        os.makedirs(folder, exist_ok=True)
+        plt.savefig(os.path.join(folder, f"neglogfreq_{-logfreq}feature_id:{feature_ids}.png"))
+        print("Saved at ", os.path.join(folder, f"neglogfreq_{-logfreq}feature_id:{feature_ids}.png"))
+        plt.close(fig)  # Close the figure to free up memory
+
+if __name__ == '__main__': 
+
+    # The argument parser will overwrite the config
     parser = argparse.ArgumentParser(description="Evaluate sparse autoencoder")
     parser.add_argument("--sae_path", type=str, 
                         default='/network/scratch/s/sonia.joseph/sae_checkpoints/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt',
@@ -760,7 +829,7 @@ if __name__ == '__main__':
                         help="Path to the validation dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
-    parser.add_argument("--eval_max", type=int, default=50_000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--eval_max", type=int, default=5000, help="Maximum number of samples to evaluate")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     
     args = parser.parse_args()

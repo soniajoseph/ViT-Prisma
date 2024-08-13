@@ -12,10 +12,14 @@ def train():
 
     cfg.expansion_factor = wandb.config.expansion_factor
     cfg.hook_point_layer = wandb.config.hook_point_layer
+    # cfg.l1_coefficient = wandb.config.l1_coefficient
+
+    cfg.learning_rate = wandb.config.learning_rate
 
     # Hold these fixed
     cfg.l1_coefficient = 0.0001
-    cfg.learning_rate = 0.001
+
+    # cfg.learning_rate = 0.001
 
     # Manually call __post_init__ to recalculate dependent values
     cfg.__post_init__()
