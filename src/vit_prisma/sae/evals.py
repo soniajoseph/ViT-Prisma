@@ -1150,7 +1150,7 @@ def evaluate(cfg):
         plt.tight_layout()
         folder = os.path.join(cfg.max_image_output_folder, f"{cat}")
         os.makedirs(folder, exist_ok=True)
-        plt.savefig(os.path.join(folder, f"neglogfreq_{-logfreq}feature_id:{feature_ids}.png"))
+        plt.savefig(os.path.join(folder, f"neglogfreq_{-logfreq}_feature_id:{feature_ids}.png"))
         plt.close()
 
 
