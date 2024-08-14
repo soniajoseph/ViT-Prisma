@@ -113,7 +113,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
     # Misc
     n_checkpoints: int = 10
-    checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints"
+    checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
 
     def __post_init__(self):
         super().__post_init__()
