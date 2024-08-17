@@ -847,7 +847,7 @@ def evaluate(cfg):
 
     print("Evaluating a total of ", this_max, " images")
 
-    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size):
+    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=len(val_dataloader)):
         total_images = total_images.to(cfg.device)
         total_indices = total_indices.to(cfg.device)
         new_stuff = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices, k=cfg.max_images_per_feature * 2)  # Request more candidates
@@ -874,9 +874,28 @@ def evaluate(cfg):
             max_values[feature_id] = filtered_values
             max_indices[feature_id] = filtered_indices
 
-        if batch_idx * cfg.batch_size >= this_max:
+        # Check if we have enough unique images for all features
+        if all(len(unique_images[i]) >= cfg.max_images_per_feature for i in interesting_features_indices):
+            print(f"Found enough unique images for all features after {batch_idx + 1} batches")
             break
 
+        # Optional: Add a safety check to avoid processing too much data
+        if (batch_idx + 1) * cfg.batch_size >= this_max:
+            print(f"Reached maximum number of images ({this_max}) after {batch_idx + 1} batches")
+            break
+
+    print("Finished processing. Unique images per feature:")
+    for feature_id in interesting_features_indices:
+        print(f"Feature {feature_id}: {len(unique_images[feature_id])} unique images")
+
+    # After the loop, check if we have enough images for each feature
+    for feature_id in interesting_features_indices:
+        while len(max_indices[feature_id]) < cfg.max_images_per_feature:
+            # If we don't have enough unique images, duplicate the last one
+            max_indices[feature_id].append(max_indices[feature_id][-1])
+            max_values[feature_id].append(max_values[feature_id][-1])
+
+    top_per_feature = {i: (max_values[i], max_indices[i]) for i in interesting_features_indices}
     # After the loop, check if we have enough images for each feature
     for feature_id in interesting_features_indices:
         while len(max_indices[feature_id]) < cfg.max_images_per_feature:
