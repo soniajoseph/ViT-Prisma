@@ -40,6 +40,8 @@ class RunnerConfig(ABC):
     total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
     total_training_tokens: int = total_training_images * context_size # Images x tokens
 
+    image_size = 224
+
     # Misc
     device: str | torch.device = "cpu"
     seed: int = 42
