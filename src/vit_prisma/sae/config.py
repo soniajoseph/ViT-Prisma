@@ -98,8 +98,8 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     train_batch_size: int = 1024*4
 
     # Imagenet1k
-    dataset_name = 'imagenet1k' 
-    dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    dataset_name: str = 'imagenet1k' 
+    dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
     dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
     dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
    

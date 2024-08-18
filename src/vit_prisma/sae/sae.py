@@ -22,8 +22,6 @@ from vit_prisma.sae.training.geometric_median import compute_geometric_median # 
 
 import math
 
-import re
-
 
 class SparseAutoencoder(HookedRootModule):
     """ """
