@@ -401,7 +401,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
 
             # batch shape
 
-            total_samples += 1
+            total_samples += batch_size
 
             _, cache = model.run_with_cache(batch_tokens, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
@@ -442,7 +442,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
 
             total_loss += loss.item()
             total_reconstruction_loss += recons_loss.item()
-            total_zero_abl_loss += zero_abl_loss .item()
+            total_zero_abl_loss += zero_abl_loss.item()
 
             if total_samples >= cfg.eval_max:
                 break
@@ -461,46 +461,15 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
     log_frequencies_per_image = calculate_log_frequencies(total_acts, total_images)
 
     # print out everything above
-    print(f"Average L0 (features activated): {avg_l0:.4f}")
-    print(f"Average L0 (features activated) per CLS token: {avg_l0_cls:.4f}")
-    print(f"Average L0 (features activated) per image: {avg_l0_image:.4f}")
+    print(f"Average L0 (features activated): {avg_l0:.6f}")
+    print(f"Average L0 (features activated) per CLS token: {avg_l0_cls:.6f}")
+    print(f"Average L0 (features activated) per image: {avg_l0_image:.6f}")
     print(f"Average Cosine Similarity: {avg_cos_sim:.4f}")
-    print(f"Average Loss: {avg_loss:.4f}")
-    print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.4f}")
-    print(f"Average Zero Ablation Loss: {avg_zero_abl_loss:.4f}")
+    print(f"Average Loss: {avg_loss:.6f}")
+    print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.6f}")
+    print(f"Average Zero Ablation Loss: {avg_zero_abl_loss:.6f}")
 
     return avg_loss, avg_cos_sim, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0, avg_l0_cls, avg_l0_image, log_frequencies_per_token, log_frequencies_per_image
-
-# def plot_log_frequency_histogram(log_frequencies):
-#     print("Plotting log frequencies...")
-    
-#     # Convert to numpy array if it's not already
-#     log_frequencies = np.array(log_frequencies)
-    
-#     # Remove infinite values
-#     log_frequencies = log_frequencies[np.isfinite(log_frequencies)]
-    
-#     if len(log_frequencies) == 0:
-#         print("Warning: No finite values in log_frequencies. Cannot plot histogram.")
-#         return
-    
-#     # Compute histogram bins
-#     min_val = np.min(log_frequencies)
-#     max_val = np.max(log_frequencies)
-#     bins = np.linspace(min_val, max_val, 50)
-    
-#     plt.figure(figsize=(10, 6))
-#     plt.hist(log_frequencies, bins=bins, edgecolor='black')
-#     plt.title('Histogram of Log Frequencies')
-#     plt.xlabel('Log Frequency')
-#     plt.ylabel('Count')
-    
-#     # Add some padding to the x-axis
-#     plt.xlim(min_val - 0.1 * (max_val - min_val), max_val + 0.1 * (max_val - min_val))
-    
-#     plt.savefig('log_frequency_histogram.png')
-#     plt.close()
-#     print("Log frequency histogram saved as 'log_frequency_histogram.png'")
 
 
 def get_intervals_for_sparsities(log_freq):
@@ -556,73 +525,35 @@ def highest_activating_tokens(
 
     # Reshape acts to (batch, seq, n_features)
     acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
-
-    to_return = {}
-    for feature_id in feature_ids:
+    temp_top_indices = {}
+    # The matrix already only contains features due to the selective W_enc you passed in
+    for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
         # Get activations for this feature across all tokens and images
-        feature_acts = acts_reshaped[:, :, feature_id].flatten()
+        feature_acts = acts_reshaped[:, :, idx].flatten()
         
         # Get top k activating tokens
-        top_acts_values, top_acts_indices = feature_acts.topk(k)
-        
+        top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+
         # Convert flat indices to (image_idx, token_idx) pairs
         image_indices = top_acts_indices // seq_len
         token_indices = top_acts_indices % seq_len
+
+        temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
+
+    temp_top_indices = {}
+    for idx, fid in enumerate(feature_ids):
+        feature_acts = acts_reshaped[:, :, idx].flatten()
+        top_acts_values, top_acts_indices = feature_acts.topk(k)
         
-        to_return[feature_id] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
+        image_indices = top_acts_indices // seq_len
+        token_indices = top_acts_indices % seq_len
 
-    return to_return
-
-# def highest_activating_tokens(
-#     images,
-#     model,
-#     sparse_autoencoder,
-#     W_enc,
-#     b_enc,
-#     feature_ids: List[int],
-#     feature_categories,
-#     k: int = 10,
-# ):
-#     '''
-#     Returns the indices & values for the highest-activating tokens in the given batch of data.
-#     '''
-
-#     with torch.no_grad():
-#     # Get the post activations from the clean run
-#         _, cache = model.run_with_cache(images)
-    
-
-#     inp = cache[sparse_autoencoder.cfg.hook_point]
-#     b, seq_len, _ = inp.shape
-#     post_reshaped = einops.rearrange( inp, "batch seq d_mlp -> (batch seq) d_mlp")
-#     # Compute activations (not from a fwd pass, but explicitly, by taking only the feature we want)
-#     # This code is copied from the first part of the 'forward' method of the AutoEncoder class
-#     sae_in =  post_reshaped - sparse_autoencoder.b_dec # Remove decoder bias as per Anthropic
-
-#     acts = einops.einsum(
-#             sae_in,
-#             W_enc,
-#             "... d_in, d_in n -> ... n",
-#         )
-    
-#     acts = acts + b_enc
-#     acts = torch.nn.functional.relu(acts)
-#     #TODO clean up
-#     unshape = einops.rearrange(acts, "(batch seq) d_in -> batch seq d_in", batch=b, seq=seq_len)
-#     cls_acts = unshape[:,0,:]
-#     per_image_acts = unshape.mean(1)
-
-#     to_return = {} 
-#     for i, (feature_id, feature_cat) in enumerate(zip(feature_ids, feature_categories)):
-#         if "CLS_" in feature_cat:
-#             top_acts_values, top_acts_indices = cls_acts[:,i].topk(k)
-
-#             to_return[feature_id]  = (top_acts_indices, top_acts_values)
-#         else:
-#             top_acts_values, top_acts_indices = per_image_acts[:,i].topk(k)
-
-#             to_return[feature_id]  = (top_acts_indices, top_acts_values)
-#     return to_return 
+        temp_top_indices[fid] = {
+            'image_indices': image_indices.tolist(),
+            'token_indices': token_indices.tolist(),
+            'values': top_acts_values.tolist()
+        }
+    return temp_top_indices
 
 torch.no_grad()
 def get_heatmap(
@@ -647,8 +578,9 @@ def get_heatmap(
         )
     return acts 
      
-def image_patch_heatmap(activation_values, cfg, image_size=224):
+def image_patch_heatmap(activation_values, cfg):
     patch_size = cfg.patch_size
+    image_size = cfg.image_size
     pixel_num = image_size // patch_size
     activation_values = activation_values.detach().cpu().numpy()
     activation_values = activation_values[1:]
@@ -789,12 +721,12 @@ def visualize_sparsities(cfg, log_freq_tokens, log_freq_images, conditions, cond
                 template="ggplot2",
             )
 
-    
 
 def evaluate(cfg):
     setup_environment()
     model = load_model(cfg)
     sparse_autoencoder = load_sae(cfg)
+    print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
     val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
     print("Loaded model and data") if cfg.verbose else None
 
@@ -836,117 +768,57 @@ def evaluate(cfg):
     #     print(c, v,i)
 
     print(set(interesting_features_category))
-
     print("Running through dataset to get top images per feature...")
     this_max = cfg.eval_max
-    max_indices = {i: [] for i in interesting_features_indices}
-    max_values = {i: [] for i in interesting_features_indices}
-    unique_images = {i: set() for i in interesting_features_indices}
-    b_enc = sparse_autoencoder.b_enc
-    W_enc = sparse_autoencoder.W_enc
+    max_indices = {i:None for i in interesting_features_indices}
+    max_values =  {i:None for i in interesting_features_indices} 
+    b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
+    W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
 
-    print("Evaluating a total of ", this_max, " images")
-
-    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=len(val_dataloader)):
+    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
         total_images = total_images.to(cfg.device)
         total_indices = total_indices.to(cfg.device)
-        new_stuff = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices, k=cfg.max_images_per_feature * 2)  # Request more candidates
+        batch_size = total_images.shape[0]
+
+        new_top_info = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices) # Return all
         
         for feature_id in interesting_features_indices:
-            new_indices, new_values = new_stuff[feature_id]
-            new_indices = [(total_indices[i].item(), t) for i, t in new_indices]
-            
-            # Combine new and existing data
-            combined = list(zip(max_values[feature_id] + new_values, max_indices[feature_id] + new_indices))
-            combined.sort(reverse=True)
-            
-            # Filter and keep unique images up to max_images_per_feature
-            filtered_values = []
-            filtered_indices = []
-            for value, index in combined:
-                if len(filtered_indices) >= cfg.max_images_per_feature:
-                    break
-                if index[0] not in unique_images[feature_id]:
-                    filtered_values.append(value)
-                    filtered_indices.append(index)
-                    unique_images[feature_id].add(index[0])
-            
-            max_values[feature_id] = filtered_values
-            max_indices[feature_id] = filtered_indices
+            feature_data = new_top_info[feature_id]
+            batch_image_indices = torch.tensor(feature_data['image_indices'])
+            token_indices = torch.tensor(feature_data['token_indices'])
+            token_activation_values = torch.tensor(feature_data['values'])
+            global_image_indices = total_indices[batch_image_indices]  # Get global indices 
 
-        # Check if we have enough unique images for all features
-        if all(len(unique_images[i]) >= cfg.max_images_per_feature for i in interesting_features_indices):
-            print(f"Found enough unique images for all features after {batch_idx + 1} batches")
+            # get unique image_indices
+
+            if max_indices[feature_id] is None: 
+                max_indices[feature_id] = global_image_indices
+                max_values[feature_id] = token_activation_values
+            else:
+                ABvals = torch.cat((max_values[feature_id], token_activation_values))
+                ABinds = torch.cat((max_indices[feature_id], global_image_indices))
+                _, inds = torch.topk(ABvals, k=cfg.max_images_per_feature)
+                max_values[feature_id] = ABvals[inds]
+                max_indices[feature_id] = ABinds[inds]
+
+        if batch_idx*cfg.batch_size >= this_max:
             break
 
-        # Optional: Add a safety check to avoid processing too much data
-        if (batch_idx + 1) * cfg.batch_size >= this_max:
-            print(f"Reached maximum number of images ({this_max}) after {batch_idx + 1} batches")
-            break
-
-    print("Finished processing. Unique images per feature:")
-    for feature_id in interesting_features_indices:
-        print(f"Feature {feature_id}: {len(unique_images[feature_id])} unique images")
-
-    # After the loop, check if we have enough images for each feature
-    for feature_id in interesting_features_indices:
-        while len(max_indices[feature_id]) < cfg.max_images_per_feature:
-            # If we don't have enough unique images, duplicate the last one
-            max_indices[feature_id].append(max_indices[feature_id][-1])
-            max_values[feature_id].append(max_values[feature_id][-1])
-
-    top_per_feature = {i: (max_values[i], max_indices[i]) for i in interesting_features_indices}
-    # After the loop, check if we have enough images for each feature
-    for feature_id in interesting_features_indices:
-        while len(max_indices[feature_id]) < cfg.max_images_per_feature:
-            # If we don't have enough unique images, duplicate the last one
-            max_indices[feature_id].append(max_indices[feature_id][-1])
-            max_values[feature_id].append(max_values[feature_id][-1])
-
-    top_per_feature = {i: (max_values[i], max_indices[i]) for i in interesting_features_indices}
-
-    # this_max = cfg.eval_max
-    # max_indices = {i:None for i in interesting_features_indices}
-    # max_values =  {i:None for i in interesting_features_indices} 
-    # b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
-    # W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
-    # for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
-    #         total_images = total_images.to(cfg.device)
-    #         total_indices = total_indices.to(cfg.device)
-    #         new_stuff = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices, interesting_features_category, k=16)
-    #         for feature_id in interesting_features_indices:
-    #             new_indices, new_values = new_stuff[feature_id]
-    #             new_indices = total_indices[new_indices]
-    #             #  new_indices[:,0] = new_indices[:,0] + batch_idx*batch_size
-                
-    #             if max_indices[feature_id] is None:
-    #                 max_indices[feature_id] = new_indices
-    #                 max_values[feature_id] = new_values
-    #             else:
-    #                 ABvals = torch.cat((max_values[feature_id], new_values))
-    #                 ABinds = torch.cat((max_indices[feature_id], new_indices))
-    #                 _, inds = torch.topk(ABvals, new_values.shape[0])
-    #                 max_values[feature_id] = ABvals[inds]
-    #                 max_indices[feature_id] = ABinds[inds]
-        
-    #         if batch_idx*cfg.batch_size >= this_max:
-    #             break
-    
-    # top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
+    top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
     ind_to_name = get_imagenet_index_to_name()
+
     for feature_ids, cat, logfreq in tqdm(zip(top_per_feature.keys(), interesting_features_category, interesting_features_values), total=len(interesting_features_category)):
-    #  print(f"looking at {feature_ids}, {cat}")
         max_vals, max_inds = top_per_feature[feature_ids]
         images = []
         model_images = []
         gt_labels = []
-        for (image_idx, token_idx), v in zip(max_inds, max_vals):
-            image, label, image_ind = val_data_visualize[image_idx]
+        for bid, v in zip(max_inds, max_vals):
+            image, label, image_ind = val_data_visualize[bid]
 
-            # assert image_ind.item() == image_idx
+            assert image_ind.item() == bid
             images.append(image)
 
-            model_img, _, _ = val_data[image_idx]
+            model_img, _, _ = val_data[bid]
             model_images.append(model_img)
             gt_labels.append(ind_to_name[str(label)][1])
         
@@ -958,7 +830,7 @@ def evaluate(cfg):
             ax.axis('off')
         complete_bid = []
 
-        for i, (image_tensor, label, val, (bid, token_id), model_img) in enumerate(zip(images, gt_labels, max_vals,max_inds, model_images)):
+        for i, (image_tensor, label, val, bid, model_img) in enumerate(zip(images, gt_labels, max_vals,max_inds, model_images)):
             if bid in complete_bid:
                 continue 
             complete_bid.append(bid)
@@ -967,14 +839,14 @@ def evaluate(cfg):
             col = i % grid_size
 
             heatmap = get_heatmap(model_img,model,sparse_autoencoder, feature_ids, cfg.device)
-            heatmap = image_patch_heatmap(heatmap, cfg, cfg.image_size)
+            heatmap = image_patch_heatmap(heatmap, cfg)
             display = image_tensor.numpy().transpose(1, 2, 0)
 
             has_zero = False
             
             axs[row, col].imshow(display)
             axs[row, col].imshow(heatmap, cmap='viridis', alpha=0.3)  # Overlaying the heatmap
-            axs[row, col].set_title(f"{label} {val:0.06f} {'class token!' if has_zero else ''}")  
+            axs[row, col].set_title(f"{label} {val.item():0.06f} {'class token!' if has_zero else ''}")  
             axs[row, col].axis('off')  
 
         plt.tight_layout()

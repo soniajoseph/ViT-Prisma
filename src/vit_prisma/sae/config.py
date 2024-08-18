@@ -102,7 +102,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
    
     # Resampling protocol args
     use_ghost_grads: bool = True
-    feature_sampling_window: int = 100 # 1000
+    feature_sampling_window: int = 300 # 1000
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8
@@ -111,7 +111,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     log_to_wandb: bool = True
     wandb_project: str = "tinyclip_sae_16_hyperparam_sweep_lr"
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 30
+    wandb_log_frequency: int = 100
 
     # Misc
     n_checkpoints: int = 10

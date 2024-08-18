@@ -33,9 +33,13 @@ def train():
         print(f"Fixed parameter applied: {param} = {value}")
 
       #Explicitly check and set the learning rate
-    if 'learning_rate' in wandb.config:
-        cfg.lr = wandb.config.learning_rate
+    if 'lr' in wandb.config:
+        cfg.lr = wandb.config.lr
         print(f"Setting learning rate to: {cfg.lr}")
+
+    if 'l1_coefficient' in wandb.config:
+        cfg.l1_coefficient = wandb.config.l1_coefficient
+        print(f"Setting l1_coefficient to: {cfg.l1_coefficient}")
 
     # Manually call __post_init__ to recalculate dependent values
     cfg.__post_init__()

@@ -14,10 +14,10 @@ def create_sweep(layer):
         },
         'parameters': {
             'lr': {
-                'values': [1e-6, 3.162e-6, 1e-5, 3.162e-5, 1e-4, 3.162e-4, 1e-3, 3.162e-3, 1e-2]
+                'values': [3e-4, 1e-3, 3e-3]
             },
             'l1_coefficient': {
-                'values': [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10]
+                'values': [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
             },
             # 'expansion_factor': {
             #     'values': [16, 32, 64, 128]
@@ -30,7 +30,7 @@ def create_sweep(layer):
     }
     
     # create sweep
-    sweep_id = wandb.sweep(sweep_configuration, project="tinyclip40M_mlp_out_exp_32_full_sweep")
+    sweep_id = wandb.sweep(sweep_configuration, project=f"tinyclip40M_mlp_out_layer_{layer}_sae_expansion_32")
     print(f"Sweep created with id: {sweep_id} for layer {layer}")
 
     return sweep_id
