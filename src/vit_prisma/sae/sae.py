@@ -43,6 +43,10 @@ class SparseAutoencoder(HookedRootModule):
         self.device = cfg.device
         self.initialization_method = cfg.initialization_method
 
+        self.activation_fn = get_activation_fn(
+            cfg.activation_fn_str, **cfg.activation_fn_kwargs or {}
+        )
+
         # Initialize weights based on the chosen method
         if self.initialization_method == "independent":
             self.W_dec = nn.Parameter(
@@ -148,7 +152,6 @@ class SparseAutoencoder(HookedRootModule):
             and  torch.any(dead_neuron_mask)
         ):
             # ghost protocol
-
             # 1.
             residual = x - sae_out
             residual_centred = residual - residual.mean(dim=0, keepdim=True)
@@ -171,16 +174,22 @@ class SparseAutoencoder(HookedRootModule):
 
             mse_loss_ghost_resid = mse_loss_ghost_resid.mean()
         else:
-  
             mse_loss_ghost_resid = self.zero_loss
 
 
         mse_loss = mse_loss.mean()
         sparsity = feature_acts.norm(p=self.lp_norm, dim=1).mean(dim=(0,))
-        l1_loss = self.l1_coefficient * sparsity
-        loss = mse_loss + l1_loss + mse_loss_ghost_resid
+        
+        if cfg.activation_fn_str != "topk":
+            l1_loss = self.l1_coefficient * sparsity
+            loss = mse_loss + l1_loss + mse_loss_ghost_resid
+        elif cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
+            l1_loss = None
+            loss = mse_loss + mse_loss_ghost_resid
 
         return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid
+    
+
 
     @torch.no_grad()
     def initialize_b_dec_with_precalculated(self, origin: torch.Tensor):
@@ -369,3 +378,41 @@ class SparseAutoencoder(HookedRootModule):
     def get_name(self):
         sae_name = f"sparse_autoencoder_{self.cfg.model_name}_{self.cfg.hook_point}_{self.cfg.d_sae}"
         return sae_name
+
+class TopK(nn.Module):
+    def __init__(
+        self, k: int, postact_fn: Callable[[torch.Tensor], torch.Tensor] = nn.ReLU()
+    ):
+        super().__init__()
+        self.k = k
+        self.postact_fn = postact_fn
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        topk = torch.topk(x, k=self.k, dim=-1)
+        values = self.postact_fn(topk.values)
+        result = torch.zeros_like(x)
+        result.scatter_(-1, topk.indices, values)
+        return result
+
+
+def get_activation_fn(
+    activation_fn: str, **kwargs: Any
+) -> Callable[[torch.Tensor], torch.Tensor]:
+    if activation_fn == "relu":
+        return torch.nn.ReLU()
+    elif activation_fn == "tanh-relu":
+
+        def tanh_relu(input: torch.Tensor) -> torch.Tensor:
+            input = torch.relu(input)
+            input = torch.tanh(input)
+            return input
+        return tanh_relu
+    elif activation_fn == "topk":
+        assert "k" in kwargs, "TopK activation function requires a k value."
+        k = kwargs.get("k", 1)  # Default k to 1 if not provided
+        postact_fn = kwargs.get(
+            "postact_fn", nn.ReLU()
+        )  # Default post-activation to ReLU if not provided
+        return TopK(k, postact_fn)
+    else:
+        raise ValueError(f"Unknown activation function: {activation_fn}")

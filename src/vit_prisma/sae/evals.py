@@ -500,7 +500,6 @@ def highest_activating_tokens(
     W_enc,
     b_enc,
     feature_ids: List[int],
-    k: int = 10,
 ):
     '''
     Returns the indices & values for the highest-activating tokens in the given batch of data.

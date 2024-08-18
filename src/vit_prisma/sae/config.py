@@ -26,6 +26,9 @@ class RunnerConfig(ABC):
 
     # SAE Parameters
     d_in: int = 512
+    activation_fn_str: str = "relu" # relu or topk
+    activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)  # for topk
+
 
     # New changes
     max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
