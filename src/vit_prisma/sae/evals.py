@@ -116,6 +116,7 @@ def create_eval_config(args):
         verbose=args.verbose,
         eval_max=args.eval_max,
         batch_size=args.batch_size,
+        samples_per_bin=args.samples_per_bin
 
     )
 
@@ -786,20 +787,36 @@ def evaluate(cfg):
             feature_data = new_top_info[feature_id]
             batch_image_indices = torch.tensor(feature_data['image_indices'])
             token_indices = torch.tensor(feature_data['token_indices'])
-            token_activation_values = torch.tensor(feature_data['values'])
+            token_activation_values = torch.tensor(feature_data['values'], device=cfg.device)
             global_image_indices = total_indices[batch_image_indices]  # Get global indices 
 
             # get unique image_indices
+            # Get unique image indices and their highest activation values
+            unique_image_indices, unique_indices = torch.unique(global_image_indices, return_inverse=True)
+            unique_activation_values = torch.zeros_like(unique_image_indices, dtype=torch.float, device=cfg.device)
+            unique_activation_values.index_reduce_(0, unique_indices, token_activation_values, 'amax')
 
             if max_indices[feature_id] is None: 
-                max_indices[feature_id] = global_image_indices
-                max_values[feature_id] = token_activation_values
+                max_indices[feature_id] = unique_image_indices
+                max_values[feature_id] = unique_activation_values
             else:
-                ABvals = torch.cat((max_values[feature_id], token_activation_values))
-                ABinds = torch.cat((max_indices[feature_id], global_image_indices))
-                _, inds = torch.topk(ABvals, k=cfg.max_images_per_feature)
-                max_values[feature_id] = ABvals[inds]
-                max_indices[feature_id] = ABinds[inds]
+                # Concatenate with existing data
+                all_indices = torch.cat((max_indices[feature_id], unique_image_indices))
+                all_values = torch.cat((max_values[feature_id], unique_activation_values))
+                
+                # Get unique indices again (in case of overlap between batches)
+                unique_all_indices, unique_all_idx = torch.unique(all_indices, return_inverse=True)
+                unique_all_values = torch.zeros_like(unique_all_indices, dtype=torch.float)
+                unique_all_values.index_reduce_(0, unique_all_idx, all_values, 'amax')
+                
+                # Select top k
+                if len(unique_all_indices) > cfg.max_images_per_feature:
+                    _, top_k_idx = torch.topk(unique_all_values, k=cfg.max_images_per_feature)
+                    max_indices[feature_id] = unique_all_indices[top_k_idx]
+                    max_values[feature_id] = unique_all_values[top_k_idx]
+                else:
+                    max_indices[feature_id] = unique_all_indices
+                    max_values[feature_id] = unique_all_values
 
         if batch_idx*cfg.batch_size >= this_max:
             break
@@ -885,6 +902,7 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
     parser.add_argument("--eval_max", type=int, default=50_000, help="Maximum number of samples to evaluate")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--samples_per_bin", type=int, default=10, help="Number of samples to collect per bin")
     
     args = parser.parse_args()
     cfg = create_eval_config(args)

@@ -28,8 +28,7 @@ class RunnerConfig(ABC):
     # SAE Parameters
     d_in: int = 512
     activation_fn_str: str = "relu" # relu or topk
-    activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)  # for topk
-
+    activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # New changes
     max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
@@ -44,7 +43,7 @@ class RunnerConfig(ABC):
     total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
     total_training_tokens: int = total_training_images * context_size # Images x tokens
 
-    image_size = 224
+    image_size: int = 224
 
     # Misc
     device: str | torch.device = "cpu"
@@ -188,6 +187,8 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         print(
             f"Using SAE initialization method: {self.initialization_method}"
         )
+
+        self.activation_fn_kwargs = self.activation_fn_kwargs or {}
 
 
 from dataclasses import dataclass;
