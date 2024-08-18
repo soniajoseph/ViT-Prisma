@@ -31,6 +31,7 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 # import dataloader
 from torch.utils.data import DataLoader
 
+
 from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
 from vit_prisma.models.base_vit import HookedViT
@@ -525,24 +526,24 @@ def highest_activating_tokens(
     # Reshape acts to (batch, seq, n_features)
     acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
     temp_top_indices = {}
-    # The matrix already only contains features due to the selective W_enc you passed in
-    for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
-        # Get activations for this feature across all tokens and images
-        feature_acts = acts_reshaped[:, :, idx].flatten()
+    # # The matrix already only contains features due to the selective W_enc you passed in
+    # for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
+    #     # Get activations for this feature across all tokens and images
+    #     feature_acts = acts_reshaped[:, :, idx].flatten()
         
-        # Get top k activating tokens
-        top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+    #     # Get top k activating tokens
+    #     top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
 
-        # Convert flat indices to (image_idx, token_idx) pairs
-        image_indices = top_acts_indices // seq_len
-        token_indices = top_acts_indices % seq_len
+    #     # Convert flat indices to (image_idx, token_idx) pairs
+    #     image_indices = top_acts_indices // seq_len
+    #     token_indices = top_acts_indices % seq_len
 
-        temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
+    #     temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
 
     temp_top_indices = {}
     for idx, fid in enumerate(feature_ids):
         feature_acts = acts_reshaped[:, :, idx].flatten()
-        top_acts_values, top_acts_indices = feature_acts.topk(k)
+        top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
         
         image_indices = top_acts_indices // seq_len
         token_indices = top_acts_indices % seq_len
@@ -811,15 +812,17 @@ def evaluate(cfg):
         images = []
         model_images = []
         gt_labels = []
+        unique_bids = set()
         for bid, v in zip(max_inds, max_vals):
-            image, label, image_ind = val_data_visualize[bid]
-
-            assert image_ind.item() == bid
-            images.append(image)
-
-            model_img, _, _ = val_data[bid]
-            model_images.append(model_img)
-            gt_labels.append(ind_to_name[str(label)][1])
+            if len(unique_bids) >= cfg.max_images_per_feature:
+                break
+            if bid not in unique_bids:
+                image, label, image_ind = val_data_visualize[bid]
+                images.append(image)
+                model_img, _, _ = val_data[bid]
+                model_images.append(model_img)
+                gt_labels.append(ind_to_name[str(label)][1])
+                unique_bids.add(bid)
         
         grid_size = int(np.ceil(np.sqrt(len(images))))
         fig, axs = plt.subplots(int(np.ceil(len(images)/grid_size)), grid_size, figsize=(15, 15))

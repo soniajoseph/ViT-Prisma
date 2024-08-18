@@ -5,11 +5,12 @@ https://github.com/ArthurConmy/sae/blob/main/sae/model.py
 import gzip
 import os
 import pickle
-from typing import Any
+from typing import Any, Callable
 
 import einops
 import torch
 from torch import nn
+
 
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.prisma_tools.hook_point import HookPoint
@@ -180,10 +181,10 @@ class SparseAutoencoder(HookedRootModule):
         mse_loss = mse_loss.mean()
         sparsity = feature_acts.norm(p=self.lp_norm, dim=1).mean(dim=(0,))
         
-        if cfg.activation_fn_str != "topk":
+        if self.cfg.activation_fn_str != "topk":
             l1_loss = self.l1_coefficient * sparsity
             loss = mse_loss + l1_loss + mse_loss_ghost_resid
-        elif cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
+        elif self.cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
             l1_loss = None
             loss = mse_loss + mse_loss_ghost_resid
 

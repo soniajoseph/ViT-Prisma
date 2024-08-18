@@ -2,9 +2,10 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Optional, cast
 
-from dataclasses import fields
+from dataclasses import fields, field
 
 import torch
+
 
 
 @dataclass
