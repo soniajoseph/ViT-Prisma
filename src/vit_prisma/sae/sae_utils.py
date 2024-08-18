@@ -124,30 +124,20 @@ def map_legacy_sae_lens_2_to_prisma_repo(old_config):
 
 # repo_name = 'Prisma-Multimodal/sae_weights'
 
-repo_name = 'soniajoseph/updated-sae-weights'
-
-file_id = 'UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
-download_dir = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out'
-
-
-download_sae_from_huggingface(repo_name, file_id, download_dir)
-sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
-
-
-sae = SparseAutoencoder(EvalConfig()).load_from_pretrained_legacy_saelens_v2(sae_path)
+def load_sae():
+    repo_name = 'soniajoseph/updated-sae-weights'
+    file_id = 'UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
+    download_dir = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out'
+    download_sae_from_huggingface(repo_name, file_id, download_dir)
+    sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
+    sae = SparseAutoencoder(EvalConfig()).load_from_pretrained_legacy_saelens_v2(sae_path)
 
 
-print(sae)
+# print(sae)
 
-# state_dict = load_sae_weights(sae_path)
+# # print(sae.cfg)
 
-
-# sae = load_sae(cfg)
-
-
-# print(sae.cfg)
-
-# tensor = torch.rand(1,1,512).to(cfg.device)
+# tensor = torch.rand(1,1,512).to('cuda')
 # output, feature_acts, *data = sae(tensor)
 
 # print(feature_acts.shape)
