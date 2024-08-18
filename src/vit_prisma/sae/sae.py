@@ -17,6 +17,9 @@ from vit_prisma.prisma_tools.hook_point import HookPoint
 
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
+# import fields
+from dataclasses import fields
+
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median # Note: this is the SAE Lens 3 version, not SAE Lens 2 version
 
@@ -375,8 +378,15 @@ class SparseAutoencoder(HookedRootModule):
         else:
             raise ValueError("The loaded state dictionary must contain 'config' and 'autoencoder' keys")
         
+        
         mapped_config = map_legacy_sae_lens_2_to_prisma_repo(old_config)
+
+        # Remove any fields that are not in VisionModelSAERunnerConfig
+        valid_fields = set(field.name for field in fields(VisionModelSAERunnerConfig))
+        mapped_config = {k: v for k, v in mapped_config.items() if k in valid_fields}
+
         config = VisionModelSAERunnerConfig(**mapped_config)
+
 
         # Update loaded config with current config if provided
         if current_cfg is not None:
@@ -384,9 +394,11 @@ class SparseAutoencoder(HookedRootModule):
                 if hasattr(config, key):
                     setattr(config, key, value)
 
+
         # Create an instance of the class using the loaded configuration
         instance = cls(cfg=config)
         instance.load_state_dict(model_state_dict)
+
 
         return instance
 
