@@ -3,15 +3,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
-from vit_prisma.sae.evals import highest_activating_tokens, get_heatmap, image_patch_heatmap, setup_environment, load_model, load_sae, load_dataset, EvalConfig
+from vit_prisma.sae.evals import highest_activating_tokens, get_heatmap, image_patch_heatmap, setup_environment, load_model, load_dataset, EvalConfig
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_index_to_name
+
+
+from vit_prisma.sae.sae import SparseAutoencoder
 
 import argparse
 
 
 def sample_features(feature_ids, cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize):
-    print(f"Sampling for features {feature_ids}...")
     this_max = cfg.eval_max
+    feature_ids = [int(i[0]) for i in feature_ids]
+    print(f"Sampling for features {feature_ids}...")
+
     max_indices = {i: None for i in feature_ids}
     max_values = {i: None for i in feature_ids}
     b_enc = sparse_autoencoder.b_enc[feature_ids]
@@ -107,13 +112,21 @@ def sample_features(feature_ids, cfg, model, sparse_autoencoder, val_dataloader,
         plt.savefig(os.path.join(folder, f"feature_id_{feature_id}.svg"))
         plt.close()
 
-# Usage example
-def main():
-    # Initialize your cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize here
+def parse_features(features):
+    return [int(f.strip()) for f in features.strip('[]').split(',')]
 
-    parser = argparse.ArgumentParser(description='Sample features from the model')
-    parser.add_argument('--features', type=int, nargs='+', help='List of feature numbers to sample')
-    args = parser.parse_args()
+
+
+def load_sae(cfg):
+    # sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
+    sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
+    cfg = EvalConfig()
+    sae = SparseAutoencoder(cfg).load_from_pretrained_legacy_saelens_v2(sae_path)
+    return sae
+
+# Usage example
+def main(feature_id_list):
+    # Initialize your cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize here
 
     setup_environment()
     cfg = EvalConfig()
@@ -122,13 +135,15 @@ def main():
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
     val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
     print("Loaded model and data") if cfg.verbose else None
-
-    while True:
-        input_features = input("Enter feature numbers to sample (comma-separated, or 'exit' to quit): ")
-        if input_features.lower() == 'exit':
-            break
-        feature_ids = [int(f.strip()) for f in input_features.split(',')]
-        sample_features(feature_ids, cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize)
+    sample_features(feature_id_list, cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Sample features from the model')
+    parser.add_argument('--features', nargs='+', type=list, help='List of feature numbers to sample')
+    args = parser.parse_args()
+
+    features = args.features
+    # features = parse_features(args.features)
+    print(f"Sampling features {features}")
+
+    main(features)
