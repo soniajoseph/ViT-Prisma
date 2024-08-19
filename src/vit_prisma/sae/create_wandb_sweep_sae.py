@@ -14,7 +14,7 @@ def create_sweep(layer):
         },
         'parameters': {
             'lr': {
-                'values': [3e-4, 1e-3, 3e-3]
+                'values': [1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2]
             },
             'l1_coefficient': {
                 'values': [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
