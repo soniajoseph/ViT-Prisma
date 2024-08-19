@@ -97,7 +97,8 @@ class SparseAutoencoder(HookedRootModule):
         Initialize weights for the Sparse Autoencoder.
         
         This function uses Kaiming uniform initialization and then normalizes
-        the weights to have unit norm along the output dimension.
+        the weights to have unit normls
+         along the output dimension.
         
         Args:
         out_features (int): Number of output features
@@ -385,6 +386,7 @@ class SparseAutoencoder(HookedRootModule):
         valid_fields = set(field.name for field in fields(VisionModelSAERunnerConfig))
         mapped_config = {k: v for k, v in mapped_config.items() if k in valid_fields}
 
+
         config = VisionModelSAERunnerConfig(**mapped_config)
 
 
@@ -394,6 +396,14 @@ class SparseAutoencoder(HookedRootModule):
                 if hasattr(config, key):
                     setattr(config, key, value)
 
+        # Fix the naming schema
+        hook_point_layer = config.hook_point_layer
+        if isinstance(hook_point_layer, list) and len(hook_point_layer) == 1:
+            hook_point_layer = hook_point_layer[0]  # Extract the single integer
+
+        # Construct the correct key
+        hook_point = f'blocks.{hook_point_layer}.hook_mlp_out'
+        config.hook_point = hook_point
 
         # Create an instance of the class using the loaded configuration
         instance = cls(cfg=config)

@@ -6,7 +6,6 @@ import os
 from vit_prisma.sae.evals import highest_activating_tokens, get_heatmap, image_patch_heatmap, setup_environment, load_model, load_dataset, EvalConfig
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_index_to_name
 
-
 from vit_prisma.sae.sae import SparseAutoencoder
 
 import argparse
@@ -14,14 +13,14 @@ import argparse
 
 def sample_features(feature_ids, cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize):
     this_max = cfg.eval_max
-    feature_ids = [int(i[0]) for i in feature_ids]
+    # feature_ids = [int(i[0]) for i in feature_ids]
     print(f"Sampling for features {feature_ids}...")
 
     max_indices = {i: None for i in feature_ids}
     max_values = {i: None for i in feature_ids}
     b_enc = sparse_autoencoder.b_enc[feature_ids]
     W_enc = sparse_autoencoder.W_enc[:, feature_ids]
-
+    
     for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
         total_images = total_images.to(cfg.device)
         total_indices = total_indices.to(cfg.device)
@@ -110,6 +109,7 @@ def sample_features(feature_ids, cfg, model, sparse_autoencoder, val_dataloader,
         os.makedirs(folder, exist_ok=True)
         plt.savefig(os.path.join(folder, f"feature_id_{feature_id}.png"))
         plt.savefig(os.path.join(folder, f"feature_id_{feature_id}.svg"))
+        print(f"Saved images for feature {feature_id} in {folder}")
         plt.close()
 
 def parse_features(features):
@@ -119,9 +119,7 @@ def parse_features(features):
 
 def load_sae(cfg):
     # sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
-    sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
-    cfg = EvalConfig()
-    sae = SparseAutoencoder(cfg).load_from_pretrained_legacy_saelens_v2(sae_path)
+    sae = SparseAutoencoder(cfg).load_from_pretrained_legacy_saelens_v2(cfg.sae_path)
     return sae
 
 # Usage example
@@ -131,6 +129,9 @@ def main(feature_id_list):
     setup_environment()
     cfg = EvalConfig()
     model = load_model(cfg)
+        
+    cfg.sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
+
     sparse_autoencoder = load_sae(cfg)
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
     val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
@@ -139,7 +140,7 @@ def main(feature_id_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sample features from the model')
-    parser.add_argument('--features', nargs='+', type=list, help='List of feature numbers to sample')
+    parser.add_argument('--features', nargs='+', type=int, help='List of feature ids to sample')
     args = parser.parse_args()
 
     features = args.features
