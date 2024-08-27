@@ -33,6 +33,7 @@ class RunnerConfig(ABC):
     # New changes
     max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
     initialization_method: str = "encoder_transpose_decoder" # or independent
+    normalize_activations: str = "layer_norm"
 
     # Activation Store Parameters
     n_batches_in_buffer: int = 20

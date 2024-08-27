@@ -400,7 +400,7 @@ class VisionSAETrainer:
 
             pbar.update(self.cfg.train_batch_size)
 
-            if l1_loss is None:
+            if l1_loss is None: # When using top k SAE loss
                 l1_loss = torch.tensor(0.0)
         
             pbar.set_description(

@@ -41,18 +41,18 @@ class DualEmbedder:
         self.kandinsky_model = kandinsky_model
         
     def get_embeddings(self, images):
-        with torch.no_grad():
+        with torch.no_grad(): 
             tinyclip_embeddings = self.tinyclip_model.encode_image(images)
             kandinsky_embeddings = self.kandinsky_model.image_encoder(images).image_embeds
         return tinyclip_embeddings, kandinsky_embeddings
 
 # Dataset
 class ImageDataset(Dataset):
-    def __init__(self, imagenet_data, activations_store, tinyclip_transform, kandinsky_transform):
+    def __init__(self, imagenet_data, dual_embedder, tinyclip_transform, kandinsky_transform):
         self.imagenet_data = imagenet_data
-        self.activations_store = activations_store
+        self.dual_embedder = dual_embedder
         self.tinyclip_transform = tinyclip_transform
-        self.kandinsky_transform = kandinsky_transform
+        self.kandinsky_transform = kandinsky_transform # Do I need these separate transforms, or do the models already come with them? 
         
     def __len__(self):
         return len(self.imagenet_data)
@@ -65,9 +65,10 @@ class ImageDataset(Dataset):
         kandinsky_image = self.kandinsky_transform(image)
         
         # Get embeddings
-        tinyclip_embed, kandinsky_embed = self.activations_store.get_embeddings(tinyclip_image.unsqueeze(0), kandinsky_image.unsqueeze(0))
+        tinyclip_embed, kandinsky_embed = self.dual_embedder.get_embeddings(tinyclip_image.unsqueeze(0), kandinsky_image.unsqueeze(0))
         
         return tinyclip_embed.squeeze(0), kandinsky_embed.squeeze(0)
+    
 # Training function
 def train_adapter(adapter, dataloader, num_epochs=10):
     optimizer = optim.Adam(adapter.parameters(), lr=1e-4)
@@ -90,27 +91,31 @@ def train_adapter(adapter, dataloader, num_epochs=10):
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss/len(dataloader)}")
 
 # Kandinsky loading function
-def load_kandinsky():
+def load_kandinsky(cache_dir):
     image_encoder = CLIPVisionModelWithProjection.from_pretrained(
         'kandinsky-community/kandinsky-2-2-prior',
         subfolder='image_encoder'
+        cache_dir=cache_dir,
     ).half().to(DEVICE)
 
     unet = UNet2DConditionModel.from_pretrained(
         'kandinsky-community/kandinsky-2-2-decoder',
-        subfolder='unet'
+        subfolder='unet',
+        cache_dir=cache_dir,
     ).half().to(DEVICE)
 
     prior = KandinskyV22PriorPipeline.from_pretrained(
         'kandinsky-community/kandinsky-2-2-prior',
         image_encoder=image_encoder,
-        torch_dtype=torch.float16
+        torch_dtype=torch.float16,
+        cache_dir=cache_dir,
     ).to(DEVICE)
 
     decoder = KandinskyV22Pipeline.from_pretrained(
         'kandinsky-community/kandinsky-2-2-decoder',
         unet=unet,
-        torch_dtype=torch.float16
+        torch_dtype=torch.float16,
+        cache_dir=cache_dir,
     ).to(DEVICE)
 
     zero_embed = prior.get_zero_embed()
@@ -177,18 +182,18 @@ if __name__ == "__main__":
     # Save adapter
     torch.save(adapter.state_dict(), 'tinyclip_to_kandinsky_adapter.pth')
 
-    # Load adapter (for demonstration)
-    adapter = EmbeddingAdapter(input_dim=512, hidden_dim=2048, output_dim=1280)
-    adapter.load_state_dict(torch.load('tinyclip_to_kandinsky_adapter.pth'))
-    adapter.to(DEVICE)
+    # # Load adapter (for demonstration)
+    # adapter = EmbeddingAdapter(input_dim=512, hidden_dim=2048, output_dim=1280)
+    # adapter.load_state_dict(torch.load('tinyclip_to_kandinsky_adapter.pth'))
+    # adapter.to(DEVICE)
 
-    # Load Kandinsky with adapter
-    prior, decoder, zero_embed = load_kandinsky_with_adapter(adapter)
+    # # Load Kandinsky with adapter
+    # prior, decoder, zero_embed = load_kandinsky_with_adapter(adapter)
 
-    # Example usage
-    prompt = "A beautiful landscape"
-    images = prior(prompt=prompt, num_inference_steps=25, num_images_per_prompt=1)
-    image = decoder(image_embeds=images.image_embeds, prompt=prompt, num_inference_steps=50).images[0]
-    image.save("generated_image.png")
+    # # Example usage
+    # prompt = "A beautiful landscape"
+    # images = prior(prompt=prompt, num_inference_steps=25, num_images_per_prompt=1)
+    # image = decoder(image_embeds=images.image_embeds, prompt=prompt, num_inference_steps=50).images[0]
+    # image.save("generated_image.png")
 
-    print("Image generated and saved as 'generated_image.png'")
+    # print("Image generated and saved as 'generated_image.png'")

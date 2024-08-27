@@ -81,14 +81,54 @@ class SparseAutoencoder(HookedRootModule):
 
         self.zero_loss = None
 
-        self.setup()  # Required for `HookedRootModule`s
+        # handle run time activation normalization if needed:
+        if self.cfg.normalize_activations == "constant_norm_rescale":
 
-    def __post_init__(self):
-        if not hasattr(self, 'activation_fn_kwargs'):
-            self.activation_fn_kwargs = {}
+            #  we need to scale the norm of the input and store the scaling factor
+            def run_time_activation_norm_fn_in(x: torch.Tensor) -> torch.Tensor:
+                self.x_norm_coeff = (self.cfg.d_in**0.5) / x.norm(dim=-1, keepdim=True)
+                x = x * self.x_norm_coeff
+                return x
+
+            def run_time_activation_norm_fn_out(x: torch.Tensor) -> torch.Tensor:  #
+                x = x / self.x_norm_coeff
+                del self.x_norm_coeff  # prevents reusing
+                return x
+
+            self.run_time_activation_norm_fn_in = run_time_activation_norm_fn_in
+            self.run_time_activation_norm_fn_out = run_time_activation_norm_fn_out
+
+        elif self.cfg.normalize_activations == "layer_norm":
+
+            #  we need to scale the norm of the input and store the scaling factor
+            def run_time_activation_ln_in(
+                x: torch.Tensor, eps: float = 1e-5
+            ) -> torch.Tensor:
+                mu = x.mean(dim=-1, keepdim=True)
+                x = x - mu
+                std = x.std(dim=-1, keepdim=True)
+                x = x / (std + eps)
+                self.ln_mu = mu
+                self.ln_std = std
+                return x
+
+            def run_time_activation_ln_out(x: torch.Tensor, eps: float = 1e-5):
+                return x * self.ln_std + self.ln_mu
+
+            self.run_time_activation_norm_fn_in = run_time_activation_ln_in
+            self.run_time_activation_norm_fn_out = run_time_activation_ln_out
+        else:
+            self.run_time_activation_norm_fn_in = lambda x: x
+            self.run_time_activation_norm_fn_out = lambda x: x
+
+
+
         self.activation_fn = get_activation_fn(
-            self.cfg.activation_fn_str, self.activation_fn_kwargs 
-        )
+                self.cfg.activation_fn_str, **self.cfg.activation_fn_kwargs 
+            ) 
+
+        self.setup()  # Required for `HookedRootModule`s
+        
 
         
 
@@ -124,6 +164,9 @@ class SparseAutoencoder(HookedRootModule):
     def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor | None = None):
         # move x to correct dtype
         x = x.to(self.dtype)
+
+        sae_in = self.run_time_activation_norm_fn_in(x)
+
         sae_in = self.hook_sae_in(
             x - self.b_dec
         )  # Remove decoder bias as per Anthropic
@@ -136,7 +179,7 @@ class SparseAutoencoder(HookedRootModule):
             )
             + self.b_enc
         )
-        feature_acts = self.hook_hidden_post(torch.nn.functional.relu(hidden_pre))
+        feature_acts = self.hook_hidden_post(self.activation_fn(hidden_pre))
 
         sae_out = self.hook_sae_out(
             einops.einsum(
@@ -147,9 +190,10 @@ class SparseAutoencoder(HookedRootModule):
             + self.b_dec
         )
 
+        sae_out = self.run_time_activation_norm_fn_out(sae_out)
+
         # add config for whether l2 is normalized:
         x_centred = x - x.mean(dim=0, keepdim=True)
-
 
         mse_loss = torch.nn.functional.mse_loss(sae_out, x.detach(), reduction='none')
         norm_factor = torch.norm(x_centred, p=2, dim=-1, keepdim=True)
@@ -528,6 +572,9 @@ class TopK(nn.Module):
 def get_activation_fn(
     activation_fn: str, **kwargs: Any
 ) -> Callable[[torch.Tensor], torch.Tensor]:
+
+    print(f"get_activation_fn received: activation_fn={activation_fn}, kwargs={kwargs}")
+
     if activation_fn == "relu":
         return torch.nn.ReLU()
     elif activation_fn == "tanh-relu":
