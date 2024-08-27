@@ -90,9 +90,9 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     lp_norm: float = 1
     lr: float = 0.001
     lr_scheduler_name: str = (
-        "cosineannealing"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
+        "cosineannealingwarmup"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     )
-    lr_warm_up_steps: int = 0
+    lr_warm_up_steps: int = 500
 
     
     train_batch_size: int = 1024*4
@@ -105,7 +105,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
    
     # Resampling protocol args
     use_ghost_grads: bool = True
-    feature_sampling_window: int = 300 # 1000
+    feature_sampling_window: int = 1000 # 1000
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8

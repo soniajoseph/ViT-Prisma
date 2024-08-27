@@ -399,6 +399,9 @@ class VisionSAETrainer:
                 print(f"Checkpoint saved at {n_training_tokens} tokens") if self.cfg.verbose else None
 
             pbar.update(self.cfg.train_batch_size)
+
+            if l1_loss is None:
+                l1_loss = torch.tensor(0.0)
         
             pbar.set_description(
                 f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}")

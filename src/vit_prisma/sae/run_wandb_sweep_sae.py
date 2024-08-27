@@ -18,7 +18,9 @@ def train():
 
     # Fixed parameters (manually set )
     fixed_params = {
-        'expansion_factor': 32
+        'expansion_factor': 32,
+        'activation_fn_str': 'topk',
+        # 'activation_fn_kwargs': {'k': 64},
     }
 
     # Automatically detect and apply sweep parameters
