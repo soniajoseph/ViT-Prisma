@@ -48,8 +48,6 @@ class TubeletEmbedding(nn.Module):
             bias=True
         )
 
-    
-
     def forward(self, x:Float[torch.Tensor, "batch num_frames channels height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
         
         # Flip num_frames and channels
