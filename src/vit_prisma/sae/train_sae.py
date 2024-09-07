@@ -52,8 +52,9 @@ class VisionSAETrainer:
         dataset, eval_dataset = self.load_dataset()
         self.activations_store = self.initialize_activations_store(dataset, eval_dataset)
 
+        self.cfg.wandb_project = self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor)
         self.cfg.unique_hash = uuid.uuid4().hex[:8]  # Generate a random 8-character hex string
-        self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor)
+        self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.wandb_project
 
         self.checkpoint_thresholds = self.get_checkpoint_thresholds()
         self.setup_checkpoint_path()
@@ -183,8 +184,8 @@ class VisionSAETrainer:
                 self._log_metrics(sparse_autoencoder, hyperparams, optimizer, sae_in, sae_out, n_forward_passes_since_fired, 
                                 ghost_grad_neuron_mask, mse_loss, l1_loss, ghost_grad_loss, loss, l0, n_training_steps, n_training_tokens)
 
-            if self.cfg.log_to_wandb and ((n_training_steps + 1) % (self.cfg.wandb_log_frequency * 10) == 0):
-                self._run_evals(sparse_autoencoder, hyperparams, n_training_steps)
+            # if self.cfg.log_to_wandb and ((n_training_steps + 1) % (self.cfg.wandb_log_frequency * 10) == 0):
+            #     self._run_evals(sparse_autoencoder, hyperparams, n_training_steps)
 
         loss.backward()
         
