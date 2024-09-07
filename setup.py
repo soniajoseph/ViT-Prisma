@@ -17,7 +17,7 @@ install_requires = [
 
 setup(
     name='vit-prisma',
-    version='0.1.4',
+    version='2.0.0',
     author='Sonia Joseph',
     author_email='soniamollyjoseph@gmail.com',
     description='A Vision Transformer library for mechanistic interpretability.',
