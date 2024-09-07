@@ -16,13 +16,6 @@ def train():
     # Create the actual config we'll use
     cfg = VisionModelSAERunnerConfig()
 
-    # Fixed parameters (manually set )
-    fixed_params = {
-        'expansion_factor': 32,
-        # 'activation_fn_str': 'topk',
-        # 'activation_fn_kwargs': {'k': 64},
-    }
-
     # Automatically detect and apply sweep parameters
     for key, value in wandb.config.items():
         if hasattr(cfg, key) and getattr(default_cfg, key) != value:

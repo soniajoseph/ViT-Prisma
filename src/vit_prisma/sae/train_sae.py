@@ -52,7 +52,7 @@ class VisionSAETrainer:
         dataset, eval_dataset = self.load_dataset()
         self.activations_store = self.initialize_activations_store(dataset, eval_dataset)
 
-        self.cfg.wandb_project = self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor)
+        self.cfg.wandb_project = self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor) + "-layer-" + str(self.cfg.hook_point_layer)
         self.cfg.unique_hash = uuid.uuid4().hex[:8]  # Generate a random 8-character hex string
         self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.wandb_project
 
