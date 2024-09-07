@@ -36,6 +36,9 @@ def create_sweep(layer):
             'activation_fn_kwargs': {
                 'values': [{'k': 32}, {'k': 64}, {'k': 128}]
             },
+            'model_name': {
+                'values': ['openai/clip-vit-base-patch32']
+            }
             
         },
         'program': 'run_wandb_sweep_sae.py',

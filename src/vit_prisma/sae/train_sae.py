@@ -269,6 +269,9 @@ class VisionSAETrainer:
 
         n_training_images = n_training_tokens // self.cfg.context_size
 
+        if l1_loss is None: # When using top k SAE loss
+            l1_loss = torch.tensor(0.0)
+
         suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
         metrics = {
             f"losses/mse_loss{suffix}": mse_loss.item(),
