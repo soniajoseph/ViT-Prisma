@@ -557,7 +557,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
 
     return HookedViTConfig.from_dict(pretrained_config)
 
-
+######
 try:
     from huggingface_hub import hf_hub_download
     hf_hub_download = partial(hf_hub_download, library_name="open_clip", library_version='2.20.0')
@@ -619,10 +619,6 @@ def convert_open_clip_config(model_cfg):
     cfg.d_head = cfg.d_model // cfg.n_heads
     return cfg
 
-print()
-print("Converting old OpenCLIP weights to new OpenCLIP weights...")
+
 new_cfg = convert_open_clip_config(model_cfg)
 new_state_dict = convert_open_clip_weights(state_dict, new_cfg)
-
-for k, v in new_state_dict.items():
-    print(k, v.shape)
