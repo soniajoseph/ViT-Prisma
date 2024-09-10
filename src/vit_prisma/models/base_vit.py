@@ -730,6 +730,7 @@ class HookedViT(HookedRootModule):
             is_clip=is_clip,
         )
 
+        print("CONFIG", cfg)
 
 
         state_dict = get_pretrained_state_dict(

@@ -26,6 +26,16 @@ from typing import Union
 # import partial
 from functools import partial
 
+try:
+    from huggingface_hub import hf_hub_download
+    hf_hub_download = partial(hf_hub_download, library_name="open_clip", library_version='2.20.0')
+    _has_hf_hub = True
+except ImportError:
+    hf_hub_download = None
+    _has_hf_hub = False
+
+import json
+
 def convert_open_clip_weights(
         old_state_dict,
         cfg: HookedViTConfig,
@@ -368,6 +378,17 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
     return new_state_dict
 
 
+def convert_open_clip_config(model_cfg):
+    cfg = HookedViTConfig()
+    cfg.d_model = model_cfg['vision_cfg']['width']
+    cfg.n_layers = model_cfg['vision_cfg']['layers']
+    cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+    cfg.image_size = model_cfg['vision_cfg']['image_size']
+    cfg.d_mlp = cfg.d_model * 4
+    cfg.n_heads = 12
+    cfg.d_head = cfg.d_model // cfg.n_heads
+    return cfg
+
 
 def get_pretrained_state_dict(
     official_model_name: str,
@@ -407,6 +428,10 @@ def get_pretrained_state_dict(
             for param in hf_model.parameters():
                 param.requires_grad = False
             state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
+        elif is_clip and official_model_name.startswith("open-clip"):
+            checkpoint_path = download_pretrained_from_hf(remove_open_clip_prefix(official_model_name), filename='open_clip_pytorch_model.bin')
+            old_state_dict = load_state_dict(checkpoint_path)
+            state_dict = convert_open_clip_weights(old_state_dict, cfg)
         elif is_clip:
             full_model = hf_model if hf_model is not None else CLIPModel.from_pretrained(official_model_name)
             for param in full_model.parameters():
@@ -414,7 +439,6 @@ def get_pretrained_state_dict(
             vision = full_model.vision_model
             visual_projection = full_model.visual_projection
             state_dict = convert_clip_weights(vision.state_dict(), visual_projection.state_dict(), cfg)
-
         elif cfg.is_video_transformer:
             if "vivit" in official_model_name:
                 hf_model = hf_model if hf_model is not None else VivitForVideoClassification.from_pretrained(official_model_name, torch_dtype=dtype, **kwargs)
@@ -433,8 +457,6 @@ def get_pretrained_state_dict(
             state_dict = convert_hf_vit_for_image_classification_weights(hf_model.state_dict(), cfg)
 
             # Load model weights, and fold in layer norm weights
-
-
                 
         return state_dict
 
@@ -472,12 +494,26 @@ def fill_missing_keys(model, state_dict):
         state_dict[key] = default_state_dict[key]
     return state_dict
 
+
+def remove_open_clip_prefix(text, prefix="open-clip-"):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text 
+
 def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
 
     if is_timm:
         model = timm.create_model(model_name)
         hf_config = AutoConfig.from_pretrained(model.default_cfg['hf_hub_id'])
-    elif is_clip: # Extract vision encoder from dual-encoder CLIP model.
+    elif is_clip and model_name.startswith("open-clip"): # OpenCLIP models
+        config_path = download_pretrained_from_hf(remove_open_clip_prefix(model_name), filename='open_clip_config.json')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            pretrained_cfg = config['preprocess_cfg']
+            hf_config = config['model_cfg']
+        hf_config = convert_open_clip_config(hf_config)
+        return hf_config
+    elif is_clip: # Extract vision encoder from dual-encoder CLIP model. HF models
         hf_config = AutoConfig.from_pretrained(model_name).vision_config
         hf_config.architecture = 'vit_clip_vision_encoder'
         hf_config.num_classes = hf_config.projection_dim # final output dimension instead of classes
@@ -486,7 +522,6 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
         
 #     print('hf config', hf_config)
             
- 
 
     if hasattr(hf_config, 'patch_size'):
         ps = hf_config.patch_size
@@ -533,7 +568,6 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits" # actually returns 'visual_projection'
         })
 
-
     # Config is for ViVet, need to add more properties
     if hasattr(hf_config, "tubelet_size"):
         pretrained_config.update({
@@ -553,20 +587,8 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                 "return_type": "class_logits"
             })
     
-    print(pretrained_config)
-
     return HookedViTConfig.from_dict(pretrained_config)
 
-######
-try:
-    from huggingface_hub import hf_hub_download
-    hf_hub_download = partial(hf_hub_download, library_name="open_clip", library_version='2.20.0')
-    _has_hf_hub = True
-except ImportError:
-    hf_hub_download = None
-    _has_hf_hub = False
-
-import json
 
 def has_hf_hub(necessary=False):
     if not _has_hf_hub and necessary:
@@ -596,29 +618,29 @@ def load_state_dict(checkpoint_path: str, map_location='cpu'):
         state_dict = {k[7:]: v for k, v in state_dict.items()}
     return state_dict
 
-checkpoint_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_pytorch_model.bin')
-config_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_config.json')
+# checkpoint_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_pytorch_model.bin')
+# config_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_config.json')
 
-with open(config_path, 'r', encoding='utf-8') as f:
-    config = json.load(f)
-    pretrained_cfg = config['preprocess_cfg']
-    model_cfg = config['model_cfg']
+# with open(config_path, 'r', encoding='utf-8') as f:
+#     config = json.load(f)
+#     pretrained_cfg = config['preprocess_cfg']
+#     model_cfg = config['model_cfg']
 
-    print(pretrained_cfg)
-    print(model_cfg)
+#     print(pretrained_cfg)
+#     print(model_cfg)
 
-state_dict = load_state_dict(checkpoint_path)
+# state_dict = load_state_dict(checkpoint_path)
 
-def convert_open_clip_config(model_cfg):
-    cfg = HookedViTConfig()
-    cfg.d_model = model_cfg['vision_cfg']['width']
-    cfg.n_layers = model_cfg['vision_cfg']['layers']
-    cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-    cfg.image_size = model_cfg['vision_cfg']['image_size']
-    cfg.n_heads = 12
-    cfg.d_head = cfg.d_model // cfg.n_heads
-    return cfg
+# print("old state dictionary")
+# for key in state_dict:
+#     print(key, state_dict[key].shape)
+
+# new_cfg = convert_open_clip_config(model_cfg)
+# new_state_dict = convert_open_clip_weights(state_dict, new_cfg)
+
+# print()
+# print("new state dictionary")
+# for key in new_state_dict:
+#     print(key, new_state_dict[key].shape)
 
 
-new_cfg = convert_open_clip_config(model_cfg)
-new_state_dict = convert_open_clip_weights(state_dict, new_cfg)
