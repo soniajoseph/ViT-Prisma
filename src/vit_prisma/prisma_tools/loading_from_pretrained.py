@@ -10,7 +10,7 @@ For more information on TransformerLens, visit: https://github.com/neelnanda-io/
 
 import logging
 
-from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel
+from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel, ViTModel
 
 import timm
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
@@ -22,6 +22,71 @@ from typing import Dict
 import einops
 
 
+def convert_dino_weights(
+        old_state_dict,
+        cfg: HookedViTConfig,
+):
+    
+    new_state_dict = {}
+
+    new_state_dict["cls_token"] = old_state_dict["embeddings.cls_token"]
+    new_state_dict["pos_embed.W_pos"] = old_state_dict["embeddings.position_embeddings"].squeeze(0)
+    new_state_dict["embed.proj.weight"] = old_state_dict["embeddings.patch_embeddings.projection.weight"]
+    new_state_dict["embed.proj.bias"] = old_state_dict["embeddings.patch_embeddings.projection.bias"]
+    new_state_dict["ln_final.w"] = old_state_dict["layernorm.weight"]
+    new_state_dict["ln_final.b"] = old_state_dict["layernorm.bias"]
+
+    for layer in range(cfg.n_layers):
+        layer_key = f"encoder.layer.{layer}"
+        new_layer_key = f"blocks.{layer}"
+        new_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{layer_key}.layernorm_before.weight"]
+        new_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{layer_key}.layernorm_before.bias"]
+        new_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.layernorm_after.weight"]
+        new_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.layernorm_after.bias"]
+
+        W_Q = old_state_dict[f"{layer_key}.attention.attention.query.weight"]
+        W_K = old_state_dict[f"{layer_key}.attention.attention.key.weight"]
+        W_V = old_state_dict[f"{layer_key}.attention.attention.value.weight"]
+        W_O = old_state_dict[f"{layer_key}.attention.output.dense.weight"]
+
+        W_Q = einops.rearrange(W_Q, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_K = einops.rearrange(W_K, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_V = einops.rearrange(W_V, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        
+        new_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
+        new_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
+        new_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
+        new_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+
+        b_Q = old_state_dict[f"{layer_key}.attention.attention.query.bias"]
+        b_K = old_state_dict[f"{layer_key}.attention.attention.key.bias"]
+        b_V = old_state_dict[f"{layer_key}.attention.attention.value.bias"]
+        b_O = old_state_dict[f"{layer_key}.attention.output.dense.bias"]
+
+        b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_V = einops.rearrange(b_V, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+
+        new_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
+        new_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
+        new_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
+        new_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+
+        mlp_W_in = old_state_dict[f"{layer_key}.intermediate.dense.weight"]
+        mlp_W_out = old_state_dict[f"{layer_key}.output.dense.weight"]
+        mlp_b_in = old_state_dict[f"{layer_key}.intermediate.dense.bias"]
+        mlp_b_out = old_state_dict[f"{layer_key}.output.dense.bias"]
+
+        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
+        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
+
+        new_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
+        new_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
+        new_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
+        new_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    return new_state_dict
 
 
 def convert_clip_weights(
@@ -318,6 +383,8 @@ def get_pretrained_state_dict(
     #         f"Loading model {official_model_name} state dict requires setting trust_remote_code=True"
     #     )
     #     kwargs["trust_remote_code"] = True
+    if 'dino' in official_model_name:
+        is_timm = False
         
     try:
         if is_timm:
@@ -343,6 +410,12 @@ def get_pretrained_state_dict(
                 state_dict = convert_vivet_weights(hf_model.state_dict(), cfg)
             else:
                 raise ValueError
+
+        elif 'dino' in official_model_name:
+            hf_model = hf_model if hf_model is not None else ViTModel.from_pretrained(official_model_name, torch_dtype=dtype, **kwargs)
+            for param in hf_model.parameters():
+                param.requires_grad = False
+            state_dict = convert_dino_weights(hf_model.state_dict(), cfg)
         
         else:
             hf_model = hf_model if hf_model is not None else ViTForImageClassification.from_pretrained(
@@ -392,7 +465,8 @@ def fill_missing_keys(model, state_dict):
 
 def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
     
-    
+    if 'dino' in model_name:
+        is_timm = False
 
     if is_timm:
         model = timm.create_model(model_name)
@@ -403,10 +477,6 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
         hf_config.num_classes = hf_config.projection_dim # final output dimension instead of classes
     else:
         hf_config = AutoConfig.from_pretrained(model_name)
-        
-#     print('hf config', hf_config)
-            
- 
 
     if hasattr(hf_config, 'patch_size'):
         ps = hf_config.patch_size
@@ -453,6 +523,11 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits" # actually returns 'visual_projection'
         })
 
+    if "dino" in model_name:
+        pretrained_config.update({
+            "return_type": "pre_logits",
+            "n_classes": 768,
+        })
 
     # Config is for ViVet, need to add more properties
     if hasattr(hf_config, "tubelet_size"):
