@@ -397,8 +397,6 @@ class HookedViT(HookedRootModule):
                     del state_dict[f"blocks.{l}.mlp.ln.w"]
 
         if not self.cfg.final_rms and fold_biases:
-            # Dumb bug from my old SoLU training code, some models have RMSNorm instead of LayerNorm
-            # pre unembed.
             state_dict[f"head.b_H"] = state_dict[f"head.b_H"] + (
                 state_dict[f"head.W_H"] * state_dict[f"ln_final.b"][:, None]
             ).sum(dim=-2)

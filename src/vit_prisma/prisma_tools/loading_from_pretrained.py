@@ -46,7 +46,7 @@ def convert_open_clip_weights(
     # Convert embedding layers
     new_vision_model_state_dict["cls_token"] = old_state_dict["visual.class_embedding"].unsqueeze(0).unsqueeze(0)
     new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["visual.positional_embedding"]
-    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["visual.conv1.weight"].flatten(1)
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["visual.conv1.weight"] # Flatten convolutional embedding
     new_vision_model_state_dict["embed.proj.bias"] = torch.zeros((cfg.d_model,))
 
     # Convert layer norms
@@ -114,6 +114,8 @@ def convert_open_clip_weights(
         new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    # print(old_state_dict["visual.proj"].shape)
 
     # Convert projection layer
     new_vision_model_state_dict["head.W_H"] = einops.rearrange(old_state_dict["visual.proj"], "c d -> d c")

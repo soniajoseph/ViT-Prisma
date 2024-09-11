@@ -22,7 +22,7 @@ def test_loading_open_clip():
     for k, v in og_model.state_dict().items():
         print(k, v.shape)
 
-    hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True) # in future, do all models
+    hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False) # in future, do all models
     hooked_model.to(device)
 
     with torch.random.fork_rng():
