@@ -730,9 +730,6 @@ class HookedViT(HookedRootModule):
             is_clip=is_clip,
         )
 
-        print("CONFIG", cfg)
-
-
         state_dict = get_pretrained_state_dict(
             model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
         )

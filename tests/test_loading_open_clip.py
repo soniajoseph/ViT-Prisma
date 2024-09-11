@@ -14,11 +14,16 @@ def test_loading_open_clip():
     width = 224
     device = "cpu"
 
-    hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True) # in future, do all models
-    hooked_model.to(device)
 
     model_name = 'hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
-    og_model = open_clip.create_model_and_transforms(model_name)
+    og_model, *data = open_clip.create_model_and_transforms(model_name)
+
+    # iterate through state dict
+    for k, v in og_model.state_dict().items():
+        print(k, v.shape)
+
+    hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True) # in future, do all models
+    hooked_model.to(device)
 
     with torch.random.fork_rng():
         torch.manual_seed(1)

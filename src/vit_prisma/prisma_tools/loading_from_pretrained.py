@@ -55,6 +55,9 @@ def convert_open_clip_weights(
     new_vision_model_state_dict["ln_pre.w"] = old_state_dict["visual.ln_pre.weight"]
     new_vision_model_state_dict["ln_pre.b"] = old_state_dict["visual.ln_pre.bias"]
 
+    #  print layernorm weights finral
+    print("layernorm final", old_state_dict["visual.ln_post.weight"].shape)
+
     # Convert transformer blocks
     for layer in range(cfg.n_layers):
         old_layer_key = f"visual.transformer.resblocks.{layer}"
