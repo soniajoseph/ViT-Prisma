@@ -33,6 +33,7 @@ class VisionActivationsStore:
     ):
         self.cfg = cfg
         self.model = model
+        self.model.to(cfg.device)
         self.dataset = dataset
         self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
         self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
