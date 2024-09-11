@@ -41,6 +41,7 @@ def convert_open_clip_weights(
         cfg: HookedViTConfig,
         device = 'cuda',
 ):
+    print("In convert_open_clip_weights")
     new_vision_model_state_dict = {}
 
     # Convert embedding layers
@@ -56,7 +57,6 @@ def convert_open_clip_weights(
     new_vision_model_state_dict["ln_pre.b"] = old_state_dict["visual.ln_pre.bias"]
 
     #  print layernorm weights finral
-    print("layernorm final", old_state_dict["visual.ln_post.weight"].shape)
 
     # Convert transformer blocks
     for layer in range(cfg.n_layers):
@@ -115,10 +115,15 @@ def convert_open_clip_weights(
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
 
-    # print(old_state_dict["visual.proj"].shape)
+    print("viual projection shape", old_state_dict["visual.proj"].shape)
+    print(old_state_dict["visual.proj"].shape)
+
+    new_matrix = einops.rearrange(old_state_dict["visual.proj"], "c d -> d c")
+    print("new_matrix shape", new_matrix.shape)
 
     # Convert projection layer
-    new_vision_model_state_dict["head.W_H"] = einops.rearrange(old_state_dict["visual.proj"], "c d -> d c")
+    # new_vision_model_state_dict["head.W_H"] = einops.rearrange(old_state_dict["visual.proj"], "c d -> d c")
+    new_vision_model_state_dict["head.W_H"] = old_state_dict["visual.proj"]
     new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,), device=new_vision_model_state_dict["head.W_H"].device)
 
     return new_vision_model_state_dict
@@ -191,6 +196,9 @@ def convert_clip_weights(
         new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    print("OLD HEAD SHAPE")
+    print(old_head_state_dict["weight"].shape)
 
     new_vision_model_state_dict["head.W_H"] = einops.rearrange(old_head_state_dict["weight"], "c d -> d c")
     new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,), device=new_vision_model_state_dict["head.W_H"].device)
@@ -385,6 +393,7 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
 
 def convert_open_clip_config(model_cfg):
     cfg = HookedViTConfig()
+    print("model cfg", model_cfg)
     cfg.d_model = model_cfg['vision_cfg']['width']
     cfg.n_layers = model_cfg['vision_cfg']['layers']
     cfg.patch_size = model_cfg['vision_cfg']['patch_size']
@@ -392,6 +401,7 @@ def convert_open_clip_config(model_cfg):
     cfg.d_mlp = cfg.d_model * 4
     cfg.n_heads = 12
     cfg.d_head = cfg.d_model // cfg.n_heads
+    cfg.n_classes = model_cfg['embed_dim'] # This is the projection dimensionality
     return cfg
 
 

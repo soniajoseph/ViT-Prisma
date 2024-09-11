@@ -18,10 +18,6 @@ def test_loading_open_clip():
     model_name = 'hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
     og_model, *data = open_clip.create_model_and_transforms(model_name)
 
-    # iterate through state dict
-    for k, v in og_model.state_dict().items():
-        print(k, v.shape)
-
     hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False) # in future, do all models
     hooked_model.to(device)
 
@@ -30,6 +26,21 @@ def test_loading_open_clip():
         input_image = torch.rand((batch_size, channels, height, width)).to(device)
 
     hooked_output, og_output = hooked_model(input_image), og_model(input_image)
+
+
+    
+    og_image_embedding = og_output[0]
+
+
+    print(og_output.shape)
+
+    print(f"Hooked output type: {type(hooked_output)}")
+    print(f"Original output type: {type(og_output)}")
+
+
+    # print shapes
+    print(f"Hooked model output shape: {hooked_output.shape}")
+    print(f"Original model output shape: {og_output.shape}")
 
     assert torch.allclose(hooked_output, og_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - og_output))}"
 
