@@ -161,7 +161,7 @@ class SparseAutoencoder(HookedRootModule):
 
     from line_profiler import profile
     @profile
-    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor | None = None):
+    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None):
         # move x to correct dtype
         x = x.to(self.dtype)
 

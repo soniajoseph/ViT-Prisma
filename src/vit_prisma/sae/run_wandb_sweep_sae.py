@@ -23,6 +23,7 @@ def train():
             print(f"Sweep parameter detected: {key} = {value}")
 
     # Apply fixed parameters
+    fixed_params = {}
     for param, value in fixed_params.items():
         setattr(cfg, param, value)
         print(f"Fixed parameter applied: {param} = {value}")

@@ -14,6 +14,7 @@ import wandb
 import re
 
 import os
+import sys
 
 import torchvision
 
@@ -25,7 +26,7 @@ from dataclasses import is_dataclass, fields
 
 import uuid
 
-@staticmethod
+
 def wandb_log_suffix(cfg: Any, hyperparams: Any):
 # Create a mapping from cfg list keys to their corresponding hyperparams attributes
     key_mapping = {
@@ -46,6 +47,7 @@ def wandb_log_suffix(cfg: Any, hyperparams: Any):
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
+        self.bad_run_check = self.cfg.min_l0 is not None and self.cfg.min_explained_variance is not None
         self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
         self.sae = SparseAutoencoder(self.cfg)
 
@@ -267,6 +269,11 @@ class VisionSAETrainer:
         per_token_l2_loss = (sae_out - sae_in).pow(2).sum(dim=-1).squeeze()
         total_variance = (sae_in - sae_in.mean(0)).pow(2).sum(-1)
         explained_variance = 1 - per_token_l2_loss / total_variance
+
+        if (self.bad_run_check) and (l0.item()) < self.cfg.min_l0 and (explained_variance.mean().item() < self.cfg.min_explained_variance):
+            print(f"Skipping bad run. Moving to the next run.")
+            wandb.finish()
+            sys.exit()
 
         n_training_images = n_training_tokens // self.cfg.context_size
 

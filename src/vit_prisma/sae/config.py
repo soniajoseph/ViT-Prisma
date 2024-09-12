@@ -30,6 +30,10 @@ class RunnerConfig(ABC):
     activation_fn_str: str = "relu" # relu or topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
 
+    # SAE Training run tolerance
+    min_l0 = None
+    min_explained_variance = None
+
     # New changes
     max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
     initialization_method: str = "encoder_transpose_decoder" # or independent

@@ -43,13 +43,17 @@ def get_imagenet_text_labels():
     return extract_and_parse_text_labels(imagenet_index)
 
 def get_imagenet_transforms_clip(model_name, size=224):
-    from transformers import CLIPProcessor
-    clip_processor = CLIPProcessor.from_pretrained(model_name)
+    if 'dino' in model_name.lower():
+        from transformers import ViTImageProcessor
+        processor = ViTImageProcessor.from_pretrained(model_name)
+    elif 'clip' in model_name.lower():
+        from transformers import CLIPProcessor
+        processor = CLIPProcessor.from_pretrained(model_name).image_processor
     return transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=clip_processor.image_processor.image_mean,
-                         std=clip_processor.image_processor.image_std),
+        transforms.Normalize(mean=processor.image_mean,
+                         std=processor.image_std),
     ])
 
 class ImageNetValidationDataset(torch.utils.data.Dataset):
