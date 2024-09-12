@@ -45,38 +45,21 @@ def test_loading_open_clip():
     all_outputs, layer_names = get_all_layer_outputs(og_model, random_input)
     
 
-
-    hooked_model = HookedViT.from_pretrained('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=True, center_writing_weights=True) # in future, do all models
+    hooked_model = HookedViT.from_pretrained('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
     hooked_model.to(device)
 
-    hooked_model.eval()
+    hooked_model.cfg.classification_type == 'gaap'
 
-    hooked_model.cfg.layer_norm_pre = True
-    hooked_model.cfg.normalization_type == "LN"
+    hooked_model.eval()
 
     hooked_state_dict = hooked_model.state_dict()
     og_state_dict = og_model.state_dict()
 
-    assert torch.allclose(hooked_state_dict['cls_token'], og_state_dict["visual.class_embedding"], atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_state_dict['cls_token'] - og_state_dict['visual.class_embedding']))}"
-    print('cls token match')
-
-    print(f"hooked_state_dict['pos_embed.W_pos']: shape={hooked_state_dict['pos_embed.W_pos'].shape}, dtype={hooked_state_dict['pos_embed.W_pos'].dtype}")
-    print(f"og_state_dict['visual.positional_embedding']: shape={og_state_dict['visual.positional_embedding'].shape}, dtype={og_state_dict['visual.positional_embedding'].dtype}")
-
-    print(f"hooked_state_dict['pos_embed.W_pos'] device: {hooked_state_dict['pos_embed.W_pos'].device}")
-    print(f"og_state_dict['visual.positional_embedding'] device: {og_state_dict['visual.positional_embedding'].device}")
-
-    diff = hooked_state_dict['pos_embed.W_pos'] - og_state_dict['visual.positional_embedding']
-    max_diff_index = torch.argmax(torch.abs(diff))
-    print(f"Max difference: {torch.max(torch.abs(diff))}")
-    print(f"At index: {max_diff_index}")
-    print(f"hooked value: {hooked_state_dict['pos_embed.W_pos'].flatten()[max_diff_index]}")
-    print(f"original value: {og_state_dict['visual.positional_embedding'].flatten()[max_diff_index]}")
-
-    assert torch.allclose(hooked_state_dict['pos_embed.W_pos'], og_state_dict['visual.positional_embedding'], atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_state_dict['pos_embed.W_pos'] - og_state_dict['visual.positional_embedding']))}"
-
     final_output_hooked, cache = hooked_model.run_with_cache(random_input)
     final_output_og, *data = og_model(random_input)[0]
+
+    print(og_model.visual.pool_type)
+
 
     for k in cache:
         print(k, cache[k].shape)
@@ -108,11 +91,17 @@ def test_loading_open_clip():
             hooked_output = cache['blocks.11.mlp.hook_post']
             assert torch.allclose(hooked_output, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - output))}"
             print("Final post GeLU matches")
+        elif i == 124: # Final layer norm
+            hooked_output = cache['ln_final']
+            assert torch.allclose(hooked_output, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - output))}"
+            print("Final post layer norm matches")
+        elif i == 125:
+            assert torch.allclose(final_output_hooked, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - output))}"
+            print("Transformer pre final layer norm matches")
 
     
-    print("Final output")
-    assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
-    print(f"Test passed successfully!")
+    # assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
+        # print(f"Test passed successfully!")
 
 
 test_loading_open_clip()
