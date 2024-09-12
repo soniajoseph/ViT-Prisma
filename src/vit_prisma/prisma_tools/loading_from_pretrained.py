@@ -510,7 +510,7 @@ def fill_missing_keys(model, state_dict):
     return state_dict
 
 
-def remove_open_clip_prefix(text, prefix="open-clip-"):
+def remove_open_clip_prefix(text, prefix="open-clip:"):
     if text.startswith(prefix):
         return text[len(prefix):]
     return text 

@@ -18,7 +18,7 @@ def test_loading_open_clip():
     model_name = 'hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
     og_model, *data = open_clip.create_model_and_transforms(model_name)
 
-    hooked_model = HookedViT.from_pretrained('open-clip-laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False) # in future, do all models
+    hooked_model = HookedViT.from_pretrained('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False) # in future, do all models
     hooked_model.to(device)
 
     with torch.random.fork_rng():
@@ -28,7 +28,6 @@ def test_loading_open_clip():
     hooked_output, og_output = hooked_model(input_image), og_model(input_image)
 
 
-    
     og_image_embedding = og_output[0]
 
 
