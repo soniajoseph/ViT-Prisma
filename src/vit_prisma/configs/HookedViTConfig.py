@@ -34,6 +34,7 @@ class HookedViTConfig:
     attn_types: Optional[List] = None
     init_mode: str = "gpt2"
     normalization_type: Optional[str] = "LN"
+    normalize_output: bool = False
     device: Optional[str] = 'cpu'
     n_devices: int = 1
     attention_dir: str = "bidirectional"

@@ -397,7 +397,6 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
 
 def convert_open_clip_config(model_cfg):
     cfg = HookedViTConfig()
-    print("model cfg", model_cfg)
     cfg.d_model = model_cfg['vision_cfg']['width']
     cfg.n_layers = model_cfg['vision_cfg']['layers']
     cfg.patch_size = model_cfg['vision_cfg']['patch_size']
@@ -410,8 +409,8 @@ def convert_open_clip_config(model_cfg):
     cfg.layer_norm_pre = True
     cfg.eps = 1e-5
     cfg.normalization_type = "LN"
-    # cfg.classification_type = "gaap"
     cfg.use_cls_token = True
+    cfg.normalize_output = True
     return cfg
 
 

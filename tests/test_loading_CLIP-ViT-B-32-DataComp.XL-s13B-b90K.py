@@ -38,14 +38,15 @@ def test_loading_open_clip():
 
         return layer_outputs, layer_names
 
-    model_name = 'hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
+    og_model_name = 'laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
+
+    model_name = 'hf-hub:' + og_model_name
     og_model, *data = open_clip.create_model_and_transforms(model_name)
     og_model.eval()
     all_outputs, layer_names = get_all_layer_outputs(og_model, random_input)
     og_state_dict = og_model.state_dict()
 
-
-    hooked_model = HookedViT.from_pretrained('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
+    hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
     hooked_model.to(device)
     hooked_model.eval()
     hooked_state_dict = hooked_model.state_dict()

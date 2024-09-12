@@ -204,8 +204,9 @@ class HookedViT(HookedRootModule):
 
         self.hook_post_head_pre_normalize(x)
 
-        x = F.normalize(x, dim=-1)
-        
+        if self.cfg.normalize_output:
+            x = F.normalize(x, dim=-1)
+
         return x
 
 
