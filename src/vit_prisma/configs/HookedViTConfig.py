@@ -13,6 +13,7 @@ class HookedViTConfig:
     d_head: int = None
     d_mlp: int = None
     model_name: str = "custom"
+    use_cls_token: bool = True # Off for ViT
     n_heads: int = 4
     activation_name: str = "gelu"
     d_vocab: int = -1

@@ -35,5 +35,6 @@ def test_loading_clip():
         tinyclip_output, hooked_output = tinyclip_final_proj(tinyclip(input_image)[1]),  hooked_model(input_image)
 
     assert torch.allclose(hooked_output, tinyclip_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
+    print("Model output matches!")
 
-
+test_loading_clip()

@@ -4,6 +4,7 @@ import timm
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
+
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
     TOLERANCE = 1e-5
@@ -39,27 +40,18 @@ def test_loading_open_clip():
 
     model_name = 'hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
     og_model, *data = open_clip.create_model_and_transforms(model_name)
-
     og_model.eval()
-
     all_outputs, layer_names = get_all_layer_outputs(og_model, random_input)
-    
+    og_state_dict = og_model.state_dict()
+
 
     hooked_model = HookedViT.from_pretrained('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
     hooked_model.to(device)
-
-    hooked_model.cfg.classification_type == 'gaap'
-
     hooked_model.eval()
-
     hooked_state_dict = hooked_model.state_dict()
-    og_state_dict = og_model.state_dict()
 
     final_output_hooked, cache = hooked_model.run_with_cache(random_input)
     final_output_og, *data = og_model(random_input)[0]
-
-    print(og_model.visual.pool_type)
-
 
     for k in cache:
         print(k, cache[k].shape)
@@ -96,13 +88,21 @@ def test_loading_open_clip():
             assert torch.allclose(hooked_output, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - output))}"
             print("Final post layer norm matches")
         elif i == 125:
+            hooked_output = cache['hook_post_head_pre_normalize']
+            assert torch.allclose(hooked_output, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - output))}"
+            print("Transformer pre final layer norm (for original model) matches")
+        elif i == 126: # Final output
+            output = output[0]
             assert torch.allclose(final_output_hooked, output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - output))}"
-            print("Transformer pre final layer norm matches")
+            print("Final output matches")
 
-    
-    # assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
-        # print(f"Test passed successfully!")
+    final_output_hooked, cache = hooked_model.run_with_cache(random_input)
+    final_output_og, *data = og_model(random_input)
 
+    print("Final output shapes", final_output_hooked.shape, final_output_og.shape)
+
+    assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
+    print("All tests passed!")
 
 test_loading_open_clip()
 
