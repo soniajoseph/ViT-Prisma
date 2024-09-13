@@ -52,6 +52,22 @@ def get_imagenet_transforms_clip(model_name, size=224):
                          std=clip_processor.image_processor.image_std),
     ])
 
+def load_imagenet(preprocess_transform, dataset_path, dataset_type='imagenet1k-val'):
+    if dataset_type == 'imagenet1k-val':
+        print(f"Loading dataset type: {dataset_type}") 
+        # Imagenet-specific logic
+        from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+        from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
+        imagenet_paths = setup_imagenet_paths(dataset_path)
+        val_data = ImageNetValidationDataset(imagenet_paths['val'], 
+                                        imagenet_paths['label_strings'], 
+                                        imagenet_paths['val_labels'], 
+                                        preprocess_transform,
+        )
+        print(imagenet_paths)
+        print(f"Validation data length: {len(val_data)}") 
+        return val_data
+
 class ImageNetValidationDataset(torch.utils.data.Dataset):
         def __init__(self, images_dir, imagenet_class_index, validation_labels,  transform=None, return_index=False):
             self.images_dir = images_dir

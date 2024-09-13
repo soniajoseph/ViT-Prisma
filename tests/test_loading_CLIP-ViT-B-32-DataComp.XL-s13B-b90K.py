@@ -120,7 +120,7 @@ def test_accuracy_baseline_og_model():
     model_name = 'hf-hub:' + og_model_name
     og_model, _, preprocess = open_clip.create_model_and_transforms(model_name)
     og_model.eval()
-    
+
     print("Classifier and model loaded")
 
     data = {}
@@ -128,14 +128,36 @@ def test_accuracy_baseline_og_model():
     data['imagenet-val'] = load_imagenet(preprocess_transform=preprocess, dataset_path=dataset_path, dataset_type='imagenet1k-val')
     epoch = 1
     results = zero_shot_eval(og_model, data, epoch, model_name=model_name, pretrained_classifier=classifier)
-
     print("Results", results)
+    # I get 0.6918 on ImageNet Val; benchmarked in ML Foundations OpenCLIP repo is 0.6917
+
 
 def test_accuracy_baseline_hooked_model():
-    pass 
+    parent_dir = '/network/scratch/s/sonia.joseph/clip_benchmark/'
+    classifier = np.load(os.path.join(parent_dir, 'imagenet_classifier_hf_hub_laion_CLIP_ViT_B_32_DataComp.XL_s13B_b90K.npy'))
+    
+    og_model_name = 'laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
+    hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
+    hooked_model.to('cuda')
+    hooked_model.eval()
+
+    print("Classifier and model loaded")
+
+    model_name = 'hf-hub:' + og_model_name
+    og_model, _, preprocess = open_clip.create_model_and_transforms(model_name) # just need preprocessor
+    del og_model
+
+    data = {}
+    dataset_path =  "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    data['imagenet-val'] = load_imagenet(preprocess_transform=preprocess, dataset_path=dataset_path, dataset_type='imagenet1k-val')
+    epoch = 1
+    results = zero_shot_eval(hooked_model, data, epoch, model_name=og_model_name, pretrained_classifier=classifier)
+    print("Results", results)
+    # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
 
 
-
-# test_loading_open_clip()
+test_loading_open_clip()
 
 test_accuracy_baseline()
+
+test_accuracy_baseline_hooked_model()
