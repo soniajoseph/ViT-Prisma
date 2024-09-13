@@ -4,6 +4,12 @@ import timm
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
+import numpy as np
+
+import os
+
+from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
+from vit_prisma.dataloaders.imagenet_dataset import load_imagenet
 
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
@@ -105,5 +111,31 @@ def test_loading_open_clip():
     assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
     print("All tests passed!")
 
-test_loading_open_clip()
 
+def test_accuracy_baseline_og_model():
+    parent_dir = '/network/scratch/s/sonia.joseph/clip_benchmark/'
+    classifier = np.load(os.path.join(parent_dir, 'imagenet_classifier_hf_hub_laion_CLIP_ViT_B_32_DataComp.XL_s13B_b90K.npy'))
+    
+    og_model_name = 'laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
+    model_name = 'hf-hub:' + og_model_name
+    og_model, _, preprocess = open_clip.create_model_and_transforms(model_name)
+    og_model.eval()
+    
+    print("Classifier and model loaded")
+
+    data = {}
+    dataset_path =  "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
+    data['imagenet-val'] = load_imagenet(preprocess_transform=preprocess, dataset_path=dataset_path, dataset_type='imagenet1k-val')
+    epoch = 1
+    results = zero_shot_eval(og_model, data, epoch, model_name=model_name, pretrained_classifier=classifier)
+
+    print("Results", results)
+
+def test_accuracy_baseline_hooked_model():
+    pass 
+
+
+
+# test_loading_open_clip()
+
+test_accuracy_baseline()
