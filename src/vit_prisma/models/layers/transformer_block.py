@@ -78,6 +78,9 @@ class TransformerBlock(nn.Module):
 
         self.hook_resid_post = HookPoint()
 
+        self.attn_dropout = nn.Dropout(cfg.attn_dropout_rate)
+        self.mlp_dropout = nn.Dropout(cfg.mlp_dropout_rate)
+
     def forward(
             self,
             resid_pre: Float[torch.Tensor, "batch pos d_model"],
@@ -109,6 +112,8 @@ class TransformerBlock(nn.Module):
                 value_input = self.ln1(value_input),
             )
 
+        attn_out = self.attn_dropout(attn_out)
+
         # Take hook fn
         
         attn_out = self.hook_attn_out(
@@ -125,7 +130,9 @@ class TransformerBlock(nn.Module):
                 else self.hook_mlp_in(resid_mid.clone())
             )
             normalized_resid_mid = self.ln2(mlp_in)
-            mlp_out = self.hook_mlp_out(self.mlp(normalized_resid_mid))
+            mlp_out = self.mlp(normalized_resid_mid)
+            mlp_out = self.mlp_dropout(mlp_out)
+            mlp_out = self.hook_mlp_out(mlp_out)
             resid_post = self.hook_resid_post(resid_mid + mlp_out)
         else:
             resid_post = self.hook_resid_post(resid_pre + attn_out)

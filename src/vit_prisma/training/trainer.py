@@ -57,7 +57,13 @@ def train(
     print(f"Length of testloader {len(test_loader)}")
     steps = 0
 
-    scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.warmup_steps, step_size=config.scheduler_step, gamma=config.scheduler_gamma)
+    if config.scheduler_type == "WarmupThenStepLR":
+        scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.warmup_steps, step_size=config.scheduler_step, gamma=config.scheduler_gamma)
+    elif config.scheduler_type == "CosineAnnealing":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, config.num_epochs)
+    else:
+        raise ValueError("Scheduler type {} not supported (only 'WarmupThenStep' and "
+                         "'CosineAnnealing'")
 
     if config.early_stopping:
         early_stopping = EarlyStopping(patience=config.early_stopping_patience, verbose=True)

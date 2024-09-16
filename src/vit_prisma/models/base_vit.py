@@ -218,6 +218,19 @@ class HookedViT(HookedRootModule):
             for m in self.modules(): 
                 if isinstance(m, PosEmbedding):
                     nn.init.normal_(m.W_pos, std=self.cfg.pos_std)
+                elif isinstance(m, Attention):
+                    nn.init.xavier_uniform_(m.W_Q)
+                    nn.init.xavier_uniform_(m.W_K)
+                    nn.init.xavier_uniform_(m.W_V)
+                    nn.init.xavier_uniform_(m.W_O)
+                elif isinstance(m, MLP):
+                    nn.init.kaiming_normal_(m.W_in, nonlinearity='relu')
+                    nn.init.kaiming_normal_(m.W_out, nonlinearity='relu')
+                    nn.init.zeros_(m.b_out)
+                    nn.init.zeros_(m.b_in)
+                elif isinstance(m, Head):
+                    nn.init.kaiming_normal_(m.W_H, nonlinearity='relu')
+                    nn.init.zeros_(m.b_H)
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
                     if m.bias is not None:
