@@ -45,6 +45,9 @@ from jaxtyping import Float, Int
 import einops
 from fancy_einsum import einsum
 
+import torch.nn.functional as F
+ 
+
 DTYPE_FROM_STRING = {
     "float32": torch.float32,
     "fp32": torch.float32,
@@ -89,11 +92,14 @@ class HookedViT(HookedRootModule):
             self.embed = TubeletEmbedding(self.cfg)
         else:
             self.embed = PatchEmbedding(self.cfg)
+
         self.hook_embed = HookPoint()
 
         # Position embeddings
         self.pos_embed = PosEmbedding(self.cfg)
         self.hook_pos_embed = HookPoint()
+
+        self.hook_full_embed = HookPoint()
 
         if self.cfg.layer_norm_pre: # Put layernorm after attn/mlp layers, not before
             if self.cfg.normalization_type == "LN":
@@ -105,6 +111,8 @@ class HookedViT(HookedRootModule):
             else:
                 raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
             self.hook_ln_pre = HookPoint()
+        else:
+            print("ln_pre not set")
 
         # Blocks
         if self.cfg.use_bert_block:
@@ -128,14 +136,16 @@ class HookedViT(HookedRootModule):
         else:
             raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
 
+
+        self.hook_ln_final = HookPoint()
+
         # Final classification head
         self.head = Head(self.cfg)
-
+        
+        self.hook_post_head_pre_normalize = HookPoint()
 
         # Initialize weights
         self.init_weights()
-
-
 
         # Set up HookPoints
         self.setup()
@@ -162,12 +172,15 @@ class HookedViT(HookedRootModule):
 
         embed = self.hook_embed(self.embed(input))
 
-        if self.cfg.classification_type == 'cls':
+        if self.cfg.use_cls_token:
             cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
             embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
+                    
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
         
         residual = embed + pos_embed
+
+        self.hook_full_embed(residual)
 
         if self.cfg.layer_norm_pre:
             residual = self.ln_pre(residual)
@@ -179,16 +192,26 @@ class HookedViT(HookedRootModule):
             return residual
 
         x = self.ln_final(residual)
+        self.hook_ln_final(x)
 
         if self.cfg.classification_type == 'gaap':  # GAAP
             x = x.mean(dim=1)
+            print(self.cfg.return_type)
         elif self.cfg.classification_type == 'cls':  # CLS token
             x = x[:, 0]
-            
-        return x if self.cfg.return_type == 'pre_logits' else self.head(x)
+        
+        x = x if self.cfg.return_type == 'pre_logits' else self.head(x)
+
+        self.hook_post_head_pre_normalize(x)
+
+        if self.cfg.normalize_output:
+            x = F.normalize(x, dim=-1)
+
+        return x
+
 
     def init_weights(self):
-        if self.cfg.classification_type == 'cls':
+        if self.cfg.use_cls_token:
             nn.init.normal_(self.cls_token, std=self.cfg.cls_std)
         # nn.init.trunc_normal_(self.position_embedding, std=self.cfg.pos_std)   
         if self.cfg.weight_type == 'he':
@@ -397,8 +420,6 @@ class HookedViT(HookedRootModule):
                     del state_dict[f"blocks.{l}.mlp.ln.w"]
 
         if not self.cfg.final_rms and fold_biases:
-            # Dumb bug from my old SoLU training code, some models have RMSNorm instead of LayerNorm
-            # pre unembed.
             state_dict[f"head.b_H"] = state_dict[f"head.b_H"] + (
                 state_dict[f"head.W_H"] * state_dict[f"ln_final.b"][:, None]
             ).sum(dim=-2)
@@ -648,6 +669,7 @@ class HookedViT(HookedRootModule):
 
         if fold_value_biases:
             state_dict = self.fold_value_biases(state_dict)
+
         if refactor_factored_attn_matrices:
             state_dict = self.refactor_factored_attn_matrices(state_dict)
 
@@ -730,13 +752,20 @@ class HookedViT(HookedRootModule):
             is_clip=is_clip,
         )
 
-
-
         state_dict = get_pretrained_state_dict(
-            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, **from_pretrained_kwargs
+            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, return_old_state_dict=True, **from_pretrained_kwargs
         )
 
+
+
         model = cls(cfg, move_to_device=False)
+
+        # set false if openclip; not working properly
+        if is_clip and model_name.startswith("open-clip"):
+            center_writing_weights=False
+            print("Setting center_writing_weights to False for OpenCLIP")
+            fold_ln = False
+            print("Setting fold_ln to False for OpenCLIP")
 
         model.load_and_process_state_dict(
             state_dict,
@@ -745,6 +774,8 @@ class HookedViT(HookedRootModule):
             fold_value_biases=fold_value_biases,
             refactor_factored_attn_matrices=refactor_factored_attn_matrices,
         )
+
+
 
         # Set up other parameters
         model.set_use_attn_result(use_attn_result)

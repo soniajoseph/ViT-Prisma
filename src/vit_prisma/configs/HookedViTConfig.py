@@ -13,6 +13,7 @@ class HookedViTConfig:
     d_head: int = None
     d_mlp: int = None
     model_name: str = "custom"
+    use_cls_token: bool = True # Off for ViT
     n_heads: int = 4
     activation_name: str = "gelu"
     d_vocab: int = -1
@@ -33,6 +34,7 @@ class HookedViTConfig:
     attn_types: Optional[List] = None
     init_mode: str = "gpt2"
     normalization_type: Optional[str] = "LN"
+    normalize_output: bool = False
     device: Optional[str] = 'cpu'
     n_devices: int = 1
     attention_dir: str = "bidirectional"
