@@ -147,6 +147,8 @@ def test_accuracy_baseline_hooked_model():
     og_model, _, preprocess = open_clip.create_model_and_transforms(model_name) # just need preprocessor
     del og_model
 
+    print(preprocess)
+
     data = {}
     dataset_path =  "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
     data['imagenet-val'] = load_imagenet(preprocess_transform=preprocess, dataset_path=dataset_path, dataset_type='imagenet1k-val')
@@ -156,8 +158,8 @@ def test_accuracy_baseline_hooked_model():
     # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
 
 
-test_loading_open_clip()
+# test_loading_open_clip()
 
-test_accuracy_baseline()
+# test_accuracy_baseline()
 
 test_accuracy_baseline_hooked_model()
