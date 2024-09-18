@@ -17,7 +17,6 @@ def test_loading_clip():
     width = 224
     device = "cpu"
 
-
     full = CLIPModel.from_pretrained(model_name)
     tinyclip = full.vision_model
 

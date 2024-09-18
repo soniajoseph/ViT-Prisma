@@ -1,6 +1,6 @@
 # load sae to check
 from vit_prisma.sae.sae import SparseAutoencoder
-from vit_prisma.sae.evals import EvalConfig
+from vit_prisma.sae.evals.evals import EvalConfig
 
 from huggingface_hub import hf_hub_download
 import os

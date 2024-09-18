@@ -11,6 +11,8 @@ import os
 from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
 from vit_prisma.dataloaders.imagenet_dataset import load_imagenet
 
+from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
     TOLERANCE = 1e-5
@@ -142,16 +144,11 @@ def test_accuracy_baseline_hooked_model():
     hooked_model.eval()
 
     print("Classifier and model loaded")
-
-    model_name = 'hf-hub:' + og_model_name
-    og_model, _, preprocess = open_clip.create_model_and_transforms(model_name) # just need preprocessor
-    del og_model
-
-    print(preprocess)
+    transforms = get_clip_val_transforms()
 
     data = {}
     dataset_path =  "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
-    data['imagenet-val'] = load_imagenet(preprocess_transform=preprocess, dataset_path=dataset_path, dataset_type='imagenet1k-val')
+    data['imagenet-val'] = load_imagenet(preprocess_transform=transforms, dataset_path=dataset_path, dataset_type='imagenet1k-val')
     epoch = 1
     results = zero_shot_eval(hooked_model, data, epoch, model_name=og_model_name, pretrained_classifier=classifier)
     print("Results", results)

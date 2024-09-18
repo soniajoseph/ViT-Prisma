@@ -8,21 +8,47 @@ import torchvision.transforms as transforms
 from torchvision.datasets import ImageNet
 from tqdm import tqdm
 
+# import F.normalize
+import torch.nn.functional as F
+
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Assuming you have a TinyClip model implementation
+
+
+class ContrastiveLoss(nn.Module):
+    def __init__(self, margin=0.2):
+        super().__init__()
+        self.margin = margin
+
+    def forward(self, adapted_embeddings, target_embeddings):
+        # Normalize embeddings
+        adapted_embeddings = F.normalize(adapted_embeddings, p=2, dim=1)
+        target_embeddings = F.normalize(target_embeddings, p=2, dim=1)
+
+        # Compute similarity matrix
+        similarity_matrix = torch.matmul(adapted_embeddings, target_embeddings.T)
+
+        # Positive pairs are along the diagonal
+        positive_pairs = torch.diag(similarity_matrix)
+
+        # Compute loss
+        negative_pairs = similarity_matrix.flatten()[1:].view(similarity_matrix.size(0), -1)
+        loss = torch.mean(torch.clamp(self.margin - positive_pairs.unsqueeze(1) + negative_pairs, min=0))
+
+        return loss
 
 # Updated Adapter Architecture
 class EmbeddingAdapter(nn.Module):
     def __init__(self, input_dim=512, hidden_dim=2048, output_dim=1280):
         super().__init__()
         self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.activation1 = nn.ReLU()
+        self.activation1 = nn.GeLU()
         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.activation2 = nn.ReLU()
+        self.activation2 = nn.GeLU()
         self.linear3 = nn.Linear(hidden_dim, output_dim)
-        self.dropout = nn.Dropout(0.1)
+        # self.dropout = nn.Dropout(0.1)
         
     def forward(self, x):
         x = self.linear1(x)
@@ -72,7 +98,7 @@ class ImageDataset(Dataset):
 # Training function
 def train_adapter(adapter, dataloader, num_epochs=10):
     optimizer = optim.Adam(adapter.parameters(), lr=1e-4)
-    criterion = nn.MSELoss()
+    criterion = ContrastiveLoss()
     
     for epoch in range(num_epochs):
         total_loss = 0
@@ -146,14 +172,9 @@ def load_kandinsky_with_adapter(adapter):
 
 # Main script
 if __name__ == "__main__":
-    # Define image transformations
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
 
+    import wandb
+    
     # Load ImageNet dataset
     imagenet_path = 'path/to/imagenet'  # Replace with your ImageNet path
     imagenet_data = ImageNet(root=imagenet_path, split='train', transform=transform)
