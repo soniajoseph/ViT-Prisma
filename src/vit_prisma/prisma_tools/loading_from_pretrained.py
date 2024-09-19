@@ -669,15 +669,12 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits" # actually returns 'visual_projection'
         })
 
-<<<<<<< HEAD
     if "dino" in model_name:
         pretrained_config.update({
             "return_type": "pre_logits",
             "n_classes": 768,
         })
 
-=======
->>>>>>> sonia-open-clip-acc-baseline
     # Config is for ViVet, need to add more properties
     if hasattr(hf_config, "tubelet_size"):
         pretrained_config.update({

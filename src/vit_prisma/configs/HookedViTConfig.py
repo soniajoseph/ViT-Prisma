@@ -99,10 +99,13 @@ class HookedViTConfig:
     warmup_steps: int = 10
     scheduler_step: int = 200
     scheduler_gamma: float = .8
+    scheduler_type: str = "WarmupThenStep"
     early_stopping: bool = False
     early_stopping_patience: int = 2
     num_epochs: int = 50
     max_grad_norm = 1.0
+    attn_dropout_rate: float = 0.0
+    mlp_dropout_rate: float = 0.0
 
     # Saving related
     parent_dir: str = ""
