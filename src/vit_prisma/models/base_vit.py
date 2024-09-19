@@ -199,7 +199,7 @@ class HookedViT(HookedRootModule):
             print(self.cfg.return_type)
         elif self.cfg.classification_type == 'cls':  # CLS token
             cls_token = x[:, 0]
-            if 'dino' in self.cfg.model_name:
+            if 'dino-vitb' in self.cfg.model_name:
                 patches = x[:, 1:]
                 patches_pooled = patches.mean(dim=1)
                 x = torch.cat((cls_token.unsqueeze(-1), patches_pooled.unsqueeze(-1)), dim=-1)
