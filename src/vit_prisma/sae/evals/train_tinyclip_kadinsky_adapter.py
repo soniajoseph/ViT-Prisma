@@ -2,20 +2,42 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from transformers import CLIPVisionModelWithProjection, UNet2DConditionModel
+from transformers import CLIPVisionModelWithProjection
+from transformers import CLIPModel, CLIPProcessor
+
+
 from diffusers import KandinskyV22PriorPipeline, KandinskyV22Pipeline
 import torchvision.transforms as transforms
 from torchvision.datasets import ImageNet
 from tqdm import tqdm
 
+from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+
+import torchvision
+
 # import F.normalize
 import torch.nn.functional as F
 
+# import CLIPModel
+from transformers import CLIPModel
+
+import os
+
+import wandb
+
+
+from vit_prisma.models.base_vit import HookedViT
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Assuming you have a TinyClip model implementation
 
+import random
+import string
+random_hash = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
+
+
+
+# Assuming you have a TinyClip model implementation
 
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin=0.2):
@@ -27,84 +49,84 @@ class ContrastiveLoss(nn.Module):
         adapted_embeddings = F.normalize(adapted_embeddings, p=2, dim=1)
         target_embeddings = F.normalize(target_embeddings, p=2, dim=1)
 
-        # Compute similarity matrix
+        # Compute cosine similarity for all pairs
         similarity_matrix = torch.matmul(adapted_embeddings, target_embeddings.T)
 
-        # Positive pairs are along the diagonal
+        # Extract positive pairs (diagonal elements assuming each adapted corresponds to each target)
         positive_pairs = torch.diag(similarity_matrix)
 
-        # Compute loss
-        negative_pairs = similarity_matrix.flatten()[1:].view(similarity_matrix.size(0), -1)
-        loss = torch.mean(torch.clamp(self.margin - positive_pairs.unsqueeze(1) + negative_pairs, min=0))
+        # Mask to zero-out positive pair impacts in the similarity matrix for negative comparison
+        mask = torch.eye(similarity_matrix.size(0), device=similarity_matrix.device, dtype=torch.bool)
+        similarity_matrix.masked_fill_(mask, float('-inf'))
 
-        return loss
+        # Get the maximum negative similarity for each positive pair
+        max_negative_similarity = torch.max(similarity_matrix, dim=1)[0]
+        
+        # Compute loss as max(0, margin - positive + max_negative)
+        losses = F.relu(self.margin - positive_pairs + max_negative_similarity)
 
-# Updated Adapter Architecture
+        return losses.mean()
+
 class EmbeddingAdapter(nn.Module):
-    def __init__(self, input_dim=512, hidden_dim=2048, output_dim=1280):
+    def __init__(self, input_dim=512, hidden_dim=2048, output_dim=1280, num_layers=4, dropout_rate=0.1):
         super().__init__()
-        self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.activation1 = nn.GeLU()
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.activation2 = nn.GeLU()
-        self.linear3 = nn.Linear(hidden_dim, output_dim)
-        # self.dropout = nn.Dropout(0.1)
+        self.layers = nn.ModuleList([nn.Linear(input_dim, hidden_dim)])
+        self.layers.extend([nn.Linear(hidden_dim, hidden_dim) for _ in range(num_layers - 2)])
+        self.layers.append(nn.Linear(hidden_dim, output_dim))
+        
+        self.activation = nn.GELU()
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.dropout = nn.Dropout(dropout_rate)
         
     def forward(self, x):
-        x = self.linear1(x)
-        x = self.activation1(x)
-        x = self.dropout(x)
-        x = self.linear2(x)
-        x = self.activation2(x)
-        x = self.dropout(x)
-        x = self.linear3(x)
+        for i, layer in enumerate(self.layers[:-1]):
+            x = layer(x)
+            x = self.activation(x)
+            x = self.norm(x)
+            x = self.dropout(x)
+        x = self.layers[-1](x)
         return x
 
-# Activations Store
 class DualEmbedder:
-    def __init__(self, tinyclip_model, kandinsky_model):
-        self.tinyclip_model = tinyclip_model
+    def __init__(self, clip_model_name, kandinsky_model):
+        self.clip_model = CLIPModel.from_pretrained(clip_model_name)
+        self.clip_processor = CLIPProcessor.from_pretrained(clip_model_name)
         self.kandinsky_model = kandinsky_model
         
+        # Move models to the appropriate device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.clip_model.to(self.device)
+        self.kandinsky_model.to(self.device)
+        
     def get_embeddings(self, images):
-        with torch.no_grad(): 
-            tinyclip_embeddings = self.tinyclip_model.encode_image(images)
-            kandinsky_embeddings = self.kandinsky_model.image_encoder(images).image_embeds
-        return tinyclip_embeddings, kandinsky_embeddings
+        with torch.no_grad():
+            # Process images for CLIP
+            # clip_inputs = self.clip_processor(images=images, return_tensors="pt").to(self.device)
+            
+            # Get CLIP embeddings
+            clip_outputs = self.clip_model.get_image_features(pixel_values=images).float()
+            clip_embeddings = clip_outputs / clip_outputs.norm(dim=-1, keepdim=True)
 
-# Dataset
-class ImageDataset(Dataset):
-    def __init__(self, imagenet_data, dual_embedder, tinyclip_transform, kandinsky_transform):
-        self.imagenet_data = imagenet_data
-        self.dual_embedder = dual_embedder
-        self.tinyclip_transform = tinyclip_transform
-        self.kandinsky_transform = kandinsky_transform # Do I need these separate transforms, or do the models already come with them? 
+            
+            # Get Kandinsky embeddings
+            kandinsky_embeddings = self.kandinsky_model(images).image_embeds
+
         
-    def __len__(self):
-        return len(self.imagenet_data)
-    
-    def __getitem__(self, idx):
-        image, _ = self.imagenet_data[idx]
-        
-        # Apply different transforms for TinyClip and Kandinsky
-        tinyclip_image = self.tinyclip_transform(image)
-        kandinsky_image = self.kandinsky_transform(image)
-        
-        # Get embeddings
-        tinyclip_embed, kandinsky_embed = self.dual_embedder.get_embeddings(tinyclip_image.unsqueeze(0), kandinsky_image.unsqueeze(0))
-        
-        return tinyclip_embed.squeeze(0), kandinsky_embed.squeeze(0)
-    
+        return clip_embeddings, kandinsky_embeddings
+
 # Training function
-def train_adapter(adapter, dataloader, num_epochs=10):
+def train_adapter(adapter, dataloader, dual_embedder, num_epochs=2):
     optimizer = optim.Adam(adapter.parameters(), lr=1e-4)
     criterion = ContrastiveLoss()
     
+    global_step = 0
     for epoch in range(num_epochs):
         total_loss = 0
-        for tinyclip_embed, kandinsky_embed in tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
-            tinyclip_embed = tinyclip_embed.to(DEVICE)
-            kandinsky_embed = kandinsky_embed.to(DEVICE)
+        for batch_idx, (images, _) in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")):
+            images = images.to(DEVICE)
+            
+            # Get embeddings
+            tinyclip_embed, kandinsky_embed = dual_embedder.get_embeddings(images)
             
             optimizer.zero_grad()
             output = adapter(tinyclip_embed)
@@ -113,108 +135,167 @@ def train_adapter(adapter, dataloader, num_epochs=10):
             optimizer.step()
             
             total_loss += loss.item()
-        
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss/len(dataloader)}")
+            global_step += 1
+            
+            # Log every 100 batches
+            if global_step % 10 == 0:
+                avg_loss = total_loss / (batch_idx + 1)
+                print(f"Epoch {epoch+1}/{num_epochs}, Batch {batch_idx+1}/{len(dataloader)}, Loss: {avg_loss:.4f}")
+                
+                # Log to wandb
+                wandb.log({
+                    "epoch": epoch + 1,
+                    "batch": batch_idx + 1,
+                    "global_step": global_step,
+                    "loss": avg_loss
+                })
+
+                        # save checkpoint
+                print("Saving checkpoint at global step", global_step)
+                save_dir = f'/network/scratch/s/sonia.joseph/diffusion/tinyclip_adapter/{random_hash}'
+                # make directory
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
+                torch.save(adapter.state_dict(), os.path.join(save_dir, f"adapter_checkpoint_{global_step}.pth"))
+            
+
+        # Log epoch summary
+        avg_loss = total_loss / len(dataloader)
+        print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {avg_loss:.f}")
+        wandb.log({
+            "epoch": epoch + 1,
+            "epoch_avg_loss": avg_loss
+        })
 
 # Kandinsky loading function
-def load_kandinsky(cache_dir):
+def load_kandinsky_encoder(cache_dir, device='cuda'):
     image_encoder = CLIPVisionModelWithProjection.from_pretrained(
         'kandinsky-community/kandinsky-2-2-prior',
-        subfolder='image_encoder'
+        subfolder='image_encoder',
         cache_dir=cache_dir,
-    ).half().to(DEVICE)
+    ).to(device)
 
-    unet = UNet2DConditionModel.from_pretrained(
-        'kandinsky-community/kandinsky-2-2-decoder',
-        subfolder='unet',
-        cache_dir=cache_dir,
-    ).half().to(DEVICE)
+    # unet = UNet2DConditionModel.from_pretrained(
 
-    prior = KandinskyV22PriorPipeline.from_pretrained(
-        'kandinsky-community/kandinsky-2-2-prior',
-        image_encoder=image_encoder,
-        torch_dtype=torch.float16,
-        cache_dir=cache_dir,
-    ).to(DEVICE)
+    #     'kandinsky-community/kandinsky-2-2-decoder',
+    #     subfolder='unet',
+    #     cache_dir=cache_dir,
+    # ).half().to(DEVICE)
 
-    decoder = KandinskyV22Pipeline.from_pretrained(
-        'kandinsky-community/kandinsky-2-2-decoder',
-        unet=unet,
-        torch_dtype=torch.float16,
-        cache_dir=cache_dir,
-    ).to(DEVICE)
+    # prior = KandinskyV22PriorPipeline.from_pretrained(
+    #     'kandinsky-community/kandinsky-2-2-prior',
+    #     image_encoder=image_encoder,
+    #     torch_dtype=torch.float16,
+    #     cache_dir=cache_dir,
+    # ).to(DEVICE)
 
-    zero_embed = prior.get_zero_embed()
+    # decoder = KandinskyV22Pipeline.from_pretrained(
+    #     'kandinsky-community/kandinsky-2-2-decoder',
+    #     unet=unet,
+    #     torch_dtype=torch.float16,
+    #     cache_dir=cache_dir,
+    # ).to(DEVICE)
 
-    return prior, decoder, zero_embed
+    # zero_embed = prior.get_zero_embed()
 
-# Function to get TinyClip embedding
-def get_tinyclip_embedding(prompt):
-    # Implement your TinyClip embedding logic here
-    # This is a placeholder, replace with actual implementation
-    return torch.randn(512).to(DEVICE)
+    return image_encoder
 
-# Kandinsky loading function with adapter
-def load_kandinsky_with_adapter(adapter):
-    prior, decoder, zero_embed = load_kandinsky()
+
+def load_imagenet(data_transforms, dataset_path, model_type='clip'):
+    # Imagenet-specific logic
+    from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+    from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+    from vit_prisma.dataloaders.imagenet_dataset import ImageNetValidationDataset
+    if model_type == 'clip':
+        data_transforms = get_clip_val_transforms()
+    else:
+        raise ValueError("Invalid model type")
+    imagenet_paths = setup_imagenet_paths(dataset_path)
+    train_data = torchvision.datasets.ImageFolder(imagenet_paths['train'], transform=data_transforms)
+    val_data = ImageNetValidationDataset(imagenet_paths['val'], 
+                                    imagenet_paths['label_strings'], 
+                                    imagenet_paths['val_labels'], 
+                                    data_transforms
+    )
+    return train_data, val_data
+
+def load_pretrained_adapter(checkpoint_path, input_dim=512, hidden_dim=2048, output_dim=1280):
+    # Initialize the adapter model
+    adapter = EmbeddingAdapter(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim)
     
-    # Wrap the prior's encode_prompt function
-    original_encode_prompt = prior.encode_prompt
+    # Load the state dict
+    state_dict = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     
-    def encode_prompt_with_adapter(prompt, num_images_per_prompt, do_classifier_free_guidance):
-        tinyclip_embed = get_tinyclip_embedding(prompt)
-        adapted_embed = adapter(tinyclip_embed.unsqueeze(0)).squeeze(0)
-        return original_encode_prompt(adapted_embed, num_images_per_prompt, do_classifier_free_guidance)
+    # Load the state dict into the model
+    adapter.load_state_dict(state_dict)
     
-    prior.encode_prompt = encode_prompt_with_adapter
+    # Move the model to the appropriate device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    adapter = adapter.to(device)
     
-    return prior, decoder, zero_embed
+    # Set the model to evaluation mode
+    adapter.eval()
+    
+    return adapter
+
+def get_imagenet_dataloaders(train_data, val_data, batch_size=32):
+    train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_dataloader = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=4)
+    return train_dataloader, val_dataloader
 
 # Main script
 if __name__ == "__main__":
 
-    import wandb
-    
+    # generate random hash for name
+    import argparse
+    parser = argparse.ArgumentParser()
+    # pretrained checkpoint
+    parser.add_argument('--pretrained_checkpoint', type=str, default=None, required=False)
+    args = parser.parse_args()
+
+
+    device= 'cuda'
+
+    wandb.init(project="tinyclip-kandinsky-adapter", name=f"{random_hash}-adapter-training")
+
     # Load ImageNet dataset
-    imagenet_path = 'path/to/imagenet'  # Replace with your ImageNet path
-    imagenet_data = ImageNet(root=imagenet_path, split='train', transform=transform)
+    clip_transform = get_clip_val_transforms()
 
-    # Initialize TinyClip and Kandinsky models
-    tinyclip_model = TinyClip().to(DEVICE)
-    tinyclip_model.eval()
+    cache_dir = '/network/scratch/s/sonia.joseph/.cache'
+    imagenet_path = '/network/scratch/s/sonia.joseph/datasets/kaggle_datasets'
+
+    train_data, val_data = load_imagenet(clip_transform, imagenet_path)
+    train_dataloader, val_dataloader = get_imagenet_dataloaders(train_data, val_data, batch_size=256)
+
+    print("Data loaded successfully.")
     
-    prior, _, _ = load_kandinsky()
-    kandinsky_model = prior.image_encoder
-    kandinsky_model.eval()
+    # Initialize TinyClip and Kandinsky models
+    model_name = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
+    tinyclip_model = HookedViT.from_pretrained(model_name, is_timm=False, is_clip=True).to(device)
+    tinyclip_model.eval()
 
+    
+    kandinsky_encoder = load_kandinsky_encoder(cache_dir, device)
+    kandinsky_encoder.eval()
+
+    print("Models loaded successfully.")
+    
     # Create activations store
-    activations_store = DualEmbedder(tinyclip_model, kandinsky_model)
+    dual_embedder = DualEmbedder(model_name, kandinsky_encoder)
 
-    # Create dataset and dataloader
-    dataset = ImageDataset(imagenet_data, activations_store)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4)
+    # tinyclip_embeddings, kandinsky_embeddings = dual_embedder.get_embeddings(torch.randn(2, 3, 224, 224).to(device))
 
     # Initialize adapter with larger hidden layer
-    adapter = EmbeddingAdapter(input_dim=512, hidden_dim=2048, output_dim=1280).to(DEVICE)
+    if args.pretrained_checkpoint:
+        adapter = load_pretrained_adapter(args.pretrained_checkpoint)
+    else:
+        adapter = EmbeddingAdapter(input_dim=512, hidden_dim=2048, output_dim=1280).to(device)
 
     # Train adapter
-    train_adapter(adapter, dataloader)
+    train_adapter(adapter, train_dataloader, dual_embedder)
 
     # Save adapter
-    torch.save(adapter.state_dict(), 'tinyclip_to_kandinsky_adapter.pth')
+    save_path = '/network/scratch/s/sonia.joseph/diffusion'
+    torch.save(adapter.state_dict(), os.path.join(save_path, 'tinyclip_to_kandinsky_adapter.pth'))
 
-    # # Load adapter (for demonstration)
-    # adapter = EmbeddingAdapter(input_dim=512, hidden_dim=2048, output_dim=1280)
-    # adapter.load_state_dict(torch.load('tinyclip_to_kandinsky_adapter.pth'))
-    # adapter.to(DEVICE)
-
-    # # Load Kandinsky with adapter
-    # prior, decoder, zero_embed = load_kandinsky_with_adapter(adapter)
-
-    # # Example usage
-    # prompt = "A beautiful landscape"
-    # images = prior(prompt=prompt, num_inference_steps=25, num_images_per_prompt=1)
-    # image = decoder(image_embeds=images.image_embeds, prompt=prompt, num_inference_steps=50).images[0]
-    # image.save("generated_image.png")
-
-    # print("Image generated and saved as 'generated_image.png'")
+    wandb.finish()
