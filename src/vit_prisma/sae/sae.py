@@ -15,7 +15,9 @@ from torch import nn
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
 from vit_prisma.prisma_tools.hook_point import HookPoint
 
-from vit_prisma.sae.evals.evals import EvalConfig
+# from vit_prisma.sae.evals.evals import EvalConfig
+
+from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
 # import fields
 from dataclasses import fields
