@@ -47,7 +47,9 @@ def wandb_log_suffix(cfg: Any, hyperparams: Any):
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
-        self.bad_run_check = self.cfg.min_l0 is not None and self.cfg.min_explained_variance is not None
+
+
+        self.bad_run_check = True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
         self.sae = SparseAutoencoder(self.cfg)
 
@@ -62,6 +64,19 @@ class VisionSAETrainer:
         self.setup_checkpoint_path()
 
         self.cfg.pretty_print() if self.cfg.verbose else None
+
+    def set_default_attributes(self):
+        '''
+        For backward compatability, add new attributes here
+        '''
+        # Set default values for attributes that might not be in the loaded config
+        default_attributes = [
+            'min_l0', 'min_explained_variance']
+    
+        for attr in default_attributes:
+            if not hasattr(self.cfg, attr):
+                setattr(self.cfg, attr, None)
+        
 
     def setup_checkpoint_path(self):
         # Create checkpoint path with run_name, which contains unique identifier
