@@ -48,6 +48,8 @@ class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
 
+        self.set_default_attributes() # For backward compatability
+
 
         self.bad_run_check = True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
@@ -97,9 +99,10 @@ class VisionSAETrainer:
             print(f"Dataset type: {self.cfg.dataset_name}") if self.cfg.verbose else None
             # Imagenet-specific logic
             from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
-            from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
+            from vit_prisma.dataloaders.imagenet_dataset import ImageNetValidationDataset
             if model_type == 'clip':
-                data_transforms = get_imagenet_transforms_clip(self.cfg.model_name)
+                from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+                data_transforms = get_clip_val_transforms(self.cfg.model_name)
             else:
                 raise ValueError("Invalid model type")
             imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
