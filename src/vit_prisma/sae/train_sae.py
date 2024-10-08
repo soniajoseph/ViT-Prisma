@@ -102,7 +102,9 @@ class VisionSAETrainer:
             from vit_prisma.dataloaders.imagenet_dataset import ImageNetValidationDataset
             if model_type == 'clip':
                 from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
-                data_transforms = get_clip_val_transforms(self.cfg.model_name)
+                # this does not match the function arguments:
+                # data_transforms = get_clip_val_transforms(self.cfg.model_name)
+                data_transforms = get_clip_val_transforms()
             else:
                 raise ValueError("Invalid model type")
             imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
