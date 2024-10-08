@@ -393,7 +393,10 @@ class VisionSAETrainer:
     def run(self):
         if self.cfg.log_to_wandb:
             config_dict = self.dataclass_to_dict(self.cfg)
-            wandb.init(project=self.cfg.wandb_project, config=config_dict, name=self.cfg.run_name)
+            # name cannot contain characters '/,\\,#,?,%,:'
+            wandb_project_name = self.cfg.wandb_project.replace("/", "_").replace("\\", "_").replace("#", "_").replace("?", "_").replace("%", "_").replace(":", "_")
+            wandb_run_name = self.cfg.run_name.replace("/", "_").replace("\\", "_").replace("#", "_").replace("?", "_").replace("%", "_").replace(":", "_")
+            wandb.init(project=wandb_project_name, config=config_dict, name=wandb_run_name)
 
         act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens, optimizer, scheduler = self.initialize_training_variables()
         geometric_medians = self.initialize_geometric_medians()
