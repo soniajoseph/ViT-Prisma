@@ -15,11 +15,17 @@ We welcome new contributors. Check out our contributing guidelines [here](CONTRI
 
 ## Installing Repo
 
+For the latest version, install the repo from the source. While this version will include the latest developments, they may not be fully tested.
+
+For the tested and stable release, install Prisma as a package.
+
+**Install as a package**
 Installing with pip:
 ```
 pip install vit_prisma
 ```
 
+**Install from source**
 To install as an editable repo from source:
 ```
 git clone https://github.com/soniajoseph/ViT-Prisma
@@ -30,7 +36,7 @@ pip install -e .
 ## How do I use this repo?
 Check out [our guide](https://github.com/soniajoseph/ViT-Prisma/blob/main/docs/UsageGuide.md).
 
-Check out our tutorial notebooks for using the repo.
+Check out our tutorial notebooks for using the repo. You can also check out this [corresponding talk](https://www.youtube.com/watch?v=gQbh-RZtsq4&ab_channel=SoniaJoseph) on some of these techniques.
 
 1. [Main ViT Demo](https://colab.research.google.com/drive/1TL_BY1huQ4-OTORKbiIg7XfTyUbmyToQ) - Overview of main mechanistic interpretability technique on a ViT, including direct logit attribution, attention head visualization, and activation patching. The activation patching switches the net's prediction from tabby cat to Border collie with a minimum ablation.
 2. [Emoji Logit Lens](https://colab.research.google.com/drive/1yAHrEoIgkaVqdWC4GY-GQ46ZCnorkIVo) - Deeper dive into layer- and patch-level predictions with interactive plots.
