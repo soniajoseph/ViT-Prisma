@@ -35,9 +35,10 @@ class VisionActivationsStore:
         self.model = model
         self.model.to(cfg.device)
         self.dataset = dataset
+        # weird - batch_size=self.cfg.store_batch_size, but train_batch_size also exists??
         self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
         self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
-
+        print("loaded dataloaders")
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()
 
@@ -216,14 +217,17 @@ class VisionActivationsStore:
         )
 
         for refill_batch_idx_start in refill_iterator:
-            refill_batch_tokens = self.get_batch_tokens() ######
-            refill_activations = self.get_activations(refill_batch_tokens)
+            try:
+                refill_batch_tokens = self.get_batch_tokens() ######
+                refill_activations = self.get_activations(refill_batch_tokens)
 
-            new_buffer[
-                refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
-            ] = refill_activations
+                new_buffer[
+                  refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
+                ] = refill_activations
 
-            # pbar.update(1)
+              # pbar.update(1)
+            except Exception as e:
+                print("refill exception", e)
 
         new_buffer = new_buffer.reshape(-1, num_layers, d_in)
         new_buffer = new_buffer[torch.randperm(new_buffer.shape[0])]
@@ -250,7 +254,6 @@ class VisionActivationsStore:
         )
 
         mixing_buffer = mixing_buffer[torch.randperm(mixing_buffer.shape[0])]
-
         # 2.  put 50 % in storage
         self.storage_buffer = mixing_buffer[: mixing_buffer.shape[0] // 2]
 
