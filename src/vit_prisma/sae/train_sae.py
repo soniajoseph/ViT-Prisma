@@ -6,6 +6,7 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
 # from vit_prisma.sae.evals import run_evals_vision
+from vit_prisma.sae.evals.evals import get_substitution_loss
 
 import torch
 from torch.optim import Adam
@@ -222,8 +223,59 @@ class VisionSAETrainer:
         
         return loss, mse_loss, l1_loss, l0, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens
 
-    def val(self, sparse_autoencoder,  n_frac_active_tokens, layer_acts):
-        pass
+
+    # layer_acts be a poor format - need to run in ctx_len, gt_labels format
+    @torch.no_grad()
+    def val(self, sparse_autoencoder):
+        sparse_autoencoder.eval()
+        for images, gt_labels in self.eval_dataset:
+            images = images.to(self.cfg.device)
+            gt_labels = gt_labels.to(self.cfg.device)
+            # needs to start with batch_size dimension
+            _, cache = self.model.run_with_cache(images[None,:], names_filter=sparse_autoencoder.cfg.hook_point)
+            hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
+            
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+
+
+            # Calculate cosine similarity between original activations and sae output
+            cos_sim = torch.cosine_similarity(einops.rearrange(hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                              einops.rearrange(sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
+                                                                                dim=0).mean(-1).tolist()
+            all_cosine_similarity.append(cos_sim)
+
+            # Calculate substitution loss
+            score, loss, recons_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, model, batch_tokens, gt_labels, all_labels, 
+                                                                      text_embeddings, device=self.cfg.device)
+
+            total_loss += loss.item()
+            total_reconstruction_loss += recons_loss.item()
+            total_zero_abl_loss += zero_abl_loss.item()
+
+              # Calculate average metrics
+            avg_loss = total_loss / total_samples
+            avg_reconstruction_loss = total_reconstruction_loss / total_samples
+            avg_zero_abl_loss = total_zero_abl_loss / total_samples
+            
+            avg_l0 = np.mean(all_l0)
+            avg_l0_cls = np.mean(all_l0_cls)
+            avg_l0_image = np.mean(all_l0_image)
+
+            avg_cos_sim = np.mean(all_cosine_similarity)
+            log_frequencies_per_token = calculate_log_frequencies(total_acts, total_tokens)
+            log_frequencies_per_image = calculate_log_frequencies(total_acts, total_images)
+
+            # print out everything above
+            print(f"Average L0 (features activated): {avg_l0:.6f}")
+            print(f"Average L0 (features activated) per CLS token: {avg_l0_cls:.6f}")
+            print(f"Average L0 (features activated) per image: {avg_l0_image:.6f}")
+            print(f"Average Cosine Similarity: {avg_cos_sim:.4f}")
+            print(f"Average Loss: {avg_loss:.6f}")
+            print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.6f}")
+            print(f"Average Zero Ablation Loss: {avg_zero_abl_loss:.6f}")
+
+            return avg_loss, avg_cos_sim, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0, avg_l0_cls, avg_l0_image, log_frequencies_per_token, log_frequencies_per_image
+
 
     # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
     #     suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
@@ -435,8 +487,8 @@ class VisionSAETrainer:
             n_training_tokens += self.cfg.train_batch_size
 
             if n_training_tokens % 100000 > 80000: # this is a stupid to get it to print 20% of the time
-                # validation here
-                pass
+                self.val(self.sae, val_batch, gt_labels)
+
 
             if self.cfg.n_checkpoints > 0 and n_training_tokens > self.checkpoint_thresholds[0]:
                 self.checkpoint(self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens)

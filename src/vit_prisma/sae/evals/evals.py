@@ -260,13 +260,13 @@ def get_text_embeddings(model_name, original_text, batch_size=32):
 
     return final_embeddings
 
+
 @torch.no_grad()
-def get_recons_loss(
+def get_substitution_loss(
     sparse_autoencoder: SparseAutoencoder,
     model: HookedViT,
     batch_tokens: torch.Tensor,
     gt_labels: torch.Tensor,
-    all_labels: List[str],
     text_embeddings: torch.Tensor,
     device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ):
@@ -439,7 +439,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
             all_cosine_similarity.append(cos_sim)
 
             # Calculate substitution loss
-            score, loss, recons_loss, zero_abl_loss = get_recons_loss(sparse_autoencoder, model, batch_tokens, gt_labels, all_labels, 
+            score, loss, recons_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, model, batch_tokens, gt_labels, 
                                                                       text_embeddings, device=cfg.device)
 
             total_loss += loss.item()
