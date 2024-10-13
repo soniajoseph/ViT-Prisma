@@ -98,14 +98,30 @@ class VisionActivationsStore:
         #TODO multi worker here 
         device = self.cfg.device
         # fetch a batch of images... (shouldn't this be it's own dataloader...)
+        # agreed, what the hell is going on here
         while True:
-            for image_data, labels  in self.image_dataloader_eval:
+            for image_data, labels in self.image_dataloader_eval:
                 image_data.requires_grad_(False)
                 labels.requires_grad_(False)
                 yield image_data.to(device), labels.to(device)
     
     def get_val_batch_tokens(self):
         return next(self.image_dataloader_eval_iter)
+
+
+# for live eval
+    # this gets the same batch (first) from the eval dataloader each time
+    def get_val_activations_wrapper_one_batch(self):
+        num_layers = (
+            len(self.cfg.hook_point_layer)
+            if isinstance(self.cfg.hook_point_layer, list)
+            else 1
+        )  # Number of hook points or layers
+        for image_data, labels in self.image_dataloader_eval:
+            image_data.requires_grad_(False)
+            break
+        return self.get_activations(image_data.to(self.cfg.device)).reshape(-1, num_layers, self.cfg.d_in)
+
 
     def get_activations(self, batch_tokens: torch.Tensor, get_loss: bool = False):
         """
@@ -143,6 +159,8 @@ class VisionActivationsStore:
         stacked_activations = torch.stack(activations_list, dim=2)
 
         return stacked_activations
+
+
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
         batch_size = self.cfg.store_batch_size

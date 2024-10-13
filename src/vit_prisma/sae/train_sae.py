@@ -56,6 +56,9 @@ class VisionSAETrainer:
         self.sae = SparseAutoencoder(self.cfg)
 
         dataset, eval_dataset = self.load_dataset()
+        self.dataset = dataset
+        self.eval_dataset = eval_dataset
+        print("here", eval_dataset)
         self.activations_store = self.initialize_activations_store(dataset, eval_dataset)
 
         self.cfg.wandb_project = self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor) + "-layer-" + str(self.cfg.hook_point_layer)
@@ -218,6 +221,9 @@ class VisionSAETrainer:
         optimizer.step()
         
         return loss, mse_loss, l1_loss, l0, act_freq_scores, n_forward_passes_since_fired, n_frac_active_tokens
+
+    def val(self, sparse_autoencoder,  n_frac_active_tokens, layer_acts):
+        pass
 
     # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
     #     suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
@@ -427,6 +433,10 @@ class VisionSAETrainer:
 
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
+
+            if n_training_tokens % 100000 > 80000: # this is a stupid to get it to print 20% of the time
+                # validation here
+                pass
 
             if self.cfg.n_checkpoints > 0 and n_training_tokens > self.checkpoint_thresholds[0]:
                 self.checkpoint(self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens)
