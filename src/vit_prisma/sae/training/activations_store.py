@@ -37,7 +37,7 @@ class VisionActivationsStore:
         self.dataset = dataset
         # weird - batch_size=self.cfg.store_batch_size, but train_batch_size also exists??
         self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
-        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
+        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=False, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
         print("loaded dataloaders")
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()

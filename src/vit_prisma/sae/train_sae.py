@@ -6,7 +6,9 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
 # from vit_prisma.sae.evals import run_evals_vision
-from vit_prisma.sae.evals.evals import get_substitution_loss
+from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_labels
+
+from vit_prisma.dataloaders.imagenet_index import imagenet_index
 
 import torch
 from torch.optim import Adam
@@ -19,6 +21,7 @@ import sys
 
 import torchvision
 
+import einops
 import numpy as np
 
 from typing import Any, cast
@@ -60,6 +63,8 @@ class VisionSAETrainer:
         self.dataset = dataset
         self.eval_dataset = eval_dataset
         print("here", eval_dataset)
+        # I think we should use a more selective set of text labels
+        # self.text_embeddings = get_text_embeddings(cfg.model_name, get_text_labels('imagenet'))
         self.activations_store = self.initialize_activations_store(dataset, eval_dataset)
 
         self.cfg.wandb_project = self.cfg.model_name.replace('/', '-') + "-expansion-" + str(self.cfg.expansion_factor) + "-layer-" + str(self.cfg.hook_point_layer)
@@ -228,11 +233,11 @@ class VisionSAETrainer:
     @torch.no_grad()
     def val(self, sparse_autoencoder):
         sparse_autoencoder.eval()
-        for images, gt_labels in self.eval_dataset:
+        for images, gt_labels in self.activations_store.image_dataloader_eval:
             images = images.to(self.cfg.device)
             gt_labels = gt_labels.to(self.cfg.device)
             # needs to start with batch_size dimension
-            _, cache = self.model.run_with_cache(images[None,:], names_filter=sparse_autoencoder.cfg.hook_point)
+            _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
             
             sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
@@ -242,39 +247,24 @@ class VisionSAETrainer:
             cos_sim = torch.cosine_similarity(einops.rearrange(hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"),
                                                                               einops.rearrange(sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
                                                                                 dim=0).mean(-1).tolist()
-            all_cosine_similarity.append(cos_sim)
+            # all_cosine_similarity.append(cos_sim)
 
             # Calculate substitution loss
-            score, loss, recons_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, model, batch_tokens, gt_labels, all_labels, 
+            # we need to get the imagenet labels of all the images in our batch
+            # just map gt_label to imagenet name
+            batch_label_names = [imagenet_index[str(int(label.item()))][1] for label in gt_labels]
+            print(batch_label_names)
+            model_name = self.cfg.model_name if not self.cfg.model_name.startswith("open-clip:") else self.cfg.model_name[10:]
+            text_embeddings = get_text_embeddings(model_name, batch_label_names)
+            score, loss, subst_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
                                                                       text_embeddings, device=self.cfg.device)
 
-            total_loss += loss.item()
-            total_reconstruction_loss += recons_loss.item()
-            total_zero_abl_loss += zero_abl_loss.item()
-
-              # Calculate average metrics
-            avg_loss = total_loss / total_samples
-            avg_reconstruction_loss = total_reconstruction_loss / total_samples
-            avg_zero_abl_loss = total_zero_abl_loss / total_samples
-            
-            avg_l0 = np.mean(all_l0)
-            avg_l0_cls = np.mean(all_l0_cls)
-            avg_l0_image = np.mean(all_l0_image)
-
-            avg_cos_sim = np.mean(all_cosine_similarity)
-            log_frequencies_per_token = calculate_log_frequencies(total_acts, total_tokens)
-            log_frequencies_per_image = calculate_log_frequencies(total_acts, total_images)
-
-            # print out everything above
-            print(f"Average L0 (features activated): {avg_l0:.6f}")
-            print(f"Average L0 (features activated) per CLS token: {avg_l0_cls:.6f}")
-            print(f"Average L0 (features activated) per image: {avg_l0_image:.6f}")
-            print(f"Average Cosine Similarity: {avg_cos_sim:.4f}")
-            print(f"Average Loss: {avg_loss:.6f}")
-            print(f"Average Reconstruction Loss: {avg_reconstruction_loss:.6f}")
-            print(f"Average Zero Ablation Loss: {avg_zero_abl_loss:.6f}")
-
-            return avg_loss, avg_cos_sim, avg_reconstruction_loss, avg_zero_abl_loss, avg_l0, avg_l0_cls, avg_l0_image, log_frequencies_per_token, log_frequencies_per_image
+            # log to w&b
+            print(f"cos_sim: {cos_sim}")
+            print(f"score: {score}")
+            print(f"loss: {loss}")
+            print(f"subst_loss: {subst_loss}")
+            print(f"zero_abl_loss: {zero_abl_loss}")
 
 
     # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):

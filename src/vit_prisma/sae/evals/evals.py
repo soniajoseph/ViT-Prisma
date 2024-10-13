@@ -235,6 +235,8 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
 
     print(f"Saved average l0 figure to {save_path}") if cfg.verbose else None
 
+
+# this needs to be redone to not assume huggingface
 def get_text_embeddings(model_name, original_text, batch_size=32):
     from transformers import CLIPProcessor, CLIPModel
     vanilla_model = CLIPModel.from_pretrained(model_name)
