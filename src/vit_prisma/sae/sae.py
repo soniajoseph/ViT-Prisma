@@ -3,6 +3,7 @@ https://github.com/ArthurConmy/sae/blob/main/sae/model.py
 """
 
 import gzip
+import json
 import os
 import pickle
 from typing import Any, Callable
@@ -24,6 +25,8 @@ from dataclasses import fields
 from vit_prisma.sae.training.geometric_median import compute_geometric_median # Note: this is the SAE Lens 3 version, not SAE Lens 2 version
 
 import math
+
+from vit_prisma.utils.constants import DEVICE
 
 
 class SparseAutoencoder(HookedRootModule):
@@ -49,22 +52,26 @@ class SparseAutoencoder(HookedRootModule):
         self.initialization_method = cfg.initialization_method
 
 
-        
+
         # Initialize weights based on the chosen method
-        if self.initialization_method == "independent":
-            self.W_dec = nn.Parameter(
-                self.initialize_weights(self.d_sae, self.d_in)
-            )
-            self.W_enc = nn.Parameter(
-                self.initialize_weights(self.d_in, self.d_sae)
-            )
-        elif self.initialization_method == "encoder_transpose_decoder":
-            self.W_dec = nn.Parameter(
-                self.initialize_weights(self.d_sae, self.d_in)
-            )
-            self.W_enc = nn.Parameter(self.W_dec.data.t().clone())
-        else:
-            raise ValueError(f"Unknown initialization method: {self.initialization_method}")
+        if self.cfg.architecture == "standard":
+            if self.initialization_method == "independent":
+                self.W_dec = nn.Parameter(
+                    self.initialize_weights(self.d_sae, self.d_in)
+                )
+                self.W_enc = nn.Parameter(
+                    self.initialize_weights(self.d_in, self.d_sae)
+                )
+            elif self.initialization_method == "encoder_transpose_decoder":
+                self.W_dec = nn.Parameter(
+                    self.initialize_weights(self.d_sae, self.d_in)
+                )
+                self.W_enc = nn.Parameter(self.W_dec.data.t().clone())
+            else:
+                raise ValueError(f"Unknown initialization method: {self.initialization_method}")
+        elif self.cfg.architecture == "gated":
+            assert self.cfg.use_ghost_grads == False, "Gated SAE does not support ghost grads"
+            self.initialize_weights_gated()
 
         self.b_enc = nn.Parameter(
             torch.zeros(self.d_sae, dtype=self.dtype, device=self.device)
@@ -124,51 +131,102 @@ class SparseAutoencoder(HookedRootModule):
 
 
         self.activation_fn = get_activation_fn(
-                self.cfg.activation_fn_str, **self.cfg.activation_fn_kwargs 
-            ) 
+                self.cfg.activation_fn_str, **self.cfg.activation_fn_kwargs
+            )
 
         self.setup()  # Required for `HookedRootModule`s
-        
 
-        
+
+    def initialize_weights_gated(self):
+        self.W_enc = nn.Parameter(
+            torch.nn.init.kaiming_uniform_(
+                torch.empty(
+                    self.cfg.d_in, self.cfg.d_sae, dtype=self.dtype, device=self.device
+                )
+            )
+        )
+
+        self.b_gate = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.r_mag = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.b_mag = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.W_dec = nn.Parameter(
+            torch.nn.init.kaiming_uniform_(
+                torch.empty(
+                    self.cfg.d_sae, self.cfg.d_in, dtype=self.dtype, device=self.device
+                )
+            )
+        )
+
+        self.b_dec = nn.Parameter(
+            torch.zeros(self.cfg.d_in, dtype=self.dtype, device=self.device)
+        )
+
 
     def initialize_weights(self, out_features, in_features):
         """
         Initialize weights for the Sparse Autoencoder.
-        
+
         This function uses Kaiming uniform initialization and then normalizes
         the weights to have unit normls
          along the output dimension.
-        
+
         Args:
         out_features (int): Number of output features
         in_features (int): Number of input features
-        
+
         Returns:
         torch.Tensor: Initialized weight matrix
         """
         weight = torch.empty(out_features, in_features, dtype=self.dtype, device=self.device)
-        
+
         # Kaiming uniform initialization
         nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
-        
+
         # Normalize to unit norm along output dimension
         with torch.no_grad():
             weight /= torch.norm(weight, dim=1, keepdim=True)
-        
+
         return weight
 
 
-    from line_profiler import profile
-    @profile
-    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None):
+    def encode_gated(self, x: torch.Tensor):
+
+        x = x.to(self.dtype)
+        x = self.run_time_activation_norm_fn_in(x)
+
+        sae_in = self.hook_sae_in(x - self.b_dec)
+
+        # Gating path
+        gating_pre_activation = sae_in @ self.W_enc + self.b_gate
+        active_features = (gating_pre_activation > 0).to(self.dtype)
+
+        # Magnitude path with weight sharing
+        magnitude_pre_activation = sae_in @ (self.W_enc * self.r_mag.exp()) + self.b_mag
+
+        feature_magnitudes = torch.relu(magnitude_pre_activation)
+
+        feature_acts = self.hook_hidden_post(active_features * feature_magnitudes)
+
+        return sae_in, feature_acts
+
+
+    def encode_standard(self, x: torch.Tensor):
         # move x to correct dtype
         x = x.to(self.dtype)
 
         sae_in = self.run_time_activation_norm_fn_in(x)
 
         sae_in = self.hook_sae_in(
-            x - self.b_dec
+            sae_in - self.b_dec
         )  # Remove decoder bias as per Anthropic
 
         hidden_pre = self.hook_hidden_pre(
@@ -180,6 +238,19 @@ class SparseAutoencoder(HookedRootModule):
             + self.b_enc
         )
         feature_acts = self.hook_hidden_post(self.activation_fn(hidden_pre))
+
+        return feature_acts
+
+
+    from line_profiler import profile
+    @profile
+    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None):
+        if self.cfg.architecture == "standard":
+            feature_acts = self.encode_standard(x)
+        elif self.cfg.architecture == "gated":
+            sae_in, feature_acts = self.encode_gated(x)
+        else:
+            raise ValueError(f"Architecture: {self.cfg.architecture} is not supported.")
 
         sae_out = self.hook_sae_out(
             einops.einsum(
@@ -198,7 +269,7 @@ class SparseAutoencoder(HookedRootModule):
         mse_loss = torch.nn.functional.mse_loss(sae_out, x.detach(), reduction='none')
         norm_factor = torch.norm(x_centred, p=2, dim=-1, keepdim=True)
         mse_loss = mse_loss / norm_factor
- 
+
         if self.zero_loss is None:
             self.zero_loss = torch.tensor(0.0, dtype=self.dtype, device=self.device)
         # gate on config and training so evals is not slowed down.
@@ -236,16 +307,37 @@ class SparseAutoencoder(HookedRootModule):
 
         mse_loss = mse_loss.mean()
         sparsity = feature_acts.norm(p=self.lp_norm, dim=1).mean(dim=(0,))
-        
-        if self.cfg.activation_fn_str != "topk":
-            l1_loss = self.l1_coefficient * sparsity
-            loss = mse_loss + l1_loss + mse_loss_ghost_resid
-        elif self.cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
-            l1_loss = None
-            loss = mse_loss + mse_loss_ghost_resid
 
-        return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid
-    
+        if self.cfg.architecture == "standard":
+            aux_reconstruction_loss = torch.tensor(0.0)
+
+            if self.cfg.activation_fn_str != "topk":
+                l1_loss = self.l1_coefficient * sparsity
+                loss = mse_loss + l1_loss + mse_loss_ghost_resid
+            elif self.cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
+                l1_loss = None
+                loss = mse_loss + mse_loss_ghost_resid
+
+        elif self.cfg.architecture == "gated":
+            pi_gate = sae_in @ self.W_enc + self.b_gate
+            pi_gate_act = torch.relu(pi_gate)
+
+            # SFN sparsity loss - summed over the feature dimension and averaged over the batch
+            l1_loss = (
+                self.l1_coefficient
+                * torch.sum(pi_gate_act * self.W_dec.norm(dim=1), dim=-1).mean()
+            )
+
+            # Auxiliary reconstruction loss - summed over the feature dimension and averaged over the batch
+            via_gate_reconstruction = pi_gate_act @ self.W_dec + self.b_dec
+            aux_reconstruction_loss = torch.sum(
+                (via_gate_reconstruction - sae_in) ** 2, dim=-1
+            ).mean()
+
+            loss = mse_loss + l1_loss + aux_reconstruction_loss
+            
+        return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid, aux_reconstruction_loss
+
 
 
     @torch.no_grad()
@@ -377,7 +469,7 @@ class SparseAutoencoder(HookedRootModule):
                 f"Unexpected file extension: {path}, supported extensions are .pt and .pkl.gz"
             )
 
-        print(f"Saved model to {path}")
+        print(f"Saved SAE to {path}")
 
     @classmethod
     def load_from_pretrained_legacy_saelens_v2(cls, path: str, current_cfg=None):
@@ -386,7 +478,7 @@ class SparseAutoencoder(HookedRootModule):
         This method can be called directly on the class, without needing an instance.
         """
         from vit_prisma.sae.sae_utils import map_legacy_sae_lens_2_to_prisma_repo
-        
+
 
         # Ensure the file exists
         if not os.path.isfile(path):
@@ -422,8 +514,8 @@ class SparseAutoencoder(HookedRootModule):
             model_state_dict = state_dict['autoencoder']['state_dict']
         else:
             raise ValueError("The loaded state dictionary must contain 'config' and 'autoencoder' keys")
-        
-        
+
+
         mapped_config = map_legacy_sae_lens_2_to_prisma_repo(old_config)
 
         # Remove any fields that are not in VisionModelSAERunnerConfig
@@ -478,11 +570,41 @@ class SparseAutoencoder(HookedRootModule):
 
 
     @classmethod
-    def load_from_pretrained(cls, path: str, current_cfg=None):
+    def load_from_pretrained(cls, path: str, config_path=None, current_cfg=None):
         """
+        Load function for the model. Can handle either:
+        1. A single weights_path containing both config and weights (legacy format)
+        2. Separate config_path and weights_path
+        3. HuggingFace-style paths
+
+        Args:
+            weights_path (str): Path to weights file or HuggingFace repo ID
+            config_path (str, optional): Path to config.json file. If None, will look for config in weights_path
+            current_cfg: Optional configuration to override loaded settings
         Load function for the model. Loads the model's state_dict and the config used to train it.
         This method can be called directly on the class, without needing an instance.
         """
+        print(f"Loading from: {path}")
+
+        # Ensure the file exists
+        if config_path and not os.path.isfile(path):
+            raise FileNotFoundError(f"No config file found at specified path: {config_path}")
+
+        if config_path:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                loaded_cfg = json.load(f)
+                loaded_cfg.pop("architecture")
+                loaded_cfg.pop("n_validation_runs")
+                loaded_cfg.pop("num_workers")
+                loaded_cfg.pop("cls_token_only")
+                loaded_cfg.pop("use_patches_only")
+                loaded_cfg.pop("layer_subtype")
+                loaded_cfg["device"] = DEVICE
+                loaded_cfg["dtype"] = loaded_cfg["dtype"]["value"]
+                loaded_cfg.pop("dtype")
+                loaded_cfg = VisionModelSAERunnerConfig(**loaded_cfg)
+        else:
+            loaded_cfg = VisionModelSAERunnerConfig()
 
         # Ensure the file exists
         if not os.path.isfile(path):
@@ -493,9 +615,11 @@ class SparseAutoencoder(HookedRootModule):
             try:
                 if torch.backends.mps.is_available():
                     state_dict = torch.load(path, map_location="mps")
-                    state_dict["cfg"].device = "mps"
+                    # loaded_cfg["cfg"].device = "mps"
+                    loaded_cfg.device = "mps"  # TODO EdS:
                 else:
                     state_dict = torch.load(path)
+
             except Exception as e:
                 raise IOError(f"Error loading the state dictionary from .pt file: {e}")
 
@@ -517,35 +641,58 @@ class SparseAutoencoder(HookedRootModule):
             raise ValueError(
                 f"Unexpected file extension: {path}, supported extensions are .pt, .pkl, and .pkl.gz"
             )
+            # Handle separate config and weights
+                # Look for config.json in same directory as weights
+            config_path = os.path.join(os.path.dirname(weights_path), "config.json")
+            if not os.path.isfile(config_path):
+                raise FileNotFoundError(
+                    f"No config file found at {config_path} and no legacy format detected"
+                )
+
+            # Load config and weights separately
+            loaded_cfg = load_config_from_json(config_path)
+            weights = state_dict if not is_legacy else state_dict["state_dict"]
 
         # Ensure the loaded state contains both 'cfg' and 'state_dict'
-        if "cfg" not in state_dict or "state_dict" not in state_dict:
-            raise ValueError(
-                "The loaded state dictionary must contain 'cfg' and 'state_dict' keys"
-            )
+        # if "cfg" not in state_dict or "state_dict" not in state_dict:
+        # if "state_dict" not in state_dict:
+        #     raise ValueError(
+        #         "The loaded state dictionary must contain 'cfg' and 'state_dict' keys"
+        #     )
 
         # Handle legacy issues
-        loaded_cfg = state_dict["cfg"]
-        if not hasattr(loaded_cfg, "activation_fn_kwargs"):
-            if hasattr(loaded_cfg, "activation_fn_str"):
-                if loaded_cfg.activation_fn_str == 'relu':
-                    loaded_cfg.activation_fn_kwargs = {}
-                elif loaded_cfg.activation_fn_str == 'leaky_relu':
-                    loaded_cfg.activation_fn_kwargs = {'negative_slope': 0.01}
-                else:
-                    loaded_cfg.activation_fn_kwargs = {}
-            else:
-                loaded_cfg.activation_fn_kwargs = {}
+        # loaded_cfg = state_dict["cfg"]
+        # if not hasattr(loaded_cfg, "activation_fn_kwargs"):
+        #     if hasattr(loaded_cfg, "activation_fn_str"):
+        #         if loaded_cfg.activation_fn_str == 'relu':
+        #             loaded_cfg.activation_fn_kwargs = {}
+        #         elif loaded_cfg.activation_fn_str == 'leaky_relu':
+        #             loaded_cfg.activation_fn_kwargs = {'negative_slope': 0.01}
+        #         else:
+        #             loaded_cfg.activation_fn_kwargs = {}
+        #     else:
+        #         loaded_cfg.activation_fn_kwargs = {}
 
         # Update loaded config with current config if provided
         if current_cfg is not None:
-            for key, value in vars(current_cfg).items():
-                if hasattr(loaded_cfg, key):
-                    setattr(loaded_cfg, key, value)
+            if isinstance(current_cfg, dict):
+                for key, value in current_cfg.items():
+                    if hasattr(loaded_cfg, key):
+                        setattr(loaded_cfg, key, value)
+            else:
+                for key, value in vars(current_cfg).items():
+                    if hasattr(loaded_cfg, key):
+                        setattr(loaded_cfg, key, value)
 
         # Create an instance of the class using the loaded configuration
+        print(f"Loaded config: {loaded_cfg}")
+        print(f"state_dict: {[k for k in state_dict.keys()]}")
         instance = cls(cfg=loaded_cfg)
-        instance.load_state_dict(state_dict["state_dict"])
+        # instance.load_state_dict(state_dict)  # TODO EdS:
+        if state_dict.get("state_dict"):
+            instance.load_state_dict(state_dict["state_dict"])
+        else:
+            instance.load_state_dict(state_dict)
 
         return instance
 

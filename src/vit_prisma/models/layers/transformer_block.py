@@ -1,18 +1,16 @@
+from typing import Dict, Union, Optional
+
+import einops
 import torch
 import torch.nn as nn
+from jaxtyping import Float
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.configs.HookedTextTransformerConfig import HookedTextTransformerConfig
 
 from vit_prisma.models.layers.attention import Attention
-from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
-
-from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.prisma_tools.hook_point import HookPoint
-
-from typing import Dict, Optional, Tuple, Union
-
-from jaxtyping import Float, Int
-import einops
-
 
 
 def add_head_dimension(
@@ -41,7 +39,7 @@ class TransformerBlock(nn.Module):
 
         if isinstance(cfg, Dict):
             cfg = HookedViTConfig.from_dict(cfg)
-        
+
         self.cfg = cfg
 
         if self.cfg.normalization_type == "LN":
@@ -84,6 +82,7 @@ class TransformerBlock(nn.Module):
     def forward(
             self,
             resid_pre: Float[torch.Tensor, "batch pos d_model"],
+            attn_mask: Optional[Float[torch.Tensor, "batch pos pos"]] = None,
     ) -> Float[torch.Tensor, "batch pos d_model"]:
         
         resid_pre = self.hook_resid_pre(resid_pre)
@@ -110,6 +109,7 @@ class TransformerBlock(nn.Module):
                 query_input = self.ln1(query_input),
                 key_input = self.ln1(key_input),
                 value_input = self.ln1(value_input),
+                attention_mask = attn_mask,
             )
 
         attn_out = self.attn_dropout(attn_out)

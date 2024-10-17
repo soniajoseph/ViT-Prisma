@@ -32,7 +32,7 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 from torch.utils.data import DataLoader
 
 
-from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+from vit_prisma.utils.data_utils.imagenet.imagenet_utils import setup_imagenet_paths
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
 from vit_prisma.models.base_vit import HookedViT
 
@@ -235,10 +235,26 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
 
     print(f"Saved average l0 figure to {save_path}") if cfg.verbose else None
 
-def get_text_embeddings(model_name, original_text, batch_size=32):
-    from transformers import CLIPProcessor, CLIPModel
-    vanilla_model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
+def get_huggingface_embeddings(batch, model):
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        text_features = model.encode_text(batch)
+    return text_features
+
+def get_text_embeddings(model_name, original_text, source="clip", batch_size=32):
+    if source == "clip":
+        from transformers import CLIPProcessor, CLIPModel
+        vanilla_model = CLIPModel.from_pretrained(model_name)
+        processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
+    elif source == "huggingface":
+        import open_clip
+        import torch
+        from PIL import Image
+        from transformers import CLIPProcessor, CLIPModel
+        model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='datacomp_xl_s13B_b90k')
+        model.eval()
+        tokenizer = open_clip.get_tokenizer('ViT-B-32')
+    else:
+        raise Exception()
 
     # Split the text into batches
     text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
@@ -246,11 +262,16 @@ def get_text_embeddings(model_name, original_text, batch_size=32):
     all_embeddings = []
 
     for batch in text_batches:
-        inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
-        # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+        if source == "clip":
+            inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
+            # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
 
-        with torch.no_grad():
-            text_embeddings = vanilla_model.get_text_features(**inputs)
+            with torch.no_grad():
+                text_embeddings = vanilla_model.get_text_features(**inputs)
+
+        else:
+            preprocessed_batch = tokenizer(batch)
+            text_embeddings = get_huggingface_embeddings(preprocessed_batch, model)
 
         text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
         all_embeddings.append(text_embeddings)
@@ -661,7 +682,7 @@ def hist(cfg, tensor, save_name, show=False, renderer=None, **kwargs):
     svg_path = f"{base_path}.svg"
 
     write_image(histogram_fig, png_path)
-    write_image(histogram_fig, svg_path)
+    # write_image(histogram_fig, svg_path)
     
     print(f"Histogram saved as PNG: {png_path}")
     print(f"Histogram saved as SVG: {svg_path}")

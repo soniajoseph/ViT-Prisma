@@ -136,12 +136,13 @@ class Attention(nn.Module):
             value_input: Union[
                 Float[torch.Tensor, "batch pos d_model"],
                 Float[torch.Tensor, "batch pos head_index d_model"],
-            ]
+            ],
+            attention_mask: Optional[Float[torch.Tensor, "batch pos pos"]] = None,
     ) -> Float[torch.Tensor, "batch pos d_model"]:
         
         q, k, v  = self.calculate_qkv_matrices(query_input, key_input, value_input)
 
-        attn_scores = self.calculate_attn_scores(q, k)
+        attn_scores = self.calculate_attn_scores(q, k, attention_mask)
         attn_scores = self.hook_attn_scores(attn_scores)
 
         pattern = F.softmax(attn_scores, dim=-1) # where do I do normalization? 
@@ -246,6 +247,7 @@ class Attention(nn.Module):
             self,
             q: Float[torch.Tensor, "batch pos head_index d_head"],
             k: Float[torch.Tensor, "batch pos head_index d_head"],
+            attention_mask: Optional[Float[torch.Tensor, "batch pos pos"]] = None,
     ) -> Float[torch.Tensor, "batch head_index query_pos key_pos"]:
         """
         Calculate the attention scores for the attention layer. This is done by multiplying the Q and K matrices together, and dividing by the square root of the dimension of the key vectors.
@@ -258,6 +260,8 @@ class Attention(nn.Module):
             k,
         )
         attn_scores = attn_scores / self.attn_scale
+        if attention_mask is not None:
+            attn_scores = attn_scores + attention_mask
         return attn_scores
     
     def calculate_z_scores(

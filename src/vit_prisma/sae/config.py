@@ -1,11 +1,19 @@
+import json
+import math
+import math
+import os
 from abc import ABC
+from dataclasses import fields, field, asdict, dataclass
+from typing import Any, Optional, Literal
 from dataclasses import dataclass
-from typing import Any, Optional, cast
-
 from dataclasses import fields, field
+from typing import Any, Optional, Dict, List
 
 import torch
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from transformers import ViTConfig
 
+from vit_prisma.utils.constants import Evaluation
 
 
 @dataclass
@@ -17,6 +25,8 @@ class RunnerConfig(ABC):
     # Data Generating Function (Model + Training Distibuion)
     model_class_name: str = "HookedViT"
     model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
+    vit_model_cfg: Optional[ViTConfig] = None
+    model_path: str = None
     hook_point_layer: int = 9
     hook_point_head_index: Optional[int] = None
     context_size: int = 50
@@ -58,6 +68,8 @@ class RunnerConfig(ABC):
     def __post_init__(self):
         self.hook_point = f"blocks.{self.hook_point_layer}.hook_mlp_out" # change hookpoint name here
 
+        self.num_patch = int(math.sqrt(self.context_size - 1))
+
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
@@ -75,11 +87,59 @@ class RunnerConfig(ABC):
             print(f"  {field.name}: {value}")
 
 
+
+@dataclass
+class EvalConfig(ABC):
+    evaluation_functions: List[Evaluation]
+    eval_frequency: Optional[int]
+    batch_size: int
+    max_evaluation_images: int  # Number of images from the test set to consider when evaluating
+    samples_per_bin: int  # Number of features to sample per pre-specified interval
+    max_images_per_feature: int  # Number of max images to collect per feature
+
+
+@dataclass
+class TrainingEvalConfig(EvalConfig):
+    """Default values to be used when evaluating an SAE during training. These are less
+    compute and time costly as they get run every step.
+    """
+
+    evaluation_functions: List[Evaluation] = field(
+        default_factory=lambda: []
+    )
+    eval_frequency: Optional[int] = 250
+    batch_size: int = 32
+    max_evaluation_images: int = 10_000
+    samples_per_bin: int = 10
+    max_images_per_feature: int = 20
+
+
+@dataclass
+class PostTrainingEvalConfig(EvalConfig):
+    """Default values to be used when evaluating an SAE post-training. These evaluations
+    are more extensive as they are run to get a complete picture of the quality of the
+    SAE.
+    """
+
+    evaluation_functions: List[Evaluation] = field(
+        default_factory=lambda: [
+            Evaluation.FEATURE_BASIS_EVAL,
+            # Evaluation.NEURON_BASIS_EVAL,
+        ]
+    )
+    eval_frequency: Optional[int] = None
+    batch_size: int = 128
+    max_evaluation_images: int = 40_000
+    samples_per_bin: int = 10
+    max_images_per_feature: int = 20
+
+
 @dataclass
 class VisionModelSAERunnerConfig(RunnerConfig):
     """
-    Configuration for training a sparse autoencoder on a language model.
+    Configuration for training a sparse autoencoder on a vision model.
     """
+    architecture: Literal["standard", "gated", "jumprelu"] = "standard"
 
     # Logging
     verbose: bool = False
@@ -99,15 +159,14 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     )
     lr_warm_up_steps: int = 500
 
-    
     train_batch_size: int = 1024*4
 
     # Imagenet1k
-    dataset_name: str = 'imagenet1k' 
+    dataset_name: str = 'imagenet1k'  # imagenet1k | cifar10
     dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
     dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
     dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
-   
+
     # Resampling protocol args
     use_ghost_grads: bool = True
     feature_sampling_window: int = 1000 # 1000
@@ -124,6 +183,15 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     # Misc
     n_checkpoints: int = 10
     checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
+
+    # Evaluation
+    sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
+    training_eval: EvalConfig = field(  # TODO EdS: FIX
+        default_factory=TrainingEvalConfig
+    )
+    post_training_eval: EvalConfig = field(
+        default_factory=PostTrainingEvalConfig
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -142,7 +210,6 @@ class VisionModelSAERunnerConfig(RunnerConfig):
             )
 
         self.device = torch.device(self.device)
-
 
         # Print out some useful info:
         n_tokens_per_buffer = (
@@ -184,10 +251,10 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         # print("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
         print(
             f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}")
-        
+
         if self.max_grad_norm:
             print(f"Gradient clipping with max_norm={self.max_grad_norm}")
-        
+
         # Print initialization method
         print(
             f"Using SAE initialization method: {self.initialization_method}"
@@ -195,8 +262,12 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
         self.activation_fn_kwargs = self.activation_fn_kwargs or {}
 
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]):
+        config_dict["dtype"] = torch.float32  # TODO EdS: Hack
+        config_dict["vit_model_cfg"].dtype = torch.float32  # TODO EdS: Hack
+        return cls(**config_dict)
 
-from dataclasses import dataclass;
 
 @dataclass
 class CacheActivationsRunnerConfig(RunnerConfig):

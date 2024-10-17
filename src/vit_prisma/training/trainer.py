@@ -1,18 +1,19 @@
-import wandb
-import torch
-import torch.optim as optim
-import tqdm
-from tqdm.auto import tqdm
-from vit_prisma.training.training_utils import calculate_accuracy, calculate_loss, set_seed, PrismaCallback
-from vit_prisma.utils.wandb_utils import dataclass_to_dict, update_dataclass_from_dict
-from vit_prisma.training.training_dictionary import optimizer_dict, loss_function_dict
-from vit_prisma.training.schedulers import WarmupThenStepLR
-from vit_prisma.training.early_stopping import EarlyStopping
-from vit_prisma.utils.saving_utils import save_config_to_file
 import os
-from torch.utils.data import Dataset, DataLoader
-import dataclasses
+
+import torch
+import tqdm
+import wandb
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+from vit_prisma.training.early_stopping import EarlyStopping
+from vit_prisma.training.schedulers import WarmupThenStepLR, WarmupCosineAnnealingLR
+from vit_prisma.training.training_dictionary import optimizer_dict, loss_function_dict
+from vit_prisma.training.training_utils import calculate_accuracy, calculate_loss, set_seed, PrismaCallback
+from vit_prisma.utils.saving_utils import save_config_to_file
+
+from experiments.attack.PGD import attack_methods
+
 
 def train(
         model_function,
@@ -31,9 +32,9 @@ def train(
             wandb.init(project=config.wandb_project_name)
         else:
             wandb.init(entity=config.wandb_team_name, project=config.wandb_project_name)
-        sweep_values = wandb.config._items # get sweep values
-        update_dataclass_from_dict(config, sweep_values)
-        wandb.config.update(dataclass_to_dict(config))
+        # sweep_values = wandb.config._items # get sweep values
+        # update_dataclass_from_dict(config, sweep_values)
+        # wandb.config.update(dataclass_to_dict(config))
     
     print("Config is:", config)
     save_config_to_file(config, os.path.join(config.parent_dir, "config.json"))
@@ -51,7 +52,8 @@ def train(
         batch_size_train, batch_size_test = config.batch_size, config.batch_size
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
-    test_loader = DataLoader(val_dataset, batch_size=batch_size_test, shuffle=False)
+    # train_loader = MixupLabelSmoothingDataLoader(train_loader, mixup_prob=0.0)  # TODO EdS: Mixup
+    test_loader = DataLoader(val_dataset, batch_size=batch_size_test, shuffle=True)  # TODO EdS: tinyimagenet classes are batched ordered - remove this
 
     print(f"Length of trainloader {len(train_loader)}.")
     print(f"Length of testloader {len(test_loader)}")
@@ -60,7 +62,7 @@ def train(
     if config.scheduler_type == "WarmupThenStepLR":
         scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.warmup_steps, step_size=config.scheduler_step, gamma=config.scheduler_gamma)
     elif config.scheduler_type == "CosineAnnealing":
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, config.num_epochs)
+        scheduler = WarmupCosineAnnealingLR(optimizer, warmup_steps=config.warmup_steps, total_steps=int((config.num_epochs * len(train_dataset) / config.batch_size)))
     else:
         raise ValueError("Scheduler type {} not supported (only 'WarmupThenStep' and "
                          "'CosineAnnealing'")
@@ -89,23 +91,38 @@ def train(
             if steps % config.log_frequency == 0:
                 model.eval()
                 logs = {}
-                train_loss = calculate_loss(model, train_loader, loss_fn, config.device)
-                test_loss = calculate_loss(model, test_loader, loss_fn, config.device)
+                train_loss = calculate_loss(model, train_loader, loss_fn, config, N=config.batch_size*4, batch_size=config.batch_size)
+                test_loss = calculate_loss(model, test_loader, loss_fn, config, N=config.batch_size*4, batch_size=config.batch_size)
                 log_dict = {
                     "train_loss": train_loss,
                     "test_loss": test_loss,
                 }
+                if config.attack_method:
+                    robust_train_loss = calculate_loss(model, train_loader, loss_fn, config)
+                    robust_test_loss = calculate_loss(model, test_loader, loss_fn, config)
+                    log_dict.update({
+                        "robust_train_loss": robust_train_loss,
+                        "robust_test_loss": robust_test_loss,
+                    })
                 if config.loss_fn_name == "MSE":
                     tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Test loss: {test_loss:.6f}")
                 else:
-                    train_acc = calculate_accuracy(model, train_loader, config.device)
-                    test_acc = calculate_accuracy(model, test_loader, config.device)
-                    tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}")
+                    train_acc = calculate_accuracy(model, train_loader, config, N=config.batch_size*4, batch_size=config.batch_size)
+                    test_acc = calculate_accuracy(model, test_loader, config, N=config.batch_size*4, batch_size=config.batch_size)
+                    if config.attack_method:
+                        robust_train_acc = calculate_accuracy(model, train_loader, config, N=config.batch_size*5, batch_size=config.batch_size)
+                        robust_test_acc = calculate_accuracy(model, test_loader, config, N=config.batch_size*5, batch_size=config.batch_size)
+                        robust_acc_str = f" | Train robust acc: {robust_train_acc:.6f} | Test robust acc: {robust_test_acc:.6f}"
+                    else:
+                        robust_acc_str = ""
+                    tqdm.write(f"Steps{steps} | Train loss: {train_loss:.6f} | Train acc: {train_acc:.5f} | Test loss: {test_loss:.6f} | Test acc: {test_acc:.5f}{robust_acc_str}")
                     log_dict.update({
                                         "train_acc": train_acc, 
-                                        "test_acc": test_acc
+                                        "test_acc": test_acc,
+                                        "lr": scheduler.get_last_lr()[0],  # TODO EdS
                                      })
                 if config.use_wandb:
+                    print(log_dict)
                     wandb.log(log_dict, step=num_samples) # Record number of samples
                 model.train() # set model back to train mode
 
@@ -113,6 +130,10 @@ def train(
             images, labels = images.to(config.device), labels.to(config.device)
 
             optimizer.zero_grad()
+
+            if config.attack_method:
+                adversary = attack_methods[config.attack_method](model, config.attack_epsilon, config.attack_alpha, config.attack_num_iters)
+                images = adversary.perturb(images, labels)
 
             y = model(images)
             
@@ -127,6 +148,7 @@ def train(
             tqdm.write(f"Epoch {epoch} | steps{steps} | Num Samples {num_samples} | Loss {loss.item()}") if config.print_every and steps % config.print_every == 0 else None
             
             if config.save_checkpoints and steps % config.save_cp_frequency == 0:
+                print(f"Saving checkpoint at {os.path.join(os.path.join(config.parent_dir, config.save_dir), f'model_{num_samples}.pth')}")
                 torch.save({
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),

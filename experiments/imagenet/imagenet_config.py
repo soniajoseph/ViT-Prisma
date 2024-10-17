@@ -1,0 +1,48 @@
+import torch
+
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.utils.constants import MODEL_CHECKPOINTS_DIR, DEVICE
+
+IMAGENET_CONFIG = HookedViTConfig(
+   n_layers=12,
+   d_model=768,
+   d_head=64,
+   n_heads=12,
+   d_mlp=3072,
+   model_name="imagenet-clean",
+   activation_name="gelu",
+   d_vocab=-1,
+   eps=1e-06,
+   device=DEVICE,
+   initializer_range=0.02,
+   init_weights=True,
+   dtype=torch.float32,
+   rotary_base=10000,
+   n_channels=3,
+   patch_size=16,
+   image_size=224,
+   classification_type="cls",
+   n_classes=1000,
+   return_type="class_logits",
+   use_wandb=True,
+   wandb_team_name="Stevinson",
+   wandb_project_name="imagenet",
+   lr=3e-3,
+   weight_decay=0.3,
+   loss_fn_name="CrossEntropy",
+   batch_size=32,
+   warmup_steps=10000,
+   scheduler_step=1000,
+   scheduler_gamma=0.97,
+   num_epochs=300,
+   save_dir=str(MODEL_CHECKPOINTS_DIR / "imagenet-clean"),
+   save_checkpoints=True,
+   save_cp_frequency=50,
+   log_frequency=50,
+   layer_norm_pre=True,
+   post_embedding_ln=True,
+   # normalization_type="LN",
+   # attn_dropout_rate=0.1,
+   # mlp_dropout_rate=0.1,
+   scheduler_type="CosineAnnealing"
+)

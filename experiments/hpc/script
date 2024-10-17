@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#PBS -lwalltime=HH:MM:00
+

@@ -84,8 +84,8 @@ class HookedViTConfig:
     # Logging related
     log_dir: str = 'logs'
     use_wandb: bool = True
-    wandb_team_name: str = 'perceptual-alignment'
-    wandb_project_name: str = None
+    wandb_team_name: str = 'Stevinson'
+    wandb_project_name: str = 'tinyimagenet'
     log_frequency: int = 1
     print_every: int = 0
 
@@ -118,7 +118,14 @@ class HookedViTConfig:
     video_tubelet_depth: int = 2
     video_num_frames: int = 32
 
+    # Robustness
+    attack_method: str = None
+    attack_epsilon: float = 0.5
+    attack_alpha: float = 0.1
+    attack_num_iters: int = 100
+
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]):
+        config_dict["dtype"] = torch.float32  # TODO EdS: Hack
         return cls(**config_dict)
