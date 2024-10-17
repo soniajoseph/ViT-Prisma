@@ -2,11 +2,9 @@ import os
 from typing import Any, Iterator, cast
 
 import torch
-from datasets import load_dataset
 from torch.utils.data import DataLoader
-from vit_prisma.models.base_vit import HookedViT
 
-import numpy as np
+from vit_prisma.models.base_vit import HookedViT
 
 
 def collate_fn(data):
@@ -181,7 +179,6 @@ class VisionActivationsStore:
 
         return torch.stack(activations_list, dim=2)
 
-
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
         batch_size = self.cfg.store_batch_size
@@ -258,7 +255,7 @@ class VisionActivationsStore:
         for refill_batch_idx_start in refill_iterator:
             refill_batch_tokens = self.get_batch_tokens()  ######
             refill_activations = self.get_activations(refill_batch_tokens)
-            
+
             if self.cfg.use_patches_only:
                 refill_activations = refill_activations[:, 1:, :, :]
 

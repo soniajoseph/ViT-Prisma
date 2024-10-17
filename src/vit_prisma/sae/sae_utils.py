@@ -1,6 +1,7 @@
 # load sae to check
+from typing import Any
+
 from vit_prisma.sae.sae import SparseAutoencoder
-# from vit_prisma.sae.evals import EvalConfig
 
 from huggingface_hub import hf_hub_download
 import os
@@ -44,7 +45,7 @@ def upload_to_huggingface(
     commit_message: str = "Upload checkpoint"
 ):
     api = HfApi()
-    
+
     # First create the repo
     api.create_repo(
         repo_id=repo_id,
@@ -53,12 +54,12 @@ def upload_to_huggingface(
         token=token,
         repo_type="model"
     )
-    
+
     # Create and upload README.md
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as tmp:
         tmp.write(description)
         tmp.flush()
-        
+
         api.upload_file(
             path_or_fileobj=tmp.name,
             path_in_repo="README.md",
@@ -66,7 +67,7 @@ def upload_to_huggingface(
             token=token,
             commit_message="Update README.md"
         )
-    
+
     # Upload the checkpoint file
     api.upload_file(
         path_or_fileobj=checkpoint_path,
@@ -167,12 +168,27 @@ def map_legacy_sae_lens_2_to_prisma_repo(old_config):
     return new_config
 
 
-# repo_name = 'Prisma-Multimodal/sae_weights'
+def load_sae(cfg):
+    """Load a local SAE."""
+    sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
+    sparse_autoencoder.to(cfg.device)
+    sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who
+    return sparse_autoencoder
 
-def load_sae():
-    repo_name = 'soniajoseph/updated-sae-weights'
-    file_id = 'UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
-    download_dir = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out'
-    download_sae_from_huggingface(repo_name, file_id, download_dir)
-    sae_path = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/mustache_sae_16_mlp_out/UPDATED-final_sae_group_wkcn_TinyCLIP-ViT-40M-32-Text-19M-LAION400M_blocks.9.hook_mlp_out_8192.pt'
-    sae = SparseAutoencoder(EvalConfig()).load_from_pretrained_legacy_saelens_v2(sae_path)
+
+def wandb_log_suffix(cfg: Any, hyperparams: Any):
+    # Create a mapping from cfg list keys to their corresponding hyperparams attributes
+    key_mapping = {
+        "hook_point_layer": "layer",
+        "l1_coefficient": "coeff",
+        "lp_norm": "l",
+        "lr": "lr",
+    }
+
+    # Generate the suffix by iterating over the keys that have list values in cfg
+    suffix = "".join(
+        f"_{key_mapping.get(key, key)}{getattr(hyperparams, key, '')}"
+        for key, value in vars(cfg).items()
+        if isinstance(value, list)
+    )
+    return suffix
