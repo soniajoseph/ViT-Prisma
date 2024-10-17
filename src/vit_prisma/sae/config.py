@@ -7,7 +7,6 @@ from dataclasses import fields, field
 import torch
 
 
-
 @dataclass
 class RunnerConfig(ABC):
     """
@@ -27,7 +26,7 @@ class RunnerConfig(ABC):
 
     # SAE Parameters
     d_in: int = 512
-    activation_fn_str: str = "relu" # relu or topk
+    activation_fn_str: str = "relu"  # relu or topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # SAE Training run tolerance
@@ -35,18 +34,21 @@ class RunnerConfig(ABC):
     min_explained_variance = None
 
     # New changes
-    max_grad_norm: float = 1.0 # For gradient clipping, set to None to turn off
-    initialization_method: str = "encoder_transpose_decoder" # or independent
+    max_grad_norm: float = 1.0  # For gradient clipping, set to None to turn off
+    initialization_method: str = "encoder_transpose_decoder"  # or independent
     normalize_activations: str = "layer_norm"
 
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
     store_batch_size: int = 32
+    num_workers: int = 16
 
     # Training length parameters
     num_epochs: int = 1
-    total_training_images: int = int(1_300_000*num_epochs) # To do: make this not hardcoded
-    total_training_tokens: int = total_training_images * context_size # Images x tokens
+    total_training_images: int = int(
+        1_300_000 * num_epochs
+    )  # To do: make this not hardcoded
+    total_training_tokens: int = total_training_images * context_size  # Images x tokens
 
     image_size: int = 224
 
@@ -56,7 +58,9 @@ class RunnerConfig(ABC):
     dtype: torch.dtype = torch.float32
 
     def __post_init__(self):
-        self.hook_point = f"blocks.{self.hook_point_layer}.hook_mlp_out" # change hookpoint name here
+        self.hook_point = (
+            f"blocks.{self.hook_point_layer}.hook_mlp_out"  # change hookpoint name here
+        )
 
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:
@@ -69,7 +73,7 @@ class RunnerConfig(ABC):
         for field in fields(self):
             value = getattr(self, field.name)
             if isinstance(value, torch.dtype):
-                value = str(value).split('.')[-1]  # Convert torch.dtype to string
+                value = str(value).split(".")[-1]  # Convert torch.dtype to string
             elif isinstance(value, torch.device):
                 value = str(value)  # Convert torch.device to string
             print(f"  {field.name}: {value}")
@@ -91,7 +95,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     d_sae: Optional[int] = None
 
     # Training Parameters
-    l1_coefficient: float = 0.0002 # 0.00008
+    l1_coefficient: float = 0.0002  # 0.00008
     lp_norm: float = 1
     lr: float = 0.001
     lr_scheduler_name: str = (
@@ -99,18 +103,21 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     )
     lr_warm_up_steps: int = 500
 
-    
-    train_batch_size: int = 1024*4
+    train_batch_size: int = 1024 * 4
 
     # Imagenet1k
-    dataset_name: str = 'imagenet1k' 
+    dataset_name: str = "imagenet1k"
     dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
-    dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
-    dataset_val_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
-   
+    dataset_train_path: str = (
+        "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    )
+    dataset_val_path: str = (
+        "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/val"
+    )
+
     # Resampling protocol args
     use_ghost_grads: bool = True
-    feature_sampling_window: int = 1000 # 1000
+    feature_sampling_window: int = 1000  # 1000
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
     dead_feature_threshold: float = 1e-8
@@ -123,7 +130,9 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
     # Misc
     n_checkpoints: int = 10
-    checkpoint_path: str = "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
+    checkpoint_path: str = (
+        "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -142,7 +151,6 @@ class VisionModelSAERunnerConfig(RunnerConfig):
             )
 
         self.device = torch.device(self.device)
-
 
         # Print out some useful info:
         n_tokens_per_buffer = (
@@ -167,7 +175,9 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
         # how many times will we sample dead neurons?
         # assert self.dead_feature_window <= self.feature_sampling_window, "dead_feature_window must be smaller than feature_sampling_window"
-        n_feature_window_samples = self.total_training_steps // self.feature_sampling_window
+        n_feature_window_samples = (
+            self.total_training_steps // self.feature_sampling_window
+        )
         print(
             f"n_tokens_per_feature_sampling_window (millions): {(self.feature_sampling_window * self.context_size * self.train_batch_size) / 10 **6}"
         )
@@ -183,32 +193,34 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         )
         # print("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
         print(
-            f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}")
-        
+            f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}"
+        )
+
         if self.max_grad_norm:
             print(f"Gradient clipping with max_norm={self.max_grad_norm}")
-        
+
         # Print initialization method
-        print(
-            f"Using SAE initialization method: {self.initialization_method}"
-        )
+        print(f"Using SAE initialization method: {self.initialization_method}")
 
         self.activation_fn_kwargs = self.activation_fn_kwargs or {}
 
 
-from dataclasses import dataclass;
+from dataclasses import dataclass
+
 
 @dataclass
 class CacheActivationsRunnerConfig(RunnerConfig):
-    """Configuration for caching activations of an LLM.""";
+    """Configuration for caching activations of an LLM."""
 
     # Activation caching stuff
-    shuffle_every_n_buffers: int = 10;
-    n_shuffles_with_last_section: int = 10;
-    n_shuffles_in_entire_dir: int = 10;
-    n_shuffles_final: int = 100;
+    shuffle_every_n_buffers: int = 10
+    n_shuffles_with_last_section: int = 10
+    n_shuffles_in_entire_dir: int = 10
+    n_shuffles_final: int = 100
 
     def __post_init__(self):
-        super().__post_init__();
+        super().__post_init__()
         if self.use_cached_activations:
-            raise ValueError("Use_cached_activations should be False when running cache_activations_runner");
+            raise ValueError(
+                "Use_cached_activations should be False when running cache_activations_runner"
+            )
