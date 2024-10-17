@@ -6,15 +6,18 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from vit_prisma.models.base_vit import HookedViT
 
-import numpy as np 
+import numpy as np
+
 
 def collate_fn(data):
     imgs = [d[0] for d in data]
     return torch.stack(imgs, dim=0)
 
+
 def collate_fn_eval(data):
     imgs = [d[0] for d in data]
     return torch.stack(imgs, dim=0), torch.tensor([d[1] for d in data])
+
 
 class VisionActivationsStore:
     """
@@ -28,15 +31,29 @@ class VisionActivationsStore:
         model: HookedViT,
         dataset,
         create_dataloader: bool = True,
-        eval_dataset = None,
+        eval_dataset=None,
         num_workers=0,
     ):
         self.cfg = cfg
         self.model = model
         self.model.to(cfg.device)
         self.dataset = dataset
-        self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
-        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
+        self.image_dataloader = torch.utils.data.DataLoader(
+            self.dataset,
+            shuffle=True,
+            num_workers=num_workers,
+            batch_size=self.cfg.store_batch_size,
+            collate_fn=collate_fn,
+            drop_last=True,
+        )
+        self.image_dataloader_eval = torch.utils.data.DataLoader(
+            eval_dataset,
+            shuffle=True,
+            num_workers=num_workers,
+            batch_size=self.cfg.store_batch_size,
+            collate_fn=collate_fn_eval,
+            drop_last=True,
+        )
 
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()
@@ -73,16 +90,16 @@ class VisionActivationsStore:
         """
         Streams a batch of tokens from a dataset.
         """
-        #TODO could keep diff image sizes..
+        # TODO could keep diff image sizes..
 
-        #TODO multi worker here 
+        # TODO multi worker here
         device = self.cfg.device
         # fetch a batch of images... (shouldn't this be it's own dataloader...)
 
         while True:
             for data in self.image_dataloader:
                 data.requires_grad_(False)
-                yield data.to(device) # 5
+                yield data.to(device)  # 5
 
     def get_batch_tokens(self):
         return next(self.image_dataloader_iter)
@@ -92,17 +109,17 @@ class VisionActivationsStore:
         """
         Streams a batch of tokens from a dataset.
         """
-        #TODO could keep diff image sizes..
+        # TODO could keep diff image sizes..
 
-        #TODO multi worker here 
+        # TODO multi worker here
         device = self.cfg.device
         # fetch a batch of images... (shouldn't this be it's own dataloader...)
         while True:
-            for image_data, labels  in self.image_dataloader_eval:
+            for image_data, labels in self.image_dataloader_eval:
                 image_data.requires_grad_(False)
                 labels.requires_grad_(False)
                 yield image_data.to(device), labels.to(device)
-    
+
     def get_val_batch_tokens(self):
         return next(self.image_dataloader_eval_iter)
 
@@ -129,7 +146,7 @@ class VisionActivationsStore:
                 for act_name in act_names
             ]
         else:
-            layerwise_activations = self.model.run_with_cache( ####
+            layerwise_activations = self.model.run_with_cache(  ####
                 batch_tokens,
                 names_filter=act_names,
                 stop_at_layer=hook_point_max_layer + 1,
@@ -142,6 +159,7 @@ class VisionActivationsStore:
         stacked_activations = torch.stack(activations_list, dim=2)
 
         return stacked_activations
+
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
         batch_size = self.cfg.store_batch_size
@@ -153,7 +171,7 @@ class VisionActivationsStore:
             else 1
         )  # Number of hook points or layers
 
-        #TODO does this still work (see above)
+        # TODO does this still work (see above)
         if self.cfg.use_cached_activations:
             # Load the activations from disk
             buffer_size = total_size * context_size
@@ -216,7 +234,7 @@ class VisionActivationsStore:
         )
 
         for refill_batch_idx_start in refill_iterator:
-            refill_batch_tokens = self.get_batch_tokens() ######
+            refill_batch_tokens = self.get_batch_tokens()  ######
             refill_activations = self.get_activations(refill_batch_tokens)
 
             new_buffer[
@@ -229,7 +247,7 @@ class VisionActivationsStore:
         new_buffer = new_buffer[torch.randperm(new_buffer.shape[0])]
 
         return new_buffer
-    
+
     def get_data_loader(
         self,
     ) -> Iterator[Any]:
@@ -245,7 +263,10 @@ class VisionActivationsStore:
 
         # 1. # create new buffer by mixing stored and new buffer
         mixing_buffer = torch.cat(
-            [self.get_buffer(self.cfg.n_batches_in_buffer // 2), self.storage_buffer], ####
+            [
+                self.get_buffer(self.cfg.n_batches_in_buffer // 2),
+                self.storage_buffer,
+            ],  ####
             dim=0,
         )
 
@@ -265,7 +286,7 @@ class VisionActivationsStore:
         )
 
         return dataloader
-    
+
     def next_batch(self):
         """
         Get the next batch from the current DataLoader.
@@ -276,5 +297,5 @@ class VisionActivationsStore:
             return next(self.dataloader)
         except StopIteration:
             # If the DataLoader is exhausted, create a new one
-            self.dataloader = self.get_data_loader() #### 97
+            self.dataloader = self.get_data_loader()  #### 97
             return next(self.dataloader)

@@ -108,7 +108,11 @@ class VisionSAETrainer:
         if eval_dataset is None:
             raise ValueError("Eval dataset is None")
         return VisionActivationsStore(
-            self.cfg, self.model, dataset, eval_dataset=eval_dataset
+            self.cfg,
+            self.model,
+            dataset,
+            eval_dataset=eval_dataset,
+            num_workers=self.cfg.num_workers,
         )
 
     def load_dataset(self, model_type="clip"):
@@ -491,7 +495,6 @@ class VisionSAETrainer:
         log_feature_sparsity = torch.log10(feature_sparsity + 1e-10).detach().cpu()
         torch.save(log_feature_sparsity, log_feature_sparsity_path)
 
-        self.checkpoint_thresholds.pop(0)
         if len(self.checkpoint_thresholds) == 0:
             n_checkpoints = 0
         if self.cfg.log_to_wandb:
@@ -588,10 +591,12 @@ class VisionSAETrainer:
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
 
+            # if there are still checkpoint thresholds left, check if we need to save a checkpoint
             if (
-                self.cfg.n_checkpoints > 0
+                len(self.checkpoint_thresholds) > 0
                 and n_training_tokens > self.checkpoint_thresholds[0]
             ):
+                # Save checkpoint and remove the threshold from the list
                 self.checkpoint(
                     self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
                 )
@@ -600,6 +605,7 @@ class VisionSAETrainer:
                     if self.cfg.verbose
                     else None
                 )
+                self.checkpoint_thresholds.pop(0)
 
             pbar.update(self.cfg.train_batch_size)
 
