@@ -11,7 +11,6 @@ from vit_prisma.sae.training.get_scheduler import get_scheduler
 import torch
 from torch.optim import Adam
 from tqdm import tqdm
-import wandb
 import re
 
 import os
@@ -50,6 +49,9 @@ class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
 
+        if self.cfg.log_to_wandb:
+            import wandb
+
         self.set_default_attributes()  # For backward compatability
 
         self.bad_run_check = (
@@ -62,7 +64,6 @@ class VisionSAETrainer:
         self.activations_store = self.initialize_activations_store(
             dataset, eval_dataset
         )
-
         self.cfg.wandb_project = (
             self.cfg.model_name.replace("/", "-")
             + "-expansion-"
