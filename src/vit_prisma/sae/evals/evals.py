@@ -310,13 +310,20 @@ def get_substitution_loss(
     print(f"text_embeddings.shape: {text_embeddings.shape}")
 
     softmax_values, top_k_indices = get_similarity(image_embeddings, text_embeddings, device=device)
+    class_logits = get_logits(image_embeddings, text_embeddings, device=device)
     print(f"softmax_values: {softmax_values}")
     print(f"softmax_values.shape: {softmax_values.shape}")
     print(f"gt_labels.shape: {gt_labels.shape}")
+    print(f"gt_labels: {gt_labels}")
+    print(f"top_k_indices: {top_k_indices}")
+    print(f"class_logits: {class_logits}")
     # Calculate cross-entropy loss
-    loss = F.cross_entropy(softmax_values, gt_labels)
+    # cross entropy should take logits, not softmax
+    loss_softmax = F.cross_entropy(softmax_values, gt_labels)
+    loss = F.cross_entropy(class_logits, gt_labels)
     # Safely extract the loss value
     print(f"model loss: {loss}")
+    print(f"model loss_logit: {loss_softmax}")
     loss_value = loss.item() if torch.isfinite(loss).all() else float('nan')
 
     head_index = sparse_autoencoder.cfg.hook_point_head_index
@@ -337,18 +344,24 @@ def get_substitution_loss(
         batch_tokens,
         fwd_hooks=[(hook_point, partial(replacement_hook))],
     )
-    recons_softmax_values, _ = get_similarity(recons_image_embeddings, text_embeddings, device=device)
+    # recons_softmax_values, _ = get_similarity(recons_image_embeddings, text_embeddings, device=device)
+    recons_softmax_values = get_logits(recons_image_embeddings, text_embeddings, device=device)
     recons_loss = F.cross_entropy(recons_softmax_values, gt_labels)
 
     zero_abl_image_embeddings = model.run_with_hooks(
         batch_tokens, fwd_hooks=[(hook_point, zero_ablate_hook)]
     )
-    zero_abl_softmax_values, _ = get_similarity(zero_abl_image_embeddings, text_embeddings, device=device)
+    zero_abl_softmax_values = get_logits(zero_abl_image_embeddings, text_embeddings, device=device)
     zero_abl_loss = F.cross_entropy(zero_abl_softmax_values, gt_labels)
 
     score = (zero_abl_loss - recons_loss) / (zero_abl_loss - loss)
 
     return score, loss, recons_loss, zero_abl_loss
+
+
+def get_logits(image_features, text_features, device='cuda'):
+    return (image_features.to(device) @ text_features.to(device).T)
+
 
 def get_similarity(image_features, text_features, k=5, device='cuda'):
   image_features = image_features.to(device)
@@ -356,6 +369,7 @@ def get_similarity(image_features, text_features, k=5, device='cuda'):
 
   softmax_values = (image_features @ text_features.T).softmax(dim=-1)
   top_k_values, top_k_indices = torch.topk(softmax_values, k, dim=-1)
+  print(f"top_k_values: {top_k_values}")
   return softmax_values, top_k_indices
 
 def get_text_labels(name='wordbank'):

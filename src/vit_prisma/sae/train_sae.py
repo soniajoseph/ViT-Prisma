@@ -258,9 +258,10 @@ class VisionSAETrainer:
 
             # this should only run if this is a clip model
             if self.cfg.model_name.startswith("open-clip:"):
+                # create a list of all imagenet classes
                 num_imagenet_classes = 1000
                 batch_label_names = [imagenet_index[str(int(label))][1] for label in range(num_imagenet_classes)]
-                # print(batch_label_names)
+
                 model_name = self.cfg.model_name if not self.cfg.model_name.startswith("open-clip:") else self.cfg.model_name[10:]
                 print(f"model_name: {model_name}")
                 # bad bad bad
@@ -279,10 +280,32 @@ class VisionSAETrainer:
                 print(f"loss: {model_loss}")
                 print(f"subst_loss: {sae_recon_loss}")
                 print(f"zero_abl_loss: {zero_abl_loss}")
-                break
+
+
+                print(f"sae loss: {loss}")
+                print(f"sae loss.shape: {loss.shape}")
+                print(f"mse_loss: {mse_loss}")
+                print(f"l1_loss: {l1_loss}")
+                print(f"l1_loss.shape: {l1_loss.shape}")
+
+            #     wandb.log({
+            #     # Original metrics
+            #     f"metrics/mean_log10_feature_sparsity{suffix}": log_feature_sparsity.mean().item(),
+            #     f"plots/log_feature_density_histogram{suffix}": log_sparsity_histogram,
+            #     # f"plots/inverse_feature_density_histogram{suffix}": inverse_sparsity_chart,
+            #     f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
+            #     f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
+                
+            #     # # New image-level metrics
+            #     # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+            #     # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+            #     # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+            #     # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+            # }, step=n_training_steps)  
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
+            break
             
 
 
