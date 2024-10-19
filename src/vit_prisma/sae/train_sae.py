@@ -6,7 +6,7 @@ from vit_prisma.sae.training.activations_store import VisionActivationsStore
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
 # from vit_prisma.sae.evals import run_evals_vision
-from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_labels
+from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
 
 from vit_prisma.dataloaders.imagenet_index import imagenet_index
 
@@ -15,6 +15,9 @@ from torch.optim import Adam
 from tqdm import tqdm
 import wandb
 import re
+
+# this should be abstracted out of this file in the long term
+import open_clip
 
 import os
 import sys
@@ -252,19 +255,35 @@ class VisionSAETrainer:
             # Calculate substitution loss
             # we need to get the imagenet labels of all the images in our batch
             # just map gt_label to imagenet name
-            batch_label_names = [imagenet_index[str(int(label.item()))][1] for label in gt_labels]
-            print(batch_label_names)
-            model_name = self.cfg.model_name if not self.cfg.model_name.startswith("open-clip:") else self.cfg.model_name[10:]
-            text_embeddings = get_text_embeddings(model_name, batch_label_names)
-            score, loss, subst_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
-                                                                      text_embeddings, device=self.cfg.device)
+
+            # this should only run if this is a clip model
+            if self.cfg.model_name.startswith("open-clip:"):
+                num_imagenet_classes = 1000
+                batch_label_names = [imagenet_index[str(int(label))][1] for label in range(num_imagenet_classes)]
+                # print(batch_label_names)
+                model_name = self.cfg.model_name if not self.cfg.model_name.startswith("open-clip:") else self.cfg.model_name[10:]
+                print(f"model_name: {model_name}")
+                # bad bad bad
+                oc_model_name = 'hf-hub:' + model_name
+
+                # should be moved to hookedvit pretrained long terms
+                og_model, _, preproc = open_clip.create_model_and_transforms(oc_model_name)
+                tokenizer = open_clip.get_tokenizer('ViT-B-32')
+
+                text_embeddings = get_text_embeddings_openclip(og_model, preproc, tokenizer, batch_label_names)
+                print(f"text_embeddings: {text_embeddings.shape}")
+                score, model_loss, sae_recon_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
+                                                                          text_embeddings, device=self.cfg.device)
+                # log to w&b
+                print(f"score: {score}")
+                print(f"loss: {model_loss}")
+                print(f"subst_loss: {sae_recon_loss}")
+                print(f"zero_abl_loss: {zero_abl_loss}")
+                break
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
-            print(f"score: {score}")
-            print(f"loss: {loss}")
-            print(f"subst_loss: {subst_loss}")
-            print(f"zero_abl_loss: {zero_abl_loss}")
+            
 
 
     # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
