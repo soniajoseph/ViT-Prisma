@@ -282,26 +282,24 @@ class VisionSAETrainer:
                 print(f"zero_abl_loss: {zero_abl_loss}")
 
 
-                print(f"sae loss: {loss}")
-                print(f"sae loss.shape: {loss.shape}")
-                print(f"mse_loss: {mse_loss}")
-                print(f"l1_loss: {l1_loss}")
-                print(f"l1_loss.shape: {l1_loss.shape}")
+            print(f"sae loss: {loss}")
+            print(f"sae loss.shape: {loss.shape}")
+            print(f"mse_loss: {mse_loss}")
+            print(f"l1_loss: {l1_loss}")
+            print(f"l1_loss.shape: {l1_loss.shape}")
 
-            #     wandb.log({
-            #     # Original metrics
-            #     f"metrics/mean_log10_feature_sparsity{suffix}": log_feature_sparsity.mean().item(),
-            #     f"plots/log_feature_density_histogram{suffix}": log_sparsity_histogram,
-            #     # f"plots/inverse_feature_density_histogram{suffix}": inverse_sparsity_chart,
-            #     f"sparsity/below_1e-5{suffix}": (feature_sparsity < 1e-5).sum().item(),
-            #     f"sparsity/below_1e-6{suffix}": (feature_sparsity < 1e-6).sum().item(),
+                wandb.log({
+                # Original metrics
+                f"validation_losses/mse_loss": mse_loss,
+                f"validation_losses/substitution_score": score,
+                f"validation_losses/substitution_loss": sae_recon_loss,
                 
-            #     # # New image-level metrics
-            #     # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
-            #     # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
-            #     # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
-            #     # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
-            # }, step=n_training_steps)  
+                # # New image-level metrics
+                # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+                # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+                # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+                # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+            })  
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
