@@ -272,33 +272,33 @@ class VisionSAETrainer:
                 tokenizer = open_clip.get_tokenizer('ViT-B-32')
 
                 text_embeddings = get_text_embeddings_openclip(og_model, preproc, tokenizer, batch_label_names)
-                print(f"text_embeddings: {text_embeddings.shape}")
+                # print(f"text_embeddings: {text_embeddings.shape}")
                 score, model_loss, sae_recon_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
                                                                           text_embeddings, device=self.cfg.device)
                 # log to w&b
-                print(f"score: {score}")
-                print(f"loss: {model_loss}")
-                print(f"subst_loss: {sae_recon_loss}")
-                print(f"zero_abl_loss: {zero_abl_loss}")
+                # print(f"score: {score}")
+                # print(f"loss: {model_loss}")
+                # print(f"subst_loss: {sae_recon_loss}")
+                # print(f"zero_abl_loss: {zero_abl_loss}")
 
 
-            print(f"sae loss: {loss}")
-            print(f"sae loss.shape: {loss.shape}")
-            print(f"mse_loss: {mse_loss}")
-            print(f"l1_loss: {l1_loss}")
-            print(f"l1_loss.shape: {l1_loss.shape}")
+            # print(f"sae loss: {loss}")
+            # print(f"sae loss.shape: {loss.shape}")
+            # print(f"mse_loss: {mse_loss}")
+            # print(f"l1_loss: {l1_loss}")
+            # print(f"l1_loss.shape: {l1_loss.shape}")
 
-                wandb.log({
-                # Original metrics
-                f"validation_losses/mse_loss": mse_loss,
-                f"validation_losses/substitution_score": score,
-                f"validation_losses/substitution_loss": sae_recon_loss,
-                
-                # # New image-level metrics
-                # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
-                # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
-                # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
-                # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+            wandb.log({
+            # Original metrics
+            f"validation_losses/mse_loss": mse_loss,
+            f"validation_losses/substitution_score": score,
+            f"validation_losses/substitution_loss": sae_recon_loss,
+            
+            # # New image-level metrics
+            # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+            # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+            # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+            # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
             })  
 
             # log to w&b
@@ -516,8 +516,10 @@ class VisionSAETrainer:
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
 
-            if n_training_tokens % 100000 > 80000: # this is a stupid to get it to print 20% of the time
-                self.val(self.sae, val_batch, gt_labels)
+            # val 4 times per training
+            # work on this
+            if n_training_steps > 1 and n_training_tokens % self.cfg.total_training_tokens/4 <= self.cfg.train_batch_size: # this is a stupid to get it to print 20% of the time
+                self.val(self.sae)
 
 
             if self.cfg.n_checkpoints > 0 and n_training_tokens > self.checkpoint_thresholds[0]:

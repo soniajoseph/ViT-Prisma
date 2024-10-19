@@ -306,24 +306,24 @@ def get_substitution_loss(
     image_embeddings, _ = model.run_with_cache(batch_tokens)
 
     # Calculate similarity scores
-    print(f"image_embeddings.shape: {image_embeddings.shape}")
-    print(f"text_embeddings.shape: {text_embeddings.shape}")
+    # print(f"image_embeddings.shape: {image_embeddings.shape}")
+    # print(f"text_embeddings.shape: {text_embeddings.shape}")
 
     softmax_values, top_k_indices = get_similarity(image_embeddings, text_embeddings, device=device)
     class_logits = get_logits(image_embeddings, text_embeddings, device=device)
-    print(f"softmax_values: {softmax_values}")
-    print(f"softmax_values.shape: {softmax_values.shape}")
-    print(f"gt_labels.shape: {gt_labels.shape}")
-    print(f"gt_labels: {gt_labels}")
-    print(f"top_k_indices: {top_k_indices}")
-    print(f"class_logits: {class_logits}")
+    # print(f"softmax_values: {softmax_values}")
+    # print(f"softmax_values.shape: {softmax_values.shape}")
+    # print(f"gt_labels.shape: {gt_labels.shape}")
+    # print(f"gt_labels: {gt_labels}")
+    # print(f"top_k_indices: {top_k_indices}")
+    # print(f"class_logits: {class_logits}")
     # Calculate cross-entropy loss
     # cross entropy should take logits, not softmax
     loss_softmax = F.cross_entropy(softmax_values, gt_labels)
     loss = F.cross_entropy(class_logits, gt_labels)
     # Safely extract the loss value
-    print(f"model loss: {loss}")
-    print(f"model loss_logit: {loss_softmax}")
+    # print(f"model loss: {loss}")
+    # print(f"model loss_logit: {loss_softmax}")
     loss_value = loss.item() if torch.isfinite(loss).all() else float('nan')
 
     head_index = sparse_autoencoder.cfg.hook_point_head_index
