@@ -893,3 +893,73 @@ class HookedViT(HookedRootModule):
             ), "Cannot include attn_bias from beyond the final layer"
             accumulated_bias += self.blocks[layer].attn.b_O
         return accumulated_bias
+    
+    # Allow access to the weights via convenient properties
+
+    @property
+    def W_E(self) -> Float[torch.Tensor, "d_model channels patch_size patch_size"]:
+        return self.embed.proj.weight
+
+    @property
+    def b_E(self) -> Float[torch.Tensor, "d_model"]:
+        return self.embed.proj.bias
+
+    @property
+    def W_pos(self) -> Float[torch.Tensor, "n_patches+1 d_model"]:
+        return self.pos_embed.W_pos
+
+    @property
+    def W_K(self) -> Float[torch.Tensor, "n_layers n_heads d_model d_head"]:
+        return torch.stack([block.attn.W_K for block in self.blocks], dim=0)
+
+    @property
+    def b_K(self) -> Float[torch.Tensor, "n_layers n_heads d_head"]:
+        return torch.stack([block.attn.b_K for block in self.blocks], dim=0)
+
+    @property
+    def W_Q(self) -> Float[torch.Tensor, "n_layers n_heads d_model d_head"]:
+        return torch.stack([block.attn.W_Q for block in self.blocks], dim=0)
+
+    @property
+    def b_Q(self) -> Float[torch.Tensor, "n_layers n_heads d_head"]:
+        return torch.stack([block.attn.b_Q for block in self.blocks], dim=0)
+
+    @property
+    def W_V(self) -> Float[torch.Tensor, "n_layers n_heads d_model d_head"]:
+        return torch.stack([block.attn.W_V for block in self.blocks], dim=0)
+
+    @property
+    def b_V(self) -> Float[torch.Tensor, "n_layers n_heads d_head"]:
+        return torch.stack([block.attn.b_V for block in self.blocks], dim=0)
+
+    @property
+    def W_O(self) -> Float[torch.Tensor, "n_layers n_heads d_head d_model"]:
+        return torch.stack([block.attn.W_O for block in self.blocks], dim=0)
+
+    @property
+    def b_O(self) -> Float[torch.Tensor, "n_layers d_model"]:
+        return torch.stack([block.attn.b_O for block in self.blocks], dim=0)
+
+    @property
+    def W_in(self) -> Float[torch.Tensor, "n_layers d_model d_mlp"]:
+        return torch.stack([block.mlp.W_in for block in self.blocks], dim=0)
+
+    @property
+    def b_in(self) -> Float[torch.Tensor, "n_layers d_mlp"]:
+        return torch.stack([block.mlp.b_in for block in self.blocks], dim=0)
+
+    @property
+    def W_out(self) -> Float[torch.Tensor, "n_layers d_mlp d_model"]:
+        return torch.stack([block.mlp.W_out for block in self.blocks], dim=0)
+
+    @property
+    def b_out(self) -> Float[torch.Tensor, "n_layers d_model"]:
+        return torch.stack([block.mlp.b_out for block in self.blocks], dim=0)
+
+    @property
+    def W_H(self) -> Float[torch.Tensor, "d_model n_classes"]:
+        return self.head.W_H
+
+    @property
+    def b_H(self) -> Float[torch.Tensor, "n_classes"]:
+        return self.head.b_H
