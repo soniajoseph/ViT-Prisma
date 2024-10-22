@@ -14,9 +14,10 @@ install_requires = [
     'scikit-learn', # Test dependency
     'datasets',
     'line_profiler',
-    'kaleido',
-    'matplotlib',
     'wandb',
+    'matplotlib',
+    'kaleido',
+    'open-clip-torch',
 ]
 
 setup(

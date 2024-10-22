@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 import sys
@@ -19,6 +20,7 @@ from vit_prisma.sae.sae_utils import wandb_log_suffix
 from vit_prisma.sae.training.activations_store import VisionActivationsStore
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
+from vit_prisma.utils.constants import EvaluationContext
 from vit_prisma.utils.data_utils.loader import load_dataset
 from vit_prisma.utils.load_model import load_model
 
@@ -56,6 +58,7 @@ class VisionSAETrainer:
 
         self.cfg.pretty_print() if self.cfg.verbose else None
 
+        # TODO EdS: Evaluator should use the ActivationStore
         self.evaluator = Evaluator(self.model, self.eval_dataset, self.cfg, visualize_eval_dataset)
 
     def set_default_attributes(self):
@@ -643,8 +646,8 @@ class VisionSAETrainer:
         if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
 
-        if self.cfg.post_training_eval.log_frequency:
-            self.evaluator.evaluate(self.sae, context="post-training")
+        if self.cfg.post_training_eval.eval_frequency:
+            self.evaluator.evaluate(self.sae, context=EvaluationContext.TRAINING)
 
         pbar.close()
 
