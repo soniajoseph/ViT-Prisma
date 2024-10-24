@@ -14,6 +14,7 @@ install_requires = [
     'scikit-learn', # Test dependency
     'datasets',
     'line_profiler',
+    'wandb'    
     'matplotlib',
     'wandb',    
 ]
