@@ -271,7 +271,7 @@ class VisionSAETrainer:
         ).bool()
 
         # Forward and Backward Passes
-        sae_out, feature_acts, loss, mse_loss, l1_loss, ghost_grad_loss = (
+        sae_out, feature_acts, loss, mse_loss, l1_loss, ghost_grad_loss, aux_reconstruction_loss = (
             sparse_autoencoder(sae_in, ghost_grad_neuron_mask)
         )
 
@@ -299,6 +299,7 @@ class VisionSAETrainer:
                     ghost_grad_neuron_mask,
                     mse_loss,
                     l1_loss,
+                    aux_reconstruction_loss,
                     ghost_grad_loss,
                     loss,
                     l0,
@@ -413,6 +414,7 @@ class VisionSAETrainer:
         ghost_grad_neuron_mask,
         mse_loss,
         l1_loss,
+        aux_reconstruction_loss,
         ghost_grad_loss,
         loss,
         l0,
@@ -454,6 +456,10 @@ class VisionSAETrainer:
             "details/n_training_tokens": n_training_tokens,
             "details/n_training_images": n_training_images,
         }
+        
+        if self.cfg.architecture == "gated":
+            metrics[f"losses/aux_reconstruction_loss{suffix}"] = aux_reconstruction_loss.item()
+
         wandb.log(metrics, step=n_training_steps)
 
     def _run_evals(self, sparse_autoencoder, hyperparams, n_training_steps):
