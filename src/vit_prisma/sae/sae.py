@@ -51,20 +51,24 @@ class SparseAutoencoder(HookedRootModule):
 
         
         # Initialize weights based on the chosen method
-        if self.initialization_method == "independent":
-            self.W_dec = nn.Parameter(
-                self.initialize_weights(self.d_sae, self.d_in)
-            )
-            self.W_enc = nn.Parameter(
-                self.initialize_weights(self.d_in, self.d_sae)
-            )
-        elif self.initialization_method == "encoder_transpose_decoder":
-            self.W_dec = nn.Parameter(
-                self.initialize_weights(self.d_sae, self.d_in)
-            )
-            self.W_enc = nn.Parameter(self.W_dec.data.t().clone())
-        else:
-            raise ValueError(f"Unknown initialization method: {self.initialization_method}")
+        if self.cfg.architecture == "standard":
+            if self.initialization_method == "independent":
+                self.W_dec = nn.Parameter(
+                    self.initialize_weights(self.d_sae, self.d_in)
+                )
+                self.W_enc = nn.Parameter(
+                    self.initialize_weights(self.d_in, self.d_sae)
+                )
+            elif self.initialization_method == "encoder_transpose_decoder":
+                self.W_dec = nn.Parameter(
+                    self.initialize_weights(self.d_sae, self.d_in)
+                )
+                self.W_enc = nn.Parameter(self.W_dec.data.t().clone())
+            else:
+                raise ValueError(f"Unknown initialization method: {self.initialization_method}")
+        elif self.cfg.architecture == "gated":
+            assert self.cfg.use_ghost_grads == False, "Gated SAE does not support ghost grads"
+            self.initialize_weights_gated()
 
         self.b_enc = nn.Parameter(
             torch.zeros(self.d_sae, dtype=self.dtype, device=self.device)
@@ -130,7 +134,39 @@ class SparseAutoencoder(HookedRootModule):
         self.setup()  # Required for `HookedRootModule`s
         
 
-        
+    def initialize_weights_gated(self):
+        self.W_enc = nn.Parameter(
+            torch.nn.init.kaiming_uniform_(
+                torch.empty(
+                    self.cfg.d_in, self.cfg.d_sae, dtype=self.dtype, device=self.device
+                )
+            )
+        )
+
+        self.b_gate = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.r_mag = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.b_mag = nn.Parameter(
+            torch.zeros(self.cfg.d_sae, dtype=self.dtype, device=self.device)
+        )
+
+        self.W_dec = nn.Parameter(
+            torch.nn.init.kaiming_uniform_(
+                torch.empty(
+                    self.cfg.d_sae, self.cfg.d_in, dtype=self.dtype, device=self.device
+                )
+            )
+        )
+
+        self.b_dec = nn.Parameter(
+            torch.zeros(self.cfg.d_in, dtype=self.dtype, device=self.device)
+        )
+
 
     def initialize_weights(self, out_features, in_features):
         """
@@ -157,18 +193,37 @@ class SparseAutoencoder(HookedRootModule):
             weight /= torch.norm(weight, dim=1, keepdim=True)
         
         return weight
+    
 
+    def encode_gated(self, x: torch.Tensor):
 
-    from line_profiler import profile
-    @profile
-    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None):
+        x = x.to(self.dtype)
+        x = self.run_time_activation_norm_fn_in(x)
+
+        sae_in = self.hook_sae_in(x - self.b_dec)
+
+        # Gating path
+        gating_pre_activation = sae_in @ self.W_enc + self.b_gate
+        active_features = (gating_pre_activation > 0).to(self.dtype)
+
+        # Magnitude path with weight sharing
+        magnitude_pre_activation = sae_in @ (self.W_enc * self.r_mag.exp()) + self.b_mag
+
+        feature_magnitudes = torch.relu(magnitude_pre_activation)
+
+        feature_acts = self.hook_hidden_post(active_features * feature_magnitudes)
+
+        return sae_in, feature_acts
+    
+
+    def encode_standard(self, x: torch.Tensor):
         # move x to correct dtype
         x = x.to(self.dtype)
 
         sae_in = self.run_time_activation_norm_fn_in(x)
 
         sae_in = self.hook_sae_in(
-            x - self.b_dec
+            sae_in - self.b_dec
         )  # Remove decoder bias as per Anthropic
 
         hidden_pre = self.hook_hidden_pre(
@@ -181,6 +236,19 @@ class SparseAutoencoder(HookedRootModule):
         )
         feature_acts = self.hook_hidden_post(self.activation_fn(hidden_pre))
 
+        return feature_acts
+
+
+    from line_profiler import profile
+    @profile
+    def forward(self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None):
+        if self.cfg.architecture == "standard":
+            feature_acts = self.encode_standard(x)
+        elif self.cfg.architecture == "gated":
+            sae_in, feature_acts = self.encode_gated(x)
+        else:
+            raise ValueError(f"Architecture: {self.cfg.architecture} is not supported.")
+        
         sae_out = self.hook_sae_out(
             einops.einsum(
                 feature_acts,
@@ -237,14 +305,36 @@ class SparseAutoencoder(HookedRootModule):
         mse_loss = mse_loss.mean()
         sparsity = feature_acts.norm(p=self.lp_norm, dim=1).mean(dim=(0,))
         
-        if self.cfg.activation_fn_str != "topk":
-            l1_loss = self.l1_coefficient * sparsity
-            loss = mse_loss + l1_loss + mse_loss_ghost_resid
-        elif self.cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
-            l1_loss = None
-            loss = mse_loss + mse_loss_ghost_resid
+        if self.cfg.architecture == "standard":
+            aux_reconstruction_loss = torch.tensor(0.0)
 
-        return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid
+            if self.cfg.activation_fn_str != "topk":
+                l1_loss = self.l1_coefficient * sparsity
+                loss = mse_loss + l1_loss + mse_loss_ghost_resid
+            elif self.cfg.activation_fn_str == "topk": # Don't use L1 loss with topk
+                l1_loss = None
+                loss = mse_loss + mse_loss_ghost_resid
+
+        elif self.cfg.architecture == "gated":
+            pi_gate = sae_in @ self.W_enc + self.b_gate
+            pi_gate_act = torch.relu(pi_gate)
+
+            # SFN sparsity loss - summed over the feature dimension and averaged over the batch
+            l1_loss = (
+                self.l1_coefficient
+                * torch.sum(pi_gate_act * self.W_dec.norm(dim=1), dim=-1).mean()
+            )
+
+            # Auxiliary reconstruction loss - summed over the feature dimension and averaged over the batch
+            via_gate_reconstruction = pi_gate_act @ self.W_dec + self.b_dec
+            aux_reconstruction_loss = torch.sum(
+                (via_gate_reconstruction - sae_in) ** 2, dim=-1
+            ).mean()
+
+            loss = mse_loss + l1_loss + aux_reconstruction_loss
+
+
+        return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid, aux_reconstruction_loss
     
 
 

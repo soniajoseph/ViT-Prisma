@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, Literal
 
 from dataclasses import fields, field
 
@@ -20,6 +20,7 @@ class RunnerConfig(ABC):
     hook_point_head_index: Optional[int] = None
     context_size: int = 50
     use_cached_activations: bool = False
+    use_patches_only: bool = False
     cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_point_head_index}"
     )
@@ -84,6 +85,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     """
     Configuration for training a sparse autoencoder on a language model.
     """
+    architecture: Literal["standard", "gated", "jumprelu"] = "standard"
 
     # Logging
     verbose: bool = False

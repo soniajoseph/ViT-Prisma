@@ -236,6 +236,8 @@ class VisionActivationsStore:
         for refill_batch_idx_start in refill_iterator:
             refill_batch_tokens = self.get_batch_tokens()  ######
             refill_activations = self.get_activations(refill_batch_tokens)
+            if self.cfg.use_patches_only:
+                refill_activations = refill_activations[:, 1:, :, :]
 
             new_buffer[
                 refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
