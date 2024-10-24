@@ -15,6 +15,8 @@ install_requires = [
     'datasets',
     'line_profiler',
     'wandb'    
+    'matplotlib',
+    'wandb',    
 ]
 
 setup(
