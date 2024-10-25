@@ -244,8 +244,6 @@ class VisionSAETrainer:
         layer_id = all_layers.index(hyperparams.hook_point_layer)
         sae_in = layer_acts[:, layer_id, :]
 
-        if self.cfg.cls_token: # Currently hacky, see GitHub Issue #134
-            sae_in = sae_in[:, 0]
 
         sparse_autoencoder.train()
         sparse_autoencoder.set_decoder_norm_to_unit_norm()
@@ -254,7 +252,6 @@ class VisionSAETrainer:
         if (n_training_steps + 1) % self.cfg.feature_sampling_window == 0:
             feature_sparsity = act_freq_scores / n_frac_active_tokens
             log_feature_sparsity = torch.log10(feature_sparsity + 1e-10).detach().cpu()
-
 
 
             if self.cfg.log_to_wandb:

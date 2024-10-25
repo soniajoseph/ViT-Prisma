@@ -14,9 +14,13 @@ def collate_fn(data):
     return torch.stack(imgs, dim=0)
 
 
+
+
+
 def collate_fn_eval(data):
     imgs = [d[0] for d in data]
     return torch.stack(imgs, dim=0), torch.tensor([d[1] for d in data])
+
 
 
 class VisionActivationsStore:
@@ -125,7 +129,11 @@ class VisionActivationsStore:
 
     def get_activations(self, batch_tokens: torch.Tensor, get_loss: bool = False):
         """
-        Returns activations of shape (batches, context, num_layers, d_in)
+        Returns activations with shape determined by config:
+        - If cls_token and head_index: (batch, 1, num_layers, head_dim)
+        - If cls_token only: (batch, 1, num_layers, d_model)
+        - If head_index only: (batch, seq_len, num_layers, head_dim)
+        - If neither: (batch, seq_len, num_layers, d_model)
         """
         layers = (
             self.cfg.hook_point_layer
@@ -135,30 +143,24 @@ class VisionActivationsStore:
         act_names = [self.cfg.hook_point.format(layer=layer) for layer in layers]
         hook_point_max_layer = max(layers)
 
-        if self.cfg.hook_point_head_index is not None:
-            layerwise_activations = self.model.run_with_cache(
-                batch_tokens,
-                names_filter=act_names,
-                stop_at_layer=hook_point_max_layer + 1,
-            )[1]
-            activations_list = [
-                layerwise_activations[act_name][:, :, self.cfg.hook_point_head_index]
-                for act_name in act_names
-            ]
-        else:
-            layerwise_activations = self.model.run_with_cache(  ####
-                batch_tokens,
-                names_filter=act_names,
-                stop_at_layer=hook_point_max_layer + 1,
-            )[1]
-            activations_list = [
-                layerwise_activations[act_name] for act_name in act_names
-            ]
+        layerwise_activations = self.model.run_with_cache(
+            batch_tokens,
+            names_filter=act_names,
+            stop_at_layer=hook_point_max_layer + 1,
+        )[1]
 
-        # Stack along a new dimension to keep separate layers distinct
-        stacked_activations = torch.stack(activations_list, dim=2)
+        activations_list = []
+        for act_name in act_names:
+            acts = layerwise_activations[act_name]
+            if self.cfg.hook_point_head_index is not None:
+                # If we're selecting specific head, do this first
+                acts = acts[:, :, self.cfg.hook_point_head_index]
+            if self.cfg.cls_token:
+                # Then select CLS token if needed
+                acts = acts[:, 0:1]
+            activations_list.append(acts)
 
-        return stacked_activations
+        return torch.stack(activations_list, dim=2)
 
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
