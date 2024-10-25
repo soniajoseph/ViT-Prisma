@@ -17,6 +17,7 @@ class RunnerConfig(ABC):
     model_class_name: str = "HookedViT"
     model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
     hook_point_layer: int = 9
+    layer_subtype: str = "hook_resid_post"
     hook_point_head_index: Optional[int] = None
     context_size: int = 50
     use_cached_activations: bool = False
@@ -61,7 +62,7 @@ class RunnerConfig(ABC):
 
     def __post_init__(self):
         self.hook_point = (
-            f"blocks.{self.hook_point_layer}.hook_mlp_out"  # change hookpoint name here
+            f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
         )
 
         # Autofill cached_activations_path unless the user overrode it
