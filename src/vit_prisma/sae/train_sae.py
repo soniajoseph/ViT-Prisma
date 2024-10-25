@@ -67,7 +67,8 @@ class VisionSAETrainer:
         self.activations_store = self.initialize_activations_store(
             dataset, eval_dataset
         )
-        self.cfg.wandb_project = (
+        if not self.cfg.wandb_project:
+            self.cfg.wandb_project = (
             self.cfg.model_name.replace("/", "-")
             + "-expansion-"
             + str(self.cfg.expansion_factor)
