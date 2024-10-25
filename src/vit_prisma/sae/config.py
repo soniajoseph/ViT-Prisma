@@ -46,7 +46,7 @@ class RunnerConfig(ABC):
     num_workers: int = 16
 
     # Training length parameters
-    num_epochs: int = 1
+    num_epochs: int = 10
     total_training_images: int = int(
         1_300_000 * num_epochs
     )  # To do: make this not hardcoded
@@ -72,7 +72,7 @@ class RunnerConfig(ABC):
 
         if self.cls_token:
             self.context_size = 1
-            self.total_training_tokens = self.total_training_images
+            self.total_training_tokens: int = (self.total_training_images * self.context_size) # Images x tokens
 
     def pretty_print(self):
         print("Configuration:")
@@ -133,7 +133,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     log_to_wandb: bool = True
     wandb_project: str = "tinyclip_sae_16_hyperparam_sweep_lr"
     wandb_entity: Optional[str] = None
-    wandb_log_frequency: int = 100
+    wandb_log_frequency: int = 10
 
     # Misc
     n_checkpoints: int = 10
