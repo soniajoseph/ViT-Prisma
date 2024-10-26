@@ -1,8 +1,7 @@
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import fields, field, asdict, dataclass
+import json
 from typing import Any, Optional, cast, Literal
-
-from dataclasses import fields, field
 
 import torch
 
@@ -30,7 +29,7 @@ class RunnerConfig(ABC):
     d_in: int = 512
     activation_fn_str: str = "relu"  # relu or topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
-    cls_token_only: bool = False # use only CLS token in training
+    cls_token_only: bool = False  # use only CLS token in training
 
     # SAE Training run tolerance
     min_l0 = None
@@ -61,9 +60,7 @@ class RunnerConfig(ABC):
     dtype: torch.dtype = torch.float32
 
     def __post_init__(self):
-        self.hook_point = (
-            f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
-        )
+        self.hook_point = f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
 
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:
@@ -73,7 +70,9 @@ class RunnerConfig(ABC):
 
         if self.cls_token_only:
             self.context_size = 1
-            self.total_training_tokens: int = (self.total_training_images * self.context_size) # Images x tokens
+            self.total_training_tokens: int = (
+                self.total_training_images * self.context_size
+            )  # Images x tokens
 
     def pretty_print(self):
         print("Configuration:")
@@ -91,6 +90,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     """
     Configuration for training a sparse autoencoder on a language model.
     """
+
     architecture: Literal["standard", "gated", "jumprelu"] = "standard"
 
     # Logging
@@ -211,6 +211,72 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         print(f"Using SAE initialization method: {self.initialization_method}")
 
         self.activation_fn_kwargs = self.activation_fn_kwargs or {}
+
+    def save_config(self, path: str):
+        """
+        Save the configuration to a JSON file at the given path.
+        """
+        # Convert the dataclass to a dictionary
+        data = asdict(self)
+
+        # Function to make data JSON-serializable
+        def make_serializable(obj):
+            if isinstance(obj, torch.device):
+                # Special case: torch.device needs to be converted to string
+                return {"__type__": "torch.device", "value": str(obj)}
+            elif isinstance(obj, torch.dtype):
+                # Special case: torch.dtype needs to be converted to string
+                return {"__type__": "torch.dtype", "value": obj.__repr__()}
+            elif isinstance(obj, (list, tuple)):
+                # Recursively process lists and tuples
+                return [make_serializable(item) for item in obj]
+            elif isinstance(obj, dict):
+                # Recursively process dictionaries
+                return {key: make_serializable(value) for key, value in obj.items()}
+            else:
+                return obj  # Other types are left as-is
+
+        # Process data to make it serializable
+        serializable_data = make_serializable(data)
+        # Save to JSON file
+        with open(path, "w") as f:
+            json.dump(serializable_data, f, indent=4)
+
+    @classmethod
+    def load_config(cls, path: str):
+        """
+        Load the configuration from a JSON file at the given path.
+        """
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        # Function to reconstruct data types
+        def reconstruct_types(obj):
+            if isinstance(obj, dict):
+                if "__type__" in obj:
+                    type_name = obj["__type__"]
+                    if type_name == "torch.device":
+                        # Reconstruct torch.device from string
+                        return torch.device(obj["value"])
+                    elif type_name == "torch.dtype":
+                        # Reconstruct torch.dtype from string
+                        dtype_name = obj["value"].split(".")[-1]
+                        return getattr(torch, dtype_name)
+                    else:
+                        return obj
+                else:
+                    # Recursively process dictionaries
+                    return {key: reconstruct_types(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                # Recursively process lists
+                return [reconstruct_types(item) for item in obj]
+            else:
+                return obj  # Other types are left as-is
+
+        # Reconstruct data with proper types
+        data = reconstruct_types(data)
+        # Create an instance of the class with the reconstructed data
+        return cls(**data)
 
 
 from dataclasses import dataclass
