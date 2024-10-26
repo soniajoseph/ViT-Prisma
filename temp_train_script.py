@@ -1,5 +1,9 @@
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.train_sae import VisionSAETrainer
+import inspect
+
+print(inspect.getfile(VisionModelSAERunnerConfig))
+print(inspect.getfile(VisionSAETrainer))
 
 cfg = VisionModelSAERunnerConfig()
 print("Config created")
@@ -27,7 +31,7 @@ cfg.dataset_path = "/workspace/"
 cfg.dataset_train_path = "/workspace/ILSVRC/Data/CLS-LOC/train"
 cfg.dataset_val_path = "/workspace/ILSVRC/Data/CLS-LOC/val"
 cfg.checkpoint_path ="/workspace/checkpoints"
-cfg.wandb_project = f"open_clip_vit_b_32_layer_{cfg.hook_point_layer}_{cfg.hook_point_head_index}"
+cfg.wandb_project = f"VAL_TESTING_IGNORE_open_clip_vit_b_32_layer_{cfg.hook_point_layer}_{cfg.hook_point_head_index}"
 
 cfg.train_batch_size = 4096 # tweak store_batch_size instead
 cfg.n_batches_in_buffer = 4

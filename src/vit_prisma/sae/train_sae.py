@@ -496,6 +496,7 @@ class VisionSAETrainer:
         
         pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE")        
         while n_training_tokens < self.cfg.total_training_tokens:
+            print(f"n_training_tokens: {n_training_tokens}")
             layer_acts = self.activations_store.next_batch()
 
             # init these here to avoid uninitialized vars
@@ -513,14 +514,17 @@ class VisionSAETrainer:
             n_forward_passes_since_fired=n_forward_passes_since_fired,
             n_frac_active_tokens=n_frac_active_tokens)
 
-            n_training_steps += 1
-            n_training_tokens += self.cfg.train_batch_size
 
-            # val 4 times per training
-            # work on this
-            if n_training_steps > 1 and n_training_tokens % self.cfg.total_training_tokens/4 <= self.cfg.train_batch_size: # this is a stupid to get it to print 20% of the time
+            print(f"n_training_tokens: {n_training_tokens}")
+            print(f"n_training_steps: {n_training_steps}")
+            print(f"total_training_steps: {(self.cfg.total_training_tokens//self.cfg.train_batch_size)}")
+            print(f"total_training_steps div 4: {(self.cfg.total_training_tokens//self.cfg.train_batch_size)//4}")
+            if n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//4) == 0:
+                print("======================== Val")
                 self.val(self.sae)
 
+            n_training_steps += 1
+            n_training_tokens += self.cfg.train_batch_size
 
             if self.cfg.n_checkpoints > 0 and n_training_tokens > self.checkpoint_thresholds[0]:
                 self.checkpoint(self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens)
