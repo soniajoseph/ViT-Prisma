@@ -496,7 +496,6 @@ class VisionSAETrainer:
         
         pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE")        
         while n_training_tokens < self.cfg.total_training_tokens:
-            print(f"n_training_tokens: {n_training_tokens}")
             layer_acts = self.activations_store.next_batch()
 
             # init these here to avoid uninitialized vars
@@ -515,12 +514,7 @@ class VisionSAETrainer:
             n_frac_active_tokens=n_frac_active_tokens)
 
 
-            print(f"n_training_tokens: {n_training_tokens}")
-            print(f"n_training_steps: {n_training_steps}")
-            print(f"total_training_steps: {(self.cfg.total_training_tokens//self.cfg.train_batch_size)}")
-            print(f"total_training_steps div 4: {(self.cfg.total_training_tokens//self.cfg.train_batch_size)//4}")
-            if n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//4) == 0:
-                print("======================== Val")
+            if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
                 self.val(self.sae)
 
             n_training_steps += 1

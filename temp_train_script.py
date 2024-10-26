@@ -36,6 +36,9 @@ cfg.wandb_project = f"VAL_TESTING_IGNORE_open_clip_vit_b_32_layer_{cfg.hook_poin
 cfg.train_batch_size = 4096 # tweak store_batch_size instead
 cfg.n_batches_in_buffer = 4
 cfg.store_batch_size = 256 #cfg.train_batch_size
+
+cfg.n_validation_runs = 12 #cfg.train_batch_size
+
 cfg.d_in = 768
 cfg.pretty_print()
 
