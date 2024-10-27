@@ -30,7 +30,7 @@ class RunnerConfig(ABC):
     d_in: int = 512
     activation_fn_str: str = "relu"  # relu or topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
-    cls_token: bool = False # use only CLS token in training
+    cls_token_only: bool = False # use only CLS token in training
 
     # SAE Training run tolerance
     min_l0 = None
@@ -71,7 +71,7 @@ class RunnerConfig(ABC):
             if self.hook_point_head_index is not None:
                 self.cached_activations_path += f"_{self.hook_point_head_index}"
 
-        if self.cls_token:
+        if self.cls_token_only:
             self.context_size = 1
             self.total_training_tokens: int = (self.total_training_images * self.context_size) # Images x tokens
 

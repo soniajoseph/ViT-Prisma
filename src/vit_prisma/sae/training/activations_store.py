@@ -155,7 +155,7 @@ class VisionActivationsStore:
             if self.cfg.hook_point_head_index is not None:
                 # If we're selecting specific head, do this first
                 acts = acts[:, :, self.cfg.hook_point_head_index]
-            if self.cfg.cls_token:
+            if self.cfg.cls_token_only:
                 # Then select CLS token if needed
                 acts = acts[:, 0:1]
             activations_list.append(acts)
