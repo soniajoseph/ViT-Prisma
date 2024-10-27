@@ -556,11 +556,14 @@ class VisionSAETrainer:
     def run(self):
         if self.cfg.log_to_wandb:
             config_dict = self.dataclass_to_dict(self.cfg)
+
+            run_name = self.cfg.run_name.replace(":", "_")
+            wandb_project = self.cfg.wandb_project.replace(":", "_")
             wandb.init(
-                project=self.cfg.wandb_project,
+                project=wandb_project,
                 config=config_dict,
                 entity=self.cfg.wandb_entity,
-                name=self.cfg.run_name,
+                name=run_name,
             )
 
         (
