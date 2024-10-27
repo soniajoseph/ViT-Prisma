@@ -566,56 +566,84 @@ class SparseAutoencoder(HookedRootModule):
 
         # return instance
 
-
     @classmethod
-    def load_from_pretrained(cls, path: str, current_cfg=None):
+    def load_from_pretrained(cls, weights_path: str, config_path: str = None, current_cfg=None):
         """
-        Load function for the model. Loads the model's state_dict and the config used to train it.
-        This method can be called directly on the class, without needing an instance.
+        Load function for the model. Can handle either:
+        1. A single weights_path containing both config and weights (legacy format)
+        2. Separate config_path and weights_path
+        3. HuggingFace-style paths
+        
+        Args:
+            weights_path (str): Path to weights file or HuggingFace repo ID
+            config_path (str, optional): Path to config.json file. If None, will look for config in weights_path
+            current_cfg: Optional configuration to override loaded settings
         """
+        def load_config_from_json(config_path):
+            """Helper to load and parse config from JSON."""
+            from vit_prisma.sae.config import VisionModelSAERunnerConfig
+            return VisionModelSAERunnerConfig.load_config(config_path)
 
-        # Ensure the file exists
-        if not os.path.isfile(path):
-            raise FileNotFoundError(f"No file found at specified path: {path}")
+        def load_weights(path, device=None):
+            """Helper to load weights with appropriate device mapping."""
+            if device:
+                return torch.load(path, map_location=device)
+            return torch.load(path)
 
-        # Load the state dictionary
-        if path.endswith(".pt"):
+        # Check if weights file exists
+        if not os.path.isfile(weights_path):
+            raise FileNotFoundError(f"No weights file found at: {weights_path}")
+
+        # Set device
+        device = "mps" if torch.backends.mps.is_available() else None
+
+        # Try loading weights file
+        if weights_path.endswith(".pt"):
             try:
-                if torch.backends.mps.is_available():
-                    state_dict = torch.load(path, map_location="mps")
-                    state_dict["cfg"].device = "mps"
-                else:
-                    state_dict = torch.load(path)
+                state_dict = load_weights(weights_path, device)
             except Exception as e:
                 raise IOError(f"Error loading the state dictionary from .pt file: {e}")
-
-        elif path.endswith(".pkl.gz"):
+        elif weights_path.endswith(".pkl.gz"):
             try:
-                with gzip.open(path, "rb") as f:
+                with gzip.open(weights_path, "rb") as f:
                     state_dict = pickle.load(f)
             except Exception as e:
-                raise IOError(
-                    f"Error loading the state dictionary from .pkl.gz file: {e}"
-                )
-        elif path.endswith(".pkl"):
+                raise IOError(f"Error loading from .pkl.gz file: {e}")
+        elif weights_path.endswith(".pkl"):
             try:
-                with open(path, "rb") as f:
+                with open(weights_path, "rb") as f:
                     state_dict = pickle.load(f)
             except Exception as e:
-                raise IOError(f"Error loading the state dictionary from .pkl file: {e}")
+                raise IOError(f"Error loading from .pkl file: {e}")
         else:
-            raise ValueError(
-                f"Unexpected file extension: {path}, supported extensions are .pt, .pkl, and .pkl.gz"
-            )
+            raise ValueError(f"Unexpected file extension: {weights_path}")
 
-        # Ensure the loaded state contains both 'cfg' and 'state_dict'
-        if "cfg" not in state_dict or "state_dict" not in state_dict:
-            raise ValueError(
-                "The loaded state dictionary must contain 'cfg' and 'state_dict' keys"
-            )
+        # Check if this is legacy format (combined config and weights)
+        is_legacy = isinstance(state_dict, dict) and "cfg" in state_dict and "state_dict" in state_dict
 
-        # Handle legacy issues
-        loaded_cfg = state_dict["cfg"]
+        if is_legacy and config_path is None:
+            # Use config from legacy file
+            loaded_cfg = state_dict["cfg"]
+            weights = state_dict["state_dict"]
+        else:
+            # Handle separate config and weights
+            if config_path is None:
+                # Look for config.json in same directory as weights
+                config_path = os.path.join(os.path.dirname(weights_path), "config.json")
+                if not os.path.isfile(config_path):
+                    raise FileNotFoundError(
+                        f"No config file found at {config_path} and no legacy format detected"
+                    )
+            
+            # Load config and weights separately
+            loaded_cfg = load_config_from_json(config_path)
+            weights = state_dict if not is_legacy else state_dict["state_dict"]
+
+        # Set device in config if using MPS
+        if device == "mps":
+            loaded_cfg.device = "mps"
+
+        # Handle legacy activation function kwargs
         if not hasattr(loaded_cfg, "activation_fn_kwargs"):
             if hasattr(loaded_cfg, "activation_fn_str"):
                 if loaded_cfg.activation_fn_str == 'relu':
@@ -633,9 +661,9 @@ class SparseAutoencoder(HookedRootModule):
                 if hasattr(loaded_cfg, key):
                     setattr(loaded_cfg, key, value)
 
-        # Create an instance of the class using the loaded configuration
+        # Create and load model
         instance = cls(cfg=loaded_cfg)
-        instance.load_state_dict(state_dict["state_dict"])
+        instance.load_state_dict(weights)
 
         return instance
 
