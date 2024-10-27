@@ -29,7 +29,6 @@ import uuid
 import wandb
 
 
-
 def wandb_log_suffix(cfg: Any, hyperparams: Any):
     # Create a mapping from cfg list keys to their corresponding hyperparams attributes
     key_mapping = {
@@ -245,7 +244,6 @@ class VisionSAETrainer:
         layer_id = all_layers.index(hyperparams.hook_point_layer)
         sae_in = layer_acts[:, layer_id, :]
 
-
         sparse_autoencoder.train()
         sparse_autoencoder.set_decoder_norm_to_unit_norm()
 
@@ -253,7 +251,6 @@ class VisionSAETrainer:
         if (n_training_steps + 1) % self.cfg.feature_sampling_window == 0:
             feature_sparsity = act_freq_scores / n_frac_active_tokens
             log_feature_sparsity = torch.log10(feature_sparsity + 1e-10).detach().cpu()
-
 
             if self.cfg.log_to_wandb:
                 self._log_feature_sparsity(
@@ -277,9 +274,15 @@ class VisionSAETrainer:
         ).bool()
 
         # Forward and Backward Passes
-        sae_out, feature_acts, loss, mse_loss, l1_loss, ghost_grad_loss, aux_reconstruction_loss = (
-            sparse_autoencoder(sae_in, ghost_grad_neuron_mask)
-        )
+        (
+            sae_out,
+            feature_acts,
+            loss,
+            mse_loss,
+            l1_loss,
+            ghost_grad_loss,
+            aux_reconstruction_loss,
+        ) = sparse_autoencoder(sae_in, ghost_grad_neuron_mask)
 
         with torch.no_grad():
             did_fire = (feature_acts > 0).float().sum(-2) > 0
@@ -462,9 +465,11 @@ class VisionSAETrainer:
             "details/n_training_tokens": n_training_tokens,
             "details/n_training_images": n_training_images,
         }
-        
+
         if self.cfg.architecture == "gated":
-            metrics[f"losses/aux_reconstruction_loss{suffix}"] = aux_reconstruction_loss.item()
+            metrics[f"losses/aux_reconstruction_loss{suffix}"] = (
+                aux_reconstruction_loss.item()
+            )
 
         wandb.log(metrics, step=n_training_steps)
 
@@ -493,6 +498,7 @@ class VisionSAETrainer:
     def checkpoint(self, sae, n_training_tokens, act_freq_scores, n_frac_active_tokens):
         # NOTE fix htis code to not be sae groups anymore
         # path = f"{sae_group.cfg.checkpoint_path}/{n_training_images}_{sae_group.get_name()}.pt"
+        self.cfg.save_config(f"{self.cfg.checkpoint_path}/config.json")
 
         n_training_images = n_training_tokens // self.cfg.context_size
         path = self.cfg.checkpoint_path + f"/n_images_{n_training_images}.pt"
@@ -508,8 +514,6 @@ class VisionSAETrainer:
         log_feature_sparsity = torch.log10(feature_sparsity + 1e-10).detach().cpu()
         torch.save(log_feature_sparsity, log_feature_sparsity_path)
 
-        if len(self.checkpoint_thresholds) == 0:
-            n_checkpoints = 0
         if self.cfg.log_to_wandb:
             hyperparams = sae.cfg
             self.save_to_wandb(sae, hyperparams, path, log_feature_sparsity_path)
@@ -613,11 +617,10 @@ class VisionSAETrainer:
                 self.checkpoint(
                     self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
                 )
-                (
+
+                if self.cfg.verbose:
                     print(f"Checkpoint saved at {n_training_tokens} tokens")
-                    if self.cfg.verbose
-                    else None
-                )
+
                 self.checkpoint_thresholds.pop(0)
 
             pbar.update(self.cfg.train_batch_size)
@@ -633,11 +636,9 @@ class VisionSAETrainer:
         self.checkpoint(
             self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
         )
-        (
+
+        if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
-            if self.cfg.verbose
-            else None
-        )
 
         pbar.close()
 
