@@ -35,9 +35,10 @@ class VisionActivationsStore:
         self.model = model
         self.model.to(cfg.device)
         self.dataset = dataset
+        # weird - batch_size=self.cfg.store_batch_size, but train_batch_size also exists??
         self.image_dataloader = torch.utils.data.DataLoader(self.dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn, drop_last=True)
-        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=True, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
-
+        self.image_dataloader_eval = torch.utils.data.DataLoader(eval_dataset, shuffle=False, num_workers=num_workers, batch_size=self.cfg.store_batch_size, collate_fn=collate_fn_eval, drop_last=True)
+        print("loaded dataloaders")
         self.image_dataloader_iter = self.get_batch_tokens_internal()
         self.image_dataloader_eval_iter = self.get_val_batch_tokens_internal()
 
@@ -97,14 +98,32 @@ class VisionActivationsStore:
         #TODO multi worker here 
         device = self.cfg.device
         # fetch a batch of images... (shouldn't this be it's own dataloader...)
+        # agreed, what the hell is going on here
         while True:
-            for image_data, labels  in self.image_dataloader_eval:
+            for image_data, labels in self.image_dataloader_eval:
                 image_data.requires_grad_(False)
                 labels.requires_grad_(False)
                 yield image_data.to(device), labels.to(device)
     
     def get_val_batch_tokens(self):
         return next(self.image_dataloader_eval_iter)
+
+
+    # for live eval
+    # this gets the same batch (first) from the eval dataloader each time
+    def get_val_activations_one_batch(self):
+        num_layers = (
+            len(self.cfg.hook_point_layer)
+            if isinstance(self.cfg.hook_point_layer, list)
+            else 1
+        )  # Number of hook points or layers
+        for image_data, labels in self.image_dataloader_eval:
+            image_data.requires_grad_(False)
+            labels.requires_grad_(False)
+            break
+        # return tuple of (tokens, labels)
+        return self.get_activations(image_data.to(self.cfg.device)), labels
+
 
     def get_activations(self, batch_tokens: torch.Tensor, get_loss: bool = False):
         """
@@ -142,6 +161,8 @@ class VisionActivationsStore:
         stacked_activations = torch.stack(activations_list, dim=2)
 
         return stacked_activations
+
+
     def get_buffer(self, n_batches_in_buffer: int):
         context_size = self.cfg.context_size
         batch_size = self.cfg.store_batch_size
@@ -216,14 +237,17 @@ class VisionActivationsStore:
         )
 
         for refill_batch_idx_start in refill_iterator:
-            refill_batch_tokens = self.get_batch_tokens() ######
-            refill_activations = self.get_activations(refill_batch_tokens)
+            try:
+                refill_batch_tokens = self.get_batch_tokens() ######
+                refill_activations = self.get_activations(refill_batch_tokens)
 
-            new_buffer[
-                refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
-            ] = refill_activations
+                new_buffer[
+                  refill_batch_idx_start : refill_batch_idx_start + batch_size, ...
+                ] = refill_activations
 
-            # pbar.update(1)
+              # pbar.update(1)
+            except Exception as e:
+                print("refill exception", e)
 
         new_buffer = new_buffer.reshape(-1, num_layers, d_in)
         new_buffer = new_buffer[torch.randperm(new_buffer.shape[0])]
@@ -250,7 +274,6 @@ class VisionActivationsStore:
         )
 
         mixing_buffer = mixing_buffer[torch.randperm(mixing_buffer.shape[0])]
-
         # 2.  put 50 % in storage
         self.storage_buffer = mixing_buffer[: mixing_buffer.shape[0] // 2]
 
