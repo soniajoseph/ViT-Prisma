@@ -567,7 +567,7 @@ class SparseAutoencoder(HookedRootModule):
         # return instance
 
     @classmethod
-    def load_from_pretrained(cls, weights_path: str, config_path: str = None, current_cfg=None):
+    def load_from_pretrained(cls, weights_path, current_cfg=None):
         """
         Load function for the model. Can handle either:
         1. A single weights_path containing both config and weights (legacy format)
@@ -627,14 +627,13 @@ class SparseAutoencoder(HookedRootModule):
             weights = state_dict["state_dict"]
         else:
             # Handle separate config and weights
-            if config_path is None:
                 # Look for config.json in same directory as weights
-                config_path = os.path.join(os.path.dirname(weights_path), "config.json")
-                if not os.path.isfile(config_path):
-                    raise FileNotFoundError(
-                        f"No config file found at {config_path} and no legacy format detected"
-                    )
-            
+            config_path = os.path.join(os.path.dirname(weights_path), "config.json")
+            if not os.path.isfile(config_path):
+                raise FileNotFoundError(
+                    f"No config file found at {config_path} and no legacy format detected"
+                )
+        
             # Load config and weights separately
             loaded_cfg = load_config_from_json(config_path)
             weights = state_dict if not is_legacy else state_dict["state_dict"]
