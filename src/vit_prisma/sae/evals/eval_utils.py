@@ -213,7 +213,7 @@ def calculate_log_frequencies(
     # print out all shapes
     print("total_acts shape", total_acts.shape) if cfg.verbose else None
     feature_probs = total_acts / total_tokens
-    log_feature_probs = torch.log10(feature_probs)
+    log_feature_probs = torch.log10(feature_probs + 1e-6)
     return log_feature_probs.cpu().numpy()
 
 

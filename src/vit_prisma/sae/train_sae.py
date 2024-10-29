@@ -1,4 +1,3 @@
-import copy
 import os
 import re
 import sys
@@ -6,6 +5,7 @@ import uuid
 from dataclasses import is_dataclass, fields
 
 import einops
+import open_clip
 import torch
 import wandb
 from torch.optim import Adam
@@ -48,9 +48,8 @@ class VisionSAETrainer:
                     + "-layer-"
                     + str(self.cfg.hook_point_layer)
             )
-        self.cfg.unique_hash = uuid.uuid4().hex[
-                               :8
-                               ]  # Generate a random 8-character hex string
+        # Generate a random 8-character hex string
+        self.cfg.unique_hash = uuid.uuid4().hex[:8]
         self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.wandb_project
 
         self.checkpoint_thresholds = self.get_checkpoint_thresholds()
@@ -248,8 +247,8 @@ class VisionSAETrainer:
                     n_training_tokens,
                 )
 
-            if self.cfg.log_to_wandb and self.cfg.training_eval.log_frequency and ((n_training_steps + 1) % self.cfg.training_eval.log_frequency == 0):
-                self.evaluator.evaluate(sparse_autoencoder, context="training")
+            if self.cfg.log_to_wandb and self.cfg.training_eval.eval_frequency and ((n_training_steps + 1) % self.cfg.training_eval.eval_frequency == 0):
+                self.evaluator.evaluate(sparse_autoencoder, context=EvaluationContext.TRAINING)
 
         loss.backward()
 
@@ -283,7 +282,7 @@ class VisionSAETrainer:
             _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
 
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
 
 
             # Calculate cosine similarity between original activations and sae output
@@ -481,21 +480,6 @@ class VisionSAETrainer:
 
         wandb.log(metrics, step=n_training_steps)
 
-    def _run_evals(self, sparse_autoencoder, hyperparams, n_training_steps):
-        sparse_autoencoder.eval()
-        suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
-        try:
-            run_evals_vision(
-                sparse_autoencoder,
-                self.activations_store,
-                self.model,
-                n_training_steps,
-                suffix=suffix,
-            )
-        except Exception as e:
-            print(f"Error in run_evals_vision: {e}")
-        sparse_autoencoder.train()
-
     def log_metrics(self, sae, hyperparams, metrics, n_training_steps):
         if self.cfg.log_to_wandb and (
             (n_training_steps + 1) % self.cfg.wandb_log_frequency == 0
@@ -618,10 +602,6 @@ class VisionSAETrainer:
                 n_frac_active_tokens=n_frac_active_tokens,
             )
 
-
-            if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
-                self.val(self.sae)
-
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
 
@@ -647,7 +627,7 @@ class VisionSAETrainer:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
 
         if self.cfg.post_training_eval.eval_frequency:
-            self.evaluator.evaluate(self.sae, context=EvaluationContext.TRAINING)
+            self.evaluator.evaluate(self.sae, context=EvaluationContext.POST_TRAINING)
 
         pbar.close()
 

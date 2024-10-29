@@ -150,7 +150,7 @@ class Evaluator:
                 )
                 hook_point_activation = cache[sae.cfg.hook_point].to(self.cfg.device)
 
-                sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sae(
+                sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sae(
                     hook_point_activation
                 )
 
@@ -470,7 +470,7 @@ class Evaluator:
                     pixel_num=self.cfg.num_patch,
                 )
 
-                display = image_tensor.numpy().transpose(1, 2, 0)
+                display = image_tensor.detach().cpu().numpy().transpose(1, 2, 0)
 
                 axs[row, col].imshow(display)
                 axs[row, col].imshow(
@@ -604,7 +604,7 @@ class Evaluator:
                     image_size=self.cfg.image_size,
                     pixel_num=self.cfg.num_patch,
                 )
-                display = image_tensor.numpy().transpose(1, 2, 0)
+                display = image_tensor.detach().cpu().numpy().transpose(1, 2, 0)
 
                 has_zero = False
 

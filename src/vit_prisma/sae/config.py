@@ -1,9 +1,10 @@
+import json
 import math
-import os
 from abc import ABC
 from dataclasses import fields, field, asdict, dataclass
-from typing import Any, Optional, Literal
-from typing import Dict, List
+from enum import Enum
+from typing import Any, Optional, Literal, Dict
+from typing import List
 
 import torch
 from transformers import ViTConfig
@@ -104,6 +105,8 @@ class EvalConfig(ABC):
     samples_per_bin: int  # Number of features to sample per pre-specified interval
     max_images_per_feature: int  # Number of max images to collect per feature
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 @dataclass
 class TrainingEvalConfig(EvalConfig):
@@ -114,7 +117,7 @@ class TrainingEvalConfig(EvalConfig):
     evaluation_functions: List[Evaluation] = field(
         default_factory=lambda: []
     )
-    eval_frequency: Optional[int] = 25_000
+    eval_frequency: Optional[int] = 250
     batch_size: int = 28
     max_evaluation_images: int = 100
     samples_per_bin: int = 10
@@ -201,8 +204,12 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
     # Evaluation
     sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
-    training_eval: EvalConfig = TrainingEvalConfig()
-    post_training_eval: EvalConfig = PostTrainingEvalConfig()
+    training_eval: EvalConfig = field(
+        default_factory=TrainingEvalConfig
+    )
+    post_training_eval: EvalConfig = field(
+        default_factory=PostTrainingEvalConfig
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -295,6 +302,8 @@ class VisionModelSAERunnerConfig(RunnerConfig):
             elif isinstance(obj, dict):
                 # Recursively process dictionaries
                 return {key: make_serializable(value) for key, value in obj.items()}
+            elif isinstance(obj, Enum):
+                return obj.value
             else:
                 return obj  # Other types are left as-is
 
