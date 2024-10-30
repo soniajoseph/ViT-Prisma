@@ -1,9 +1,15 @@
+import json
+import math
 from abc import ABC
 from dataclasses import fields, field, asdict, dataclass
-import json
-from typing import Any, Optional, cast, Literal
+from enum import Enum
+from typing import Any, Optional, Literal, Dict
+from typing import List
 
 import torch
+from transformers import ViTConfig
+
+from vit_prisma.utils.constants import Evaluation
 
 
 @dataclass
@@ -62,6 +68,8 @@ class RunnerConfig(ABC):
     def __post_init__(self):
         self.hook_point = f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
 
+        self.num_patch = int(math.sqrt(self.context_size - 1))
+
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
@@ -85,10 +93,59 @@ class RunnerConfig(ABC):
             print(f"  {field.name}: {value}")
 
 
+
+@dataclass
+class EvalConfig(ABC):
+    evaluation_functions: List[Evaluation]
+    eval_frequency: Optional[int]
+    batch_size: int
+    max_evaluation_images: int
+    samples_per_bin: int  # Number of features to sample per pre-specified interval
+    max_images_per_feature: int  # Number of max images to collect per feature
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+@dataclass
+class TrainingEvalConfig(EvalConfig):
+    """Default values to be used when evaluating an SAE during training. These are less
+    compute and time costly as they get run every step.
+    """
+
+    evaluation_functions: List[Evaluation] = field(
+        default_factory=lambda: []
+    )
+    eval_frequency: Optional[int] = 250
+    batch_size: int = 28
+    max_evaluation_images: int = 100
+    samples_per_bin: int = 10
+    max_images_per_feature: int = 20
+
+
+@dataclass
+class PostTrainingEvalConfig(EvalConfig):
+    """Default values to be used when evaluating an SAE post-training. These evaluations
+    are more extensive as they are run to get a complete picture of the quality of the
+    SAE.
+    """
+
+    evaluation_functions: List[Evaluation] = field(
+        default_factory=lambda: [
+            Evaluation.FEATURE_BASIS_EVAL,
+            # Evaluation.NEURON_BASIS_EVAL,
+        ]
+    )
+    eval_frequency: Optional[int] = 1
+    batch_size: int = 28
+    max_evaluation_images: int = 100
+    samples_per_bin: int = 10
+    max_images_per_feature: int = 20
+
+
 @dataclass
 class VisionModelSAERunnerConfig(RunnerConfig):
     """
-    Configuration for training a sparse autoencoder on a language model.
+    Configuration for training a sparse autoencoder on a vision model.
     """
 
     architecture: Literal["standard", "gated", "jumprelu"] = "standard"
@@ -114,7 +171,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     train_batch_size: int = 1024 * 4
 
     # Imagenet1k
-    dataset_name: str = "imagenet1k"
+    dataset_name: str = 'imagenet1k'  # imagenet1k | cifar10
     dataset_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
     dataset_train_path: str = (
         "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
@@ -141,6 +198,15 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     n_checkpoints: int = 10
     checkpoint_path: str = (
         "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
+    )
+
+    # Evaluation
+    sae_path: str = '/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/1f89d99e-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-16/n_images_520028.pt'
+    training_eval: EvalConfig = field(
+        default_factory=TrainingEvalConfig
+    )
+    post_training_eval: EvalConfig = field(
+        default_factory=PostTrainingEvalConfig
     )
 
     def __post_init__(self):
@@ -234,6 +300,8 @@ class VisionModelSAERunnerConfig(RunnerConfig):
             elif isinstance(obj, dict):
                 # Recursively process dictionaries
                 return {key: make_serializable(value) for key, value in obj.items()}
+            elif isinstance(obj, Enum):
+                return obj.value
             else:
                 return obj  # Other types are left as-is
 

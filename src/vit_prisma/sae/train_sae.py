@@ -1,97 +1,64 @@
-from vit_prisma.utils.load_model import load_model
-from vit_prisma.sae.config import VisionModelSAERunnerConfig
-from vit_prisma.sae.sae import SparseAutoencoder
-from vit_prisma.sae.training.activations_store import VisionActivationsStore
-
-from vit_prisma.sae.training.geometric_median import compute_geometric_median
-from vit_prisma.sae.training.get_scheduler import get_scheduler
-
-# from vit_prisma.sae.evals import run_evals_vision
-from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
-
-from vit_prisma.dataloaders.imagenet_index import imagenet_index
-
-import torch
-from torch.optim import Adam
-from tqdm import tqdm
-import re
-
-# this should be abstracted out of this file in the long term
-import open_clip
-
 import os
+import re
 import sys
-
-import torchvision
-
-import einops
-import numpy as np
-
-from typing import Any, cast
-
+import uuid
 from dataclasses import is_dataclass, fields
 
-import uuid
-
+import einops
+import open_clip
+import torch
 import wandb
+from torch.optim import Adam
+from tqdm import tqdm
 
-
-def wandb_log_suffix(cfg: Any, hyperparams: Any):
-    # Create a mapping from cfg list keys to their corresponding hyperparams attributes
-    key_mapping = {
-        "hook_point_layer": "layer",
-        "l1_coefficient": "coeff",
-        "lp_norm": "l",
-        "lr": "lr",
-    }
-
-    # Generate the suffix by iterating over the keys that have list values in cfg
-    suffix = "".join(
-        f"_{key_mapping.get(key, key)}{getattr(hyperparams, key, '')}"
-        for key, value in vars(cfg).items()
-        if isinstance(value, list)
-    )
-    return suffix
+from vit_prisma.dataloaders.imagenet_index import imagenet_index
+from vit_prisma.sae.config import VisionModelSAERunnerConfig
+from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings_openclip
+from vit_prisma.sae.evals.evaluator import Evaluator
+from vit_prisma.sae.sae import SparseAutoencoder
+from vit_prisma.sae.sae_utils import wandb_log_suffix
+from vit_prisma.sae.training.activations_store import VisionActivationsStore
+from vit_prisma.sae.training.geometric_median import compute_geometric_median
+from vit_prisma.sae.training.get_scheduler import get_scheduler
+from vit_prisma.utils.constants import EvaluationContext
+from vit_prisma.utils.data_utils.loader import load_dataset
+from vit_prisma.utils.load_model import load_model
 
 
 class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
 
-        if self.cfg.log_to_wandb:
-            import wandb
-
-        self.set_default_attributes()  # For backward compatability
+        self.set_default_attributes() # For backward compatability
 
         self.bad_run_check = (
             True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         )
-        self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
+        self.model = load_model(self.cfg)
         self.sae = SparseAutoencoder(self.cfg)
 
-        dataset, eval_dataset = self.load_dataset()
-        self.dataset = dataset
-        self.eval_dataset = eval_dataset
-        self.activations_store = self.initialize_activations_store(
-            dataset, eval_dataset
-        )
+        self.dataset, self.eval_dataset, visualize_eval_dataset = load_dataset(self.cfg, visualize=True)
+        self.activations_store = self.initialize_activations_store(self.dataset, self.eval_dataset)
+
         if not self.cfg.wandb_project:
             self.cfg.wandb_project = (
-            self.cfg.model_name.replace("/", "-")
-            + "-expansion-"
-            + str(self.cfg.expansion_factor)
-            + "-layer-"
-            + str(self.cfg.hook_point_layer)
-        )
-        self.cfg.unique_hash = uuid.uuid4().hex[
-            :8
-        ]  # Generate a random 8-character hex string
+                    self.cfg.model_name.replace("/", "-")
+                    + "-expansion-"
+                    + str(self.cfg.expansion_factor)
+                    + "-layer-"
+                    + str(self.cfg.hook_point_layer)
+            )
+        # Generate a random 8-character hex string
+        self.cfg.unique_hash = uuid.uuid4().hex[:8]
         self.cfg.run_name = self.cfg.unique_hash + "-" + self.cfg.wandb_project
 
         self.checkpoint_thresholds = self.get_checkpoint_thresholds()
         self.setup_checkpoint_path()
 
         self.cfg.pretty_print() if self.cfg.verbose else None
+
+        # TODO EdS: Evaluator should use the ActivationStore
+        self.evaluator = Evaluator(self.model, self.eval_dataset, self.cfg, visualize_eval_dataset)
 
     def set_default_attributes(self):
         """
@@ -121,57 +88,12 @@ class VisionSAETrainer:
         if eval_dataset is None:
             raise ValueError("Eval dataset is None")
         return VisionActivationsStore(
-            self.cfg,
-            self.model,
-            dataset,
-            eval_dataset=eval_dataset,
-            num_workers=self.cfg.num_workers,
+            self.cfg, self.model, dataset, eval_dataset=eval_dataset, num_workers=self.cfg.num_workers
         )
 
-    def load_dataset(self, model_type="clip"):
-        if self.cfg.dataset_name == "imagenet1k":
-            (
-                print(f"Dataset type: {self.cfg.dataset_name}")
-                if self.cfg.verbose
-                else None
-            )
-            # Imagenet-specific logic
-            from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
-            from vit_prisma.dataloaders.imagenet_dataset import (
-                ImageNetValidationDataset,
-            )
-
-            if model_type == "clip":
-                from vit_prisma.transforms.open_clip_transforms import (
-                    get_clip_val_transforms,
-                )
-
-                data_transforms = get_clip_val_transforms(self.cfg.image_size)
-            else:
-                raise ValueError("Invalid model type")
-            imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
-
-            train_data = torchvision.datasets.ImageFolder(
-                self.cfg.dataset_train_path, transform=data_transforms
-            )
-            val_data = ImageNetValidationDataset(
-                self.cfg.dataset_val_path,
-                imagenet_paths["label_strings"],
-                imagenet_paths["val_labels"],
-                data_transforms,
-            )
-            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
-            (
-                print(f"Validation data length: {len(val_data)}")
-                if self.cfg.verbose
-                else None
-            )
-            return train_data, val_data
-        else:
-            # raise error
-            raise ValueError("Invalid dataset name")
-
     def get_checkpoint_thresholds(self):
+        """These are the steps at which to save the checkpoints of the SAE."""
+
         if self.cfg.n_checkpoints > 0:
             return list(
                 range(
@@ -325,8 +247,8 @@ class VisionSAETrainer:
                     n_training_tokens,
                 )
 
-            # if self.cfg.log_to_wandb and ((n_training_steps + 1) % (self.cfg.wandb_log_frequency * 10) == 0):
-            #     self._run_evals(sparse_autoencoder, hyperparams, n_training_steps)
+            if self.cfg.log_to_wandb and self.cfg.training_eval.eval_frequency and ((n_training_steps + 1) % self.cfg.training_eval.eval_frequency == 0):
+                self.evaluator.evaluate(sparse_autoencoder, context=EvaluationContext.TRAINING)
 
         loss.backward()
 
@@ -359,9 +281,7 @@ class VisionSAETrainer:
             # needs to start with batch_size dimension
             _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
-            
 
-            print()
             sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
 
 
@@ -392,7 +312,7 @@ class VisionSAETrainer:
 
                 text_embeddings = get_text_embeddings_openclip(og_model, preproc, tokenizer, batch_label_names)
                 # print(f"text_embeddings: {text_embeddings.shape}")
-                score, model_loss, sae_recon_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
+                score, model_loss, sae_recon_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels,
                                                                           text_embeddings, device=self.cfg.device)
                 # log to w&b
                 # print(f"score: {score}")
@@ -560,21 +480,6 @@ class VisionSAETrainer:
 
         wandb.log(metrics, step=n_training_steps)
 
-    def _run_evals(self, sparse_autoencoder, hyperparams, n_training_steps):
-        sparse_autoencoder.eval()
-        suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
-        try:
-            run_evals_vision(
-                sparse_autoencoder,
-                self.activations_store,
-                self.model,
-                n_training_steps,
-                suffix=suffix,
-            )
-        except Exception as e:
-            print(f"Error in run_evals_vision: {e}")
-        sparse_autoencoder.train()
-
     def log_metrics(self, sae, hyperparams, metrics, n_training_steps):
         if self.cfg.log_to_wandb and (
             (n_training_steps + 1) % self.cfg.wandb_log_frequency == 0
@@ -635,7 +540,7 @@ class VisionSAETrainer:
         for field in fields(obj):
             value = getattr(obj, field.name)
             if is_dataclass(value):
-                result[field.name] = dataclass_to_dict(value)
+                result[field.name] = VisionSAETrainer.dataclass_to_dict(value)
             else:
                 result[field.name] = value
         return result
@@ -732,6 +637,9 @@ class VisionSAETrainer:
 
         if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
+
+        if self.cfg.post_training_eval.eval_frequency:
+            self.evaluator.evaluate(self.sae, context=EvaluationContext.POST_TRAINING)
 
         pbar.close()
 
