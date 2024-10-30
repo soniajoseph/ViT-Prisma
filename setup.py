@@ -13,9 +13,11 @@ install_requires = [
     'transformers', # Test dependency
     'scikit-learn', # Test dependency
     'datasets',
-    'line_profiler',   
+    'line_profiler',
     'matplotlib',
-    'wandb',    
+    'wandb',
+    'kaleido',
+    'open-clip-torch',
 ]
 
 setup(
