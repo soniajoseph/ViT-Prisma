@@ -137,7 +137,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     wandb_log_frequency: int = 10
 
     # Misc
-    n_validation_runs: int = 4 # spaced linearly throughout training
+    n_validation_runs: int = 100 # spaced linearly throughout training
     n_checkpoints: int = 10
     checkpoint_path: str = (
         "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
