@@ -360,7 +360,9 @@ class VisionSAETrainer:
             _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
             
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+
+            print()
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
 
 
             # Calculate cosine similarity between original activations and sae output
