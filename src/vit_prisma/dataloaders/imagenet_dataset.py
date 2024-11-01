@@ -48,7 +48,9 @@ def get_imagenet_transforms_clip(model_name, size=224):
         processor = ViTImageProcessor.from_pretrained(model_name)
     elif 'clip' in model_name.lower():
         from transformers import CLIPProcessor
-        processor = CLIPProcessor.from_pretrained(model_name).image_processor
+        print(f"model_name: {model_name}")
+        print(f"model_name[10:]: {model_name[10:]}")
+        processor = CLIPProcessor.from_pretrained(model_name[10:]).image_processor
     return transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
