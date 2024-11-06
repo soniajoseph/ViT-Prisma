@@ -353,6 +353,9 @@ class VisionSAETrainer:
     @torch.no_grad()
     def val(self, sparse_autoencoder):
         sparse_autoencoder.eval()
+
+        print("Running validation") if self.cfg.verbose else None
+
         for images, gt_labels in self.activations_store.image_dataloader_eval:
             images = images.to(self.cfg.device)
             gt_labels = gt_labels.to(self.cfg.device)
@@ -360,10 +363,16 @@ class VisionSAETrainer:
             _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
             
-
-            print()
             sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
 
+            # explained variance
+            sae_in = hook_point_activation
+            per_token_l2_loss = (sae_out - sae_in).pow(2).sum(dim=-1).squeeze()
+            total_variance = (sae_in - sae_in.mean(0)).pow(2).sum(-1)
+            explained_variance = 1 - per_token_l2_loss / total_variance
+
+            # L0
+            l0 = (feature_acts > 0).float().sum(-1).mean()
 
             # Calculate cosine similarity between original activations and sae output
             cos_sim = torch.cosine_similarity(einops.rearrange(hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"),
@@ -400,6 +409,10 @@ class VisionSAETrainer:
                 # print(f"subst_loss: {sae_recon_loss}")
                 # print(f"zero_abl_loss: {zero_abl_loss}")
 
+            # count += 1
+            # if count > self.cfg.max_val_points:
+            #     break
+
 
             # print(f"sae loss: {loss}")
             # print(f"sae loss.shape: {loss.shape}")
@@ -409,20 +422,22 @@ class VisionSAETrainer:
 
             wandb.log({
             # Original metrics
-            f"validation_losses/mse_loss": mse_loss,
-            f"validation_losses/substitution_score": score,
-            f"validation_losses/substitution_loss": sae_recon_loss,
-            
-            # # New image-level metrics
-            # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
-            # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
-            # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
-            # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
-            })  
+            f"validation_metrics/mse_loss": mse_loss,
+            f"validation_metrics/substitution_score": score,
+            f"validation_metrics/substitution_loss": sae_recon_loss,
+            f"validation_metrics/explained_variance": explained_variance.mean().item(),
+            f"validation_metrics/L0": l0,
+        
+        # # New image-level metrics
+        # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+        # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+        # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+        # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+        })  
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
-            break
+            break # Currently runs just one batch for efficiency
             
 
 

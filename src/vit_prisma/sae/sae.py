@@ -567,7 +567,7 @@ class SparseAutoencoder(HookedRootModule):
         # return instance
 
     @classmethod
-    def load_from_pretrained(cls, weights_path, current_cfg=None):
+    def load_from_pretrained(cls, weights_path, current_cfg=None, config_path=None):
         """
         Load function for the model. Can handle either:
         1. A single weights_path containing both config and weights (legacy format)

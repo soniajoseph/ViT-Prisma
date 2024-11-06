@@ -143,7 +143,7 @@ def load_model(cfg):
 
 def load_sae(cfg):
     sae_path = cfg.sae_path
-    config_path = sae_path.rsplit('/', 1)[0] + '/config.json'
+    config_path = os.path.dirname(sae_path) + '/config.json'
     config = VisionModelSAERunnerConfig.load_config(config_path)
     sae = SparseAutoencoder.load_from_pretrained(sae_path, config)
     return sae
@@ -575,66 +575,66 @@ def get_intervals_for_sparsities(log_freq):
     condition_texts[-1] = condition_texts[-1].replace('inf', '∞')
     return intervals, conditions, condition_texts
 
-def highest_activating_tokens(
-    images,
-    model,
-    sparse_autoencoder,
-    W_enc,
-    b_enc,
-    feature_ids: List[int],
-):
-    '''
-    Returns the indices & values for the highest-activating tokens in the given batch of data.
-    '''
-    with torch.no_grad():
-        # Get the post activations from the clean run
-        _, cache = model.run_with_cache(images)
+# def highest_activating_tokens(
+#     images,
+#     model,
+#     sparse_autoencoder,
+#     W_enc,
+#     b_enc,
+#     feature_ids: List[int],
+# ):
+#     '''
+#     Returns the indices & values for the highest-activating tokens in the given batch of data.
+#     '''
+#     with torch.no_grad():
+#         # Get the post activations from the clean run
+#         _, cache = model.run_with_cache(images)
 
-    inp = cache[sparse_autoencoder.cfg.hook_point]
-    b, seq_len, _ = inp.shape
-    post_reshaped = einops.rearrange(inp, "batch seq d_mlp -> (batch seq) d_mlp")
+#     inp = cache[sparse_autoencoder.cfg.hook_point]
+#     b, seq_len, _ = inp.shape
+#     post_reshaped = einops.rearrange(inp, "batch seq d_mlp -> (batch seq) d_mlp")
     
-    # Compute activations
-    sae_in = post_reshaped - sparse_autoencoder.b_dec
-    acts = einops.einsum(
-        sae_in,
-        W_enc,
-        "... d_in, d_in n -> ... n",
-    )
-    acts = acts + b_enc
-    acts = torch.nn.functional.relu(acts)
+#     # Compute activations
+#     sae_in = post_reshaped - sparse_autoencoder.b_dec
+#     acts = einops.einsum(
+#         sae_in,
+#         W_enc,
+#         "... d_in, d_in n -> ... n",
+#     )
+#     acts = acts + b_enc
+#     acts = torch.nn.functional.relu(acts)
 
-    # Reshape acts to (batch, seq, n_features)
-    acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
-    temp_top_indices = {}
-    # # The matrix already only contains features due to the selective W_enc you passed in
-    # for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
-    #     # Get activations for this feature across all tokens and images
-    #     feature_acts = acts_reshaped[:, :, idx].flatten()
+#     # Reshape acts to (batch, seq, n_features)
+#     acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
+#     temp_top_indices = {}
+#     # # The matrix already only contains features due to the selective W_enc you passed in
+#     # for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
+#     #     # Get activations for this feature across all tokens and images
+#     #     feature_acts = acts_reshaped[:, :, idx].flatten()
         
-    #     # Get top k activating tokens
-    #     top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+#     #     # Get top k activating tokens
+#     #     top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
 
-    #     # Convert flat indices to (image_idx, token_idx) pairs
-    #     image_indices = top_acts_indices // seq_len
-    #     token_indices = top_acts_indices % seq_len
+#     #     # Convert flat indices to (image_idx, token_idx) pairs
+#     #     image_indices = top_acts_indices // seq_len
+#     #     token_indices = top_acts_indices % seq_len
 
-    #     temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
+#     #     temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
 
-    temp_top_indices = {}
-    for idx, fid in enumerate(feature_ids):
-        feature_acts = acts_reshaped[:, :, idx].flatten()
-        top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+#     temp_top_indices = {}
+#     for idx, fid in enumerate(feature_ids):
+#         feature_acts = acts_reshaped[:, :, idx].flatten()
+#         top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
         
-        image_indices = top_acts_indices // seq_len
-        token_indices = top_acts_indices % seq_len
+#         image_indices = top_acts_indices // seq_len
+#         token_indices = top_acts_indices % seq_len
 
-        temp_top_indices[fid] = {
-            'image_indices': image_indices.tolist(),
-            'token_indices': token_indices.tolist(),
-            'values': top_acts_values.tolist()
-        }
-    return temp_top_indices
+#         temp_top_indices[fid] = {
+#             'image_indices': image_indices.tolist(),
+#             'token_indices': token_indices.tolist(),
+#             'values': top_acts_values.tolist()
+#         }
+#     return temp_top_indices
 
 torch.no_grad()
 def get_heatmap(
@@ -836,6 +836,8 @@ def compute_feature_activations(
     
     layer_activations = cache[sparse_autoencoder.cfg.hook_point]
     batch_size, seq_len, _ = layer_activations.shape
+
+    actual_top_k = min(top_k, batch_size) # Ensure top_k is not greater than batch size
     flattened_activations = einops.rearrange(layer_activations, "batch seq d_mlp -> (batch seq) d_mlp")
     
     sae_input = flattened_activations - sparse_autoencoder.b_dec
@@ -852,9 +854,9 @@ def compute_feature_activations(
     top_activations = {}
     for i, (feature_id, is_cls) in enumerate(zip(feature_ids, is_cls_list)):
         if is_cls:
-            top_values, top_indices = cls_token_activations[:, i].topk(top_k)
+            top_values, top_indices = cls_token_activations[:, i].topk(actual_top_k)
         else:
-            top_values, top_indices = mean_image_activations[:, i].topk(top_k)
+            top_values, top_indices = mean_image_activations[:, i].topk(actual_top_k)
         top_activations[feature_id] = (top_indices, top_values)
     
     return top_activations
@@ -1087,9 +1089,9 @@ if __name__ == '__main__':
 
     # The argument parser will overwrite the config
     parser = argparse.ArgumentParser(description="Evaluate sparse autoencoder")
-    parser.add_argument("--sae_path", type=str, 
-                        default='/network/scratch/s/sonia.joseph/models--Prisma-Multimodal--sparse-autoencoder-clip-b-32-sae-vanilla-x64-layer-9-hook_resid_post-l1-1e-05/snapshots/9ec4ff364c08d2413b59e8e87b55c07bd4f1096a/n_images_2600058.pt',
-                        help="Path to sparse autoencoder")
+    # parser.add_argument("--sae_path", type=str, 
+    #                     default='/network/scratch/s/sonia.joseph/models--Prisma-Multimodal--sparse-autoencoder-clip-b-32-sae-vanilla-x64-layer-9-hook_resid_post-l1-1e-05/snapshots/9ec4ff364c08d2413b59e8e87b55c07bd4f1096a/n_images_2600058.pt',
+    #                     help="Path to sparse autoencoder")
     parser.add_argument("--model_name", type=str, 
                         default="open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
                         help="Name of the model")
@@ -1106,13 +1108,115 @@ if __name__ == '__main__':
                         help="Path to the validation dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
-    parser.add_argument("--eval_max", type=int, default=1000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--eval_max", type=int, default=50000, help="Maximum number of samples to evaluate")
     parser.add_argument("--sampling_type", type=str, default="avg", help="Sampling type")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--samples_per_bin", type=int, default=10, help="Number of samples to collect per bin")
-    
+    parser.add_argument("--samples_per_bin", type=int, default=15, help="Number of samples to collect per bin")
+
+    total_sae_paths = [
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/a6ba5747-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ab363ace-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt", 
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/94e3805b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3a32d51a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_7800012.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/56d1ab26-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ab363ace-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bf63f410-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/db83f121-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d907025a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/af68edb8-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/28ec4b96-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/1a39f763-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/22dca4ec-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9ef7b8e8-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/114f4767-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/fda9e414-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5252bc6e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/6a138a20-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/59e1f177-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/83c140bb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d38623a4-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bd303dd0-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/223bf758-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/83c140bb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9c059a2a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ff7ab782-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/f514d05d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ff65f73a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/620eb161-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/1d7618a9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5e3210c6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/73ceebda-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3fab5610-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8a414224-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/56d59f69-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/13b6f055-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/63406ba2-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/708c90d9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/04e3ed1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/65eb3a6e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/66b0c8d7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d5ceb0cf-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/461cc8d6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4e03914d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/04e3ed1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4addbda6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/55b1e870-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8df4fa8f-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b9db1c7e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/071c1685-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/f02e630c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/eaf339d7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/60c3996a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/2413e6b3-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8b55b20a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3bcfb64c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/479a7895-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/486a0773-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d93798b6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/dc6936e7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3fe6b804-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5a049fac-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/abdf6c56-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/2f3ca24a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ebdc1bb3-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/38c9fccb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/cc914f28-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0197e57d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/cc619a60-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0ba5f368-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0b57d282-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/afb41428-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/47d37623-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4cee1e18-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/98fb20f7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/abfba51c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/98d43fdd-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bed22fdf-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d75890ba-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ea58200a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/eb1b4b72-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/78834fc6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/77257359-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5279f36d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/a36a9d1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/90a626d9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ea58200a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9ea217c7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b7182c0e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/25e63bd0-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b16677fa-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt"
+]
+
     args = parser.parse_args()
-    cfg = create_eval_config(args)
-    evaluate(cfg)
+
+
+    for sae_path in total_sae_paths:
+        print("Running evaluation for", sae_path)
+        
+
+        args.sae_path = sae_path
+        cfg = create_eval_config(args)
+        evaluate(cfg)
     
+        
 
