@@ -11,6 +11,10 @@ from tqdm import tqdm
 import einops
 from typing import List
 
+from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+
+from clip_circuits.sparse_feature_circuits.greedy_steering import utils
+
 
 import argparse
 
@@ -71,11 +75,12 @@ class EvalConfig(VisionModelSAERunnerConfig):
     device: bool = 'cuda'
 
     eval_max: int = 50_000 # Number of images to evaluate
-    batch_size: int = 32
+    batch_size: int = 64
 
     samples_per_bin: int = 10 # Number of features to sample per pre-specified interval
     max_images_per_feature: int = 20 # Number of max images to collect per feature
     
+    sampling_type: str = 'avg'
 
 
     @property
@@ -116,7 +121,8 @@ def create_eval_config(args):
         verbose=args.verbose,
         eval_max=args.eval_max,
         batch_size=args.batch_size,
-        samples_per_bin=args.samples_per_bin
+        samples_per_bin=args.samples_per_bin,
+        sampling_type=args.sampling_type,
 
     )
 
@@ -129,11 +135,18 @@ def load_model(cfg):
     model.eval()
     return model
 
+# def load_sae(cfg):
+#     sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
+#     sparse_autoencoder.to(cfg.device)
+#     sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who 
+#     return sparse_autoencoder
+
 def load_sae(cfg):
-    sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
-    sparse_autoencoder.to(cfg.device)
-    sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who 
-    return sparse_autoencoder
+    sae_path = cfg.sae_path
+    config_path = sae_path.rsplit('/', 1)[0] + '/config.json'
+    config = VisionModelSAERunnerConfig.load_config(config_path)
+    sae = SparseAutoencoder.load_from_pretrained(sae_path, config)
+    return sae
 
 def save_stats(sae_path, stats):
     # Unpack the stats tuple
@@ -178,30 +191,40 @@ def save_stats(sae_path, stats):
     print(f"Stats saved to {stats_path}")
 
 
-def load_dataset(cfg):
-    if cfg.model_type == 'clip':
-        data_transforms = get_imagenet_transforms_clip(cfg.model_name)
-    else:
-        raise ValueError("Invalid model type")
-    imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
-    # train_data = torchvision.datasets.ImageFolder(cfg.dataset_train_path, transform=data_transforms)
-    val_data = ImageNetValidationDataset(cfg.dataset_val_path, 
+def load_dataset(cfg, batch_size=4):
+    dataset_path = cfg.dataset_path
+    # dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
+    dataset_val_path = cfg.dataset_val_path
+    if 'clip' in cfg.model_name:
+        data_transforms = get_clip_val_transforms()
+    elif 'dino' in cfg.model_name: # dino transforms
+        print("Using DINO transforms")
+        data_transforms = transforms.Compose([
+transforms.Resize(256),  # Resize the image to 256x256 pixels
+transforms.CenterCrop(224),  # Crop the image to 224x224 pixels
+transforms.ToTensor(),  # Convert the image to a tensor
+transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize the image
+])
+    imagenet_paths = setup_imagenet_paths(dataset_path)
+    val_data = ImageNetValidationDataset(dataset_val_path, 
                                     imagenet_paths['label_strings'], 
                                     imagenet_paths['val_labels'], 
                                     data_transforms,
                                     return_index=True,
     )
-    val_data_visualize = ImageNetValidationDataset(cfg.dataset_val_path, 
-                                    imagenet_paths['label_strings'], 
-                                    imagenet_paths['val_labels'],
-                                    torchvision.transforms.Compose([
-        torchvision.transforms.Resize((224, 224)),
-        torchvision.transforms.ToTensor(),]), return_index=True)
+    # print(f"Train data length: {len(train_data)}") 
+    print(f"Validation data length: {len(val_data)}") 
+    return val_data
 
-    print(f"Validation data length: {len(val_data)}") if cfg.verbose else None
-    # activations_loader = VisionActivationsStore(cfg, model, train_data, eval_dataset=val_data)
-    val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=False, num_workers=4)
-    return val_data, val_data_visualize, val_dataloader
+def get_imagenet_val_dataset_visualize(cfg):
+    imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
+
+    return ImageNetValidationDataset(imagenet_paths['val'], 
+                                imagenet_paths['label_strings'], 
+                                imagenet_paths['val_labels'],
+                                torchvision.transforms.Compose([
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),]), return_index=True)
 
 def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_max=100):
     total_l0 = []
@@ -210,7 +233,7 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
             batch_tokens, labels, indices = next(iter(val_dataloader))
             batch_tokens = batch_tokens.to(cfg.device)
             _, cache = model.run_with_cache(batch_tokens, names_filter = sparse_autoencoder.cfg.hook_point)
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(
                 cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
             )
             del cache
@@ -236,54 +259,66 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
     print(f"Saved average l0 figure to {save_path}") if cfg.verbose else None
 
 
-# due to loading issues with laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90k
-def get_text_embeddings_openclip(vanilla_model, processor, tokenizer, original_text, batch_size=32):
-    # Split the text into batches
-    text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
+# # due to loading issues with laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90k
+# def get_text_embeddings_openclip(vanilla_model, processor, tokenizer, original_text, batch_size=32):
+#     # Split the text into batches
+#     text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
 
-    all_embeddings = []
+#     all_embeddings = []
 
-    for batch in text_batches:
-        inputs = tokenizer(batch)
-        # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
-        with torch.no_grad():
-            text_embeddings = vanilla_model.encode_text(inputs)
+#     for batch in text_batches:
+#         inputs = tokenizer(batch)
+#         # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+#         with torch.no_grad():
+#             text_embeddings = vanilla_model.encode_text(inputs)
 
-        text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
-        all_embeddings.append(text_embeddings)
+#         text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+#         all_embeddings.append(text_embeddings)
 
-    # Concatenate all batches
-    final_embeddings = torch.cat(all_embeddings, dim=0)
+#     # Concatenate all batches
+#     final_embeddings = torch.cat(all_embeddings, dim=0)
 
-    return final_embeddings
+#     return final_embeddings
 
 
-# this needs to be redone to not assume huggingface
-def get_text_embeddings(model_name, original_text, batch_size=32):
-    from transformers import CLIPProcessor, CLIPModel
-    vanilla_model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
+# # this needs to be redone to not assume huggingface
+# def get_text_embeddings(model_name, original_text, batch_size=32):
+#     from transformers import CLIPProcessor, CLIPModel
+#     # remove clip tag
+    
+#     model_name = open_clip.create_model_and_transforms('hf-hub:' + model_name.replace('open-clip:', ''))
+#     vanilla_model = CLIPModel.from_pretrained(model_name)
+#     processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
 
-    # Split the text into batches
-    text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
+#     # Split the text into batches
+#     text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
 
-    all_embeddings = []
+#     all_embeddings = []
 
-    for batch in text_batches:
-        inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
-        # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+#     for batch in text_batches:
+#         inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
+#         # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
 
-        with torch.no_grad():
-            text_embeddings = vanilla_model.get_text_features(**inputs)
+#         with torch.no_grad():
+#             text_embeddings = vanilla_model.get_text_features(**inputs)
 
-        text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
-        all_embeddings.append(text_embeddings)
+#         text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+#         all_embeddings.append(text_embeddings)
 
-    # Concatenate all batches
-    final_embeddings = torch.cat(all_embeddings, dim=0)
+#     # Concatenate all batches
+#     final_embeddings = torch.cat(all_embeddings, dim=0)
 
-    return final_embeddings
+#     return final_embeddings
 
+
+def get_text_embeddings(model_name, device):
+    model_simple_name = model_name.split("/")[-1]
+    text_embedding_path = f'/home/mila/s/sonia.joseph/cvpr-2025/src/clip_circuits/sparse_feature_circuits/greedy_steering/text_data/{model_simple_name}_text_embeddings.npy'
+    text_features = np.load(text_embedding_path)
+    print(f"Loading precomputed text embeddings from {text_embedding_path}...")
+    text_features = torch.tensor(text_features).to(device)
+    text_features = F.normalize(text_features)
+    return text_features
 
 @torch.no_grad()
 def get_substitution_loss(
@@ -369,7 +404,6 @@ def get_similarity(image_features, text_features, k=5, device='cuda'):
 
   softmax_values = (image_features @ text_features.T).softmax(dim=-1)
   top_k_values, top_k_indices = torch.topk(softmax_values, k, dim=-1)
-  print(f"top_k_values: {top_k_values}")
   return softmax_values, top_k_indices
 
 def get_text_labels(name='wordbank'):
@@ -433,8 +467,10 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
     model.eval()
     sparse_autoencoder.eval()
 
-    all_labels = get_text_labels('imagenet')
-    text_embeddings = get_text_embeddings(cfg.model_name, all_labels)
+    # all_labels = get_text_labels('imagenet')
+    # text_embeddings = get_text_embeddings(cfg.model_name, all_labels)
+
+    text_embeddings = get_text_embeddings(cfg.model_name, cfg.device)
 
     total_acts = None
     total_tokens = 0
@@ -452,7 +488,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
             _, cache = model.run_with_cache(batch_tokens, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
             
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
     
 
             # Calculate feature probability
@@ -767,12 +803,135 @@ def visualize_sparsities(cfg, log_freq_tokens, log_freq_images, conditions, cond
             )
 
 
+
+@torch.no_grad()
+def compute_feature_activations(
+    images: torch.Tensor,
+    model: torch.nn.Module,
+    sparse_autoencoder: torch.nn.Module,
+    encoder_weights: torch.Tensor,
+    encoder_biases: torch.Tensor,
+    feature_ids: List[int],
+    is_cls_list: List[bool],
+    top_k: int = 10,
+    sampling_type: str = 'avg'
+) -> Dict[int, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Compute the highest activating tokens for given features in a batch of images.
+    
+    Args:
+        images: Input images
+        model: The main model
+        sparse_autoencoder: The sparse autoencoder
+        encoder_weights: Encoder weights for selected features
+        encoder_biases: Encoder biases for selected features
+        feature_ids: List of feature IDs to analyze
+        feature_categories: Categories of the features
+        top_k: Number of top activations to return per feature
+
+    Returns:
+        Dictionary mapping feature IDs to tuples of (top_indices, top_values)
+    """
+    _, cache = model.run_with_cache(images, names_filter=[sparse_autoencoder.cfg.hook_point])
+    
+    layer_activations = cache[sparse_autoencoder.cfg.hook_point]
+    batch_size, seq_len, _ = layer_activations.shape
+    flattened_activations = einops.rearrange(layer_activations, "batch seq d_mlp -> (batch seq) d_mlp")
+    
+    sae_input = flattened_activations - sparse_autoencoder.b_dec
+    feature_activations = einops.einsum(sae_input, encoder_weights, "... d_in, d_in n -> ... n") + encoder_biases
+    feature_activations = torch.nn.functional.relu(feature_activations)
+    
+    reshaped_activations = einops.rearrange(feature_activations, "(batch seq) d_in -> batch seq d_in", batch=batch_size, seq=seq_len)
+    cls_token_activations = reshaped_activations[:, 0, :]
+    if sampling_type == 'avg':
+        mean_image_activations = reshaped_activations.mean(1)
+    else:
+        raise ValueError(f"Invalid sampling type: {sampling_type}, or not implemented yet")
+
+    top_activations = {}
+    for i, (feature_id, is_cls) in enumerate(zip(feature_ids, is_cls_list)):
+        if is_cls:
+            top_values, top_indices = cls_token_activations[:, i].topk(top_k)
+        else:
+            top_values, top_indices = mean_image_activations[:, i].topk(top_k)
+        top_activations[feature_id] = (top_indices, top_values)
+    
+    return top_activations
+
+def find_top_activations(
+    val_dataloader: torch.utils.data.DataLoader,
+    model: torch.nn.Module,
+    sparse_autoencoder: torch.nn.Module,
+    interesting_features_indices: List[int],
+    is_cls_list: List[bool],
+    top_k: int = 16,
+    max_samples= 50_000,
+    batch_size = 54, 
+    sampling_type = 'avg'
+) -> Dict[int, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Find the top activations for interesting features across the validation dataset.
+
+    Args:
+        val_dataloader: Validation data loader
+        model: The main model
+        sparse_autoencoder: The sparse autoencoder
+        interesting_features_indices: Indices of interesting features
+        interesting_features_category: Categories of interesting features
+
+    Returns:
+        Dictionary mapping feature IDs to tuples of (top_values, top_indices)
+    """
+    device = next(model.parameters()).device
+    top_activations = {i: (None, None) for i in interesting_features_indices}
+    encoder_biases = sparse_autoencoder.b_enc[interesting_features_indices]
+    encoder_weights = sparse_autoencoder.W_enc[:, interesting_features_indices]
+
+    processed_samples = 0
+    for batch_images, _, batch_indices in tqdm(val_dataloader, total=max_samples // batch_size):
+        batch_images = batch_images.to(device)
+        batch_indices = batch_indices.to(device)
+        batch_size = batch_images.shape[0]
+
+        batch_activations = compute_feature_activations(
+            batch_images, model, sparse_autoencoder, encoder_weights, encoder_biases,
+            interesting_features_indices, is_cls_list, top_k,
+            sampling_type=sampling_type,
+        )
+
+        for feature_id in interesting_features_indices:
+            new_indices, new_values = batch_activations[feature_id]
+            new_indices = batch_indices[new_indices]
+            
+            if top_activations[feature_id][0] is None:
+                top_activations[feature_id] = (new_values, new_indices)
+            else:
+                combined_values = torch.cat((top_activations[feature_id][0], new_values))
+                combined_indices = torch.cat((top_activations[feature_id][1], new_indices))
+                _, top_k_indices = torch.topk(combined_values, top_k)
+                top_activations[feature_id] = (combined_values[top_k_indices], combined_indices[top_k_indices])
+
+        processed_samples += batch_size
+        if processed_samples >= max_samples:
+            break
+
+    return {i: (values.detach().cpu(), indices.detach().cpu()) 
+            for i, (values, indices) in top_activations.items()}
+
+
+
 def evaluate(cfg):
+
+
     setup_environment()
     model = load_model(cfg)
     sparse_autoencoder = load_sae(cfg)
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
-    val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
+    val_data = load_dataset(cfg)
+    val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
+    val_data_visualize = get_imagenet_val_dataset_visualize(cfg)
+
     print("Loaded model and data") if cfg.verbose else None
 
     print("Processing dataset...")
@@ -815,57 +974,60 @@ def evaluate(cfg):
     print(set(interesting_features_category))
     print("Running through dataset to get top images per feature...")
     this_max = cfg.eval_max
-    max_indices = {i:None for i in interesting_features_indices}
-    max_values =  {i:None for i in interesting_features_indices} 
-    b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
-    W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
 
-    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
-        total_images = total_images.to(cfg.device)
-        total_indices = total_indices.to(cfg.device)
-        batch_size = total_images.shape[0]
+    # max_indices = {i:None for i in interesting_features_indices}
+    # max_values =  {i:None for i in interesting_features_indices} 
+    # b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
+    # W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
 
-        new_top_info = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices) # Return all
+    top_per_feature = find_top_activations(val_dataloader, model, sparse_autoencoder, interesting_features_indices, [False]*len(interesting_features_indices), cfg.max_images_per_feature, this_max, cfg.batch_size, cfg.sampling_type)
+
+    # for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
+        # total_images = total_images.to(cfg.device)
+        # total_indices = total_indices.to(cfg.device)
+        # batch_size = total_images.shape[0]
+
+        # new_top_info = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices) # Return all
         
-        for feature_id in interesting_features_indices:
-            feature_data = new_top_info[feature_id]
-            batch_image_indices = torch.tensor(feature_data['image_indices'])
-            token_indices = torch.tensor(feature_data['token_indices'])
-            token_activation_values = torch.tensor(feature_data['values'], device=cfg.device)
-            global_image_indices = total_indices[batch_image_indices]  # Get global indices 
+        # for feature_id in interesting_features_indices:
+        #     feature_data = new_top_info[feature_id]
+        #     batch_image_indices = torch.tensor(feature_data['image_indices'])
+        #     token_indices = torch.tensor(feature_data['token_indices'])
+        #     token_activation_values = torch.tensor(feature_data['values'], device=cfg.device)
+        #     global_image_indices = total_indices[batch_image_indices]  # Get global indices 
 
-            # get unique image_indices
-            # Get unique image indices and their highest activation values
-            unique_image_indices, unique_indices = torch.unique(global_image_indices, return_inverse=True)
-            unique_activation_values = torch.zeros_like(unique_image_indices, dtype=torch.float, device=cfg.device)
-            unique_activation_values.index_reduce_(0, unique_indices, token_activation_values, 'amax')
+        #     # get unique image_indices
+        #     # Get unique image indices and their highest activation values
+        #     unique_image_indices, unique_indices = torch.unique(global_image_indices, return_inverse=True)
+        #     unique_activation_values = torch.zeros_like(unique_image_indices, dtype=torch.float, device=cfg.device)
+        #     unique_activation_values.index_reduce_(0, unique_indices, token_activation_values, 'amax')
 
-            if max_indices[feature_id] is None: 
-                max_indices[feature_id] = unique_image_indices
-                max_values[feature_id] = unique_activation_values
-            else:
-                # Concatenate with existing data
-                all_indices = torch.cat((max_indices[feature_id], unique_image_indices))
-                all_values = torch.cat((max_values[feature_id], unique_activation_values))
+        #     if max_indices[feature_id] is None: 
+        #         max_indices[feature_id] = unique_image_indices
+        #         max_values[feature_id] = unique_activation_values
+        #     else:
+        #         # Concatenate with existing data
+        #         all_indices = torch.cat((max_indices[feature_id], unique_image_indices))
+        #         all_values = torch.cat((max_values[feature_id], unique_activation_values))
                 
-                # Get unique indices again (in case of overlap between batches)
-                unique_all_indices, unique_all_idx = torch.unique(all_indices, return_inverse=True)
-                unique_all_values = torch.zeros_like(unique_all_indices, dtype=torch.float)
-                unique_all_values.index_reduce_(0, unique_all_idx, all_values, 'amax')
+        #         # Get unique indices again (in case of overlap between batches)
+        #         unique_all_indices, unique_all_idx = torch.unique(all_indices, return_inverse=True)
+        #         unique_all_values = torch.zeros_like(unique_all_indices, dtype=torch.float)
+        #         unique_all_values.index_reduce_(0, unique_all_idx, all_values, 'amax')
                 
-                # Select top k
-                if len(unique_all_indices) > cfg.max_images_per_feature:
-                    _, top_k_idx = torch.topk(unique_all_values, k=cfg.max_images_per_feature)
-                    max_indices[feature_id] = unique_all_indices[top_k_idx]
-                    max_values[feature_id] = unique_all_values[top_k_idx]
-                else:
-                    max_indices[feature_id] = unique_all_indices
-                    max_values[feature_id] = unique_all_values
+        #         # Select top k
+        #         if len(unique_all_indices) > cfg.max_images_per_feature:
+        #             _, top_k_idx = torch.topk(unique_all_values, k=cfg.max_images_per_feature)
+        #             max_indices[feature_id] = unique_all_indices[top_k_idx]
+        #             max_values[feature_id] = unique_all_values[top_k_idx]
+        #         else:
+        #             max_indices[feature_id] = unique_all_indices
+        #             max_values[feature_id] = unique_all_values
 
-        if batch_idx*cfg.batch_size >= this_max:
-            break
+        # if batch_idx*cfg.batch_size >= this_max:
+        #     break
 
-    top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
+    # top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
     ind_to_name = get_imagenet_index_to_name()
 
     for feature_ids, cat, logfreq in tqdm(zip(top_per_feature.keys(), interesting_features_category, interesting_features_values), total=len(interesting_features_category)):
@@ -926,10 +1088,10 @@ if __name__ == '__main__':
     # The argument parser will overwrite the config
     parser = argparse.ArgumentParser(description="Evaluate sparse autoencoder")
     parser.add_argument("--sae_path", type=str, 
-                        default='/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/62fc4940-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-32/n_images_520028.pt',
+                        default='/network/scratch/s/sonia.joseph/models--Prisma-Multimodal--sparse-autoencoder-clip-b-32-sae-vanilla-x64-layer-9-hook_resid_post-l1-1e-05/snapshots/9ec4ff364c08d2413b59e8e87b55c07bd4f1096a/n_images_2600058.pt',
                         help="Path to sparse autoencoder")
     parser.add_argument("--model_name", type=str, 
-                        default="wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+                        default="open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
                         help="Name of the model")
     parser.add_argument("--model_type", type=str, default="clip", help="Type of the model")
     parser.add_argument("--patch_size", type=int, default=32, help="Patch size")
@@ -944,7 +1106,8 @@ if __name__ == '__main__':
                         help="Path to the validation dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
-    parser.add_argument("--eval_max", type=int, default=50_000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--eval_max", type=int, default=1000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--sampling_type", type=str, default="avg", help="Sampling type")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--samples_per_bin", type=int, default=10, help="Number of samples to collect per bin")
     
@@ -952,3 +1115,4 @@ if __name__ == '__main__':
     cfg = create_eval_config(args)
     evaluate(cfg)
     
+
