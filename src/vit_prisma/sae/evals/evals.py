@@ -13,8 +13,6 @@ from typing import List
 
 from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
 
-from clip_circuits.sparse_feature_circuits.greedy_steering import utils
-
 
 import argparse
 
