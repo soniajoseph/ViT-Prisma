@@ -15,6 +15,8 @@ class RunnerConfig(ABC):
     # Data Generating Function (Model + Training Distibuion)
     model_class_name: str = "HookedViT"
     model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
+    vit_model_cfg: Optional[ViTConfig] = None
+    model_path: str = None
     hook_point_layer: int = 9
     layer_subtype: str = "hook_resid_post"
     hook_point_head_index: Optional[int] = None
