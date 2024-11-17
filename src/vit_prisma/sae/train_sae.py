@@ -7,7 +7,7 @@ from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
 
 # from vit_prisma.sae.evals import run_evals_vision
-from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
+# from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
 
 from vit_prisma.dataloaders.imagenet_index import imagenet_index
 
@@ -66,7 +66,7 @@ class VisionSAETrainer:
         self.bad_run_check = (
             True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         )
-        self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
+        self.model = load_model(self.cfg, self.cfg.model_name)
         self.sae = SparseAutoencoder(self.cfg)
 
         dataset, eval_dataset = self.load_dataset()
@@ -136,7 +136,7 @@ class VisionSAETrainer:
                 else None
             )
             # Imagenet-specific logic
-            from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+            from vit_prisma.utils.data_utils.imagenet.imagenet_utils import setup_imagenet_paths
             from vit_prisma.dataloaders.imagenet_dataset import (
                 ImageNetValidationDataset,
             )
@@ -710,8 +710,8 @@ class VisionSAETrainer:
             )
 
 
-            if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
-                self.val(self.sae)
+            # if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
+            #     self.val(self.sae)
 
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
