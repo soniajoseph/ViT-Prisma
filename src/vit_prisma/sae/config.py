@@ -33,7 +33,7 @@ class RunnerConfig(ABC):
     d_in: int = 512
     activation_fn_str: str = "relu"  # relu or topk
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
-    cls_token_only: bool = False  # use only CLS token in training
+    cls_token_only: bool = True  # use only CLS token in training
 
     # SAE Training run tolerance
     min_l0 = None

@@ -607,6 +607,10 @@ class VisionSAETrainer:
         sae.set_decoder_norm_to_unit_norm()
         sae.save_model(path)
 
+        wandb.log({
+            "details/checkpoint_path": path,
+        })
+
         # Save log feature sparsity
         log_feature_sparsity_path = (
             self.cfg.checkpoint_path
