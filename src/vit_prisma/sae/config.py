@@ -71,7 +71,7 @@ class RunnerConfig(ABC):
         if self.cls_token_only:
             self.context_size = 1
             self.total_training_tokens: int = (
-                self.total_training_images * self.context_size
+                self.total_training_images * self.context_size * self.num_epochs
             )  # Images x tokens
 
     def pretty_print(self):
@@ -91,7 +91,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     Configuration for training a sparse autoencoder on a language model.
     """
 
-    architecture: Literal["standard", "gated", "jumprelu"] = "standard"
+    architecture: Literal["standard", "gated", "jumprelu"] = "gated"
 
     # Logging
     verbose: bool = False
@@ -124,7 +124,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     )
 
     # Resampling protocol args
-    use_ghost_grads: bool = True
+    use_ghost_grads: bool = False
     feature_sampling_window: int = 1000  # 1000
     dead_feature_window: int = 5000  # unless this window is larger feature sampling,
 
