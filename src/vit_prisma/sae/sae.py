@@ -656,7 +656,7 @@ class SparseAutoencoder(HookedRootModule):
 
         # Update loaded config with current config if provided
         if current_cfg is not None:
-            for key, value in vars(current_cfg).items():
+            for key, value in zip(current_cfg.keys(), current_cfg.values()):
                 if hasattr(loaded_cfg, key):
                     setattr(loaded_cfg, key, value)
 
