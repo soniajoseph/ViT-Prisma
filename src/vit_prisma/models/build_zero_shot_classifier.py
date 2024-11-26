@@ -38,6 +38,8 @@ def get_args_parser():
     return parser
 
 
+@torch.no_grad()
+@torch.cuda.amp.autocast()
 def zero_shot_classifier(model, tokenizer, classnames, templates, 
                          device, amp=True, use_format=False):
     """
@@ -63,17 +65,15 @@ def zero_shot_classifier(model, tokenizer, classnames, templates,
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
-    autocast = torch.cuda.amp.autocast
-    with torch.no_grad(), autocast():
-        zeroshot_weights = []
-        for classname in tqdm.tqdm(classnames, desc="Building zero-shot classifier"):
-            texts = [template.format(c=classname) if use_format else template(classname) for template in templates]
-            texts = tokenizer(texts).to(device)  # tokenize
-            class_embeddings = model.encode_text(texts)
-            class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
-            class_embedding /= class_embedding.norm()
-            zeroshot_weights.append(class_embedding)
-        zeroshot_weights = torch.stack(zeroshot_weights, dim=1).to(device)
+    zeroshot_weights = []
+    for classname in tqdm.tqdm(classnames, desc="Building zero-shot classifier"):
+        texts = [template.format(c=classname) if use_format else template(classname) for template in templates]
+        texts = tokenizer(texts).to(device)  # tokenize
+        class_embeddings = model.encode_text(texts)
+        class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
+        class_embedding /= class_embedding.norm()
+        zeroshot_weights.append(class_embedding)
+    zeroshot_weights = torch.stack(zeroshot_weights, dim=1).to(device)
     return zeroshot_weights
 
 def clean_model_name(model_name):
@@ -93,7 +93,7 @@ def clean_model_name(model_name):
     return cleaned_name
 
 
-def main(args):
+def build_zero_shot_classifier(args):
     """Calculates the classifier projection weights."""
     model, _, preprocess = open_clip.create_model_and_transforms(args.model_name)
     tokenizer = open_clip.get_tokenizer(args.model_name)
@@ -112,15 +112,17 @@ def main(args):
 
     clean_name = clean_model_name(args.model_name)
 
+    os.mkdir(args.output_dir)
 
     with open(os.path.join(args.output_dir, f'{args.dataset}_classifier_{clean_name}.npy'), 'wb') as f:
         np.save(f, classifier.detach().cpu().numpy())
         print(f"Saved classifier weights to {args.output_dir}/{args.dataset}_classifier_{clean_name}.npy")
 
+    return classifier
 
 if __name__ == '__main__':
     args = get_args_parser()
     args = args.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args)
+    build_zero_shot_classifier(args)
