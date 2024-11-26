@@ -112,7 +112,7 @@ def build_zero_shot_classifier(args):
 
     clean_name = clean_model_name(args.model_name)
 
-    os.mkdir(args.output_dir)
+    os.makedirs(args.output_dir, exist_ok=True )
 
     with open(os.path.join(args.output_dir, f'{args.dataset}_classifier_{clean_name}.npy'), 'wb') as f:
         np.save(f, classifier.detach().cpu().numpy())
