@@ -60,7 +60,7 @@ def train(
     if config.scheduler_type == "WarmupThenStepLR":
         scheduler = WarmupThenStepLR(optimizer, warmup_steps=config.warmup_steps, step_size=config.scheduler_step, gamma=config.scheduler_gamma)
     elif config.scheduler_type == "CosineAnnealing":
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, config.num_epochs)
+        scheduler = WarmupCosineAnnealingLR(optimizer, warmup_steps=config.warmup_steps, total_steps=int((config.num_epochs * len(train_dataset) / config.batch_size)))
     else:
         raise ValueError("Scheduler type {} not supported (only 'WarmupThenStep' and "
                          "'CosineAnnealing'")

@@ -7,24 +7,19 @@ Copyright (c) Sonia Joseph. All rights reserved.
 Inspired by TransformerLens. Some functions have been adapted from the TransformerLens project.
 For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
-
 import logging
-
-from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel, ViTModel
-
-import timm
-from vit_prisma.configs.HookedViTConfig import HookedViTConfig
-
-import torch
-
+from functools import partial
 from typing import Dict
-
-import einops
-
 from typing import Union
 
-# import partial
-from functools import partial
+import einops
+import timm
+import torch
+from tokenizers.models import Model
+from transformers import AutoConfig, ViTForImageClassification, VivitForVideoClassification, CLIPModel, ViTModel
+from vit_prisma.configs.HookedTextTransformerConfig import HookedTextTransformerConfig
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.utils.enums import ModelType
 
 try:
     from huggingface_hub import hf_hub_download
@@ -36,19 +31,20 @@ except ImportError:
 
 import json
 
+
 def convert_open_clip_weights(
-        old_state_dict,
-        cfg: HookedViTConfig,
-        device = 'cuda',
+    old_state_dict,
+    cfg: HookedViTConfig,
 ):
+    """Load the model weights from the vision encoder of Open CLIP models."""
+
     new_vision_model_state_dict = {}
 
     # Convert embedding layers
     new_vision_model_state_dict["cls_token"] = old_state_dict["visual.class_embedding"].unsqueeze(0).unsqueeze(0)
     new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["visual.positional_embedding"].clone()
 
-
-    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["visual.conv1.weight"] # Flatten convolutional embedding
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["visual.conv1.weight"]
     new_vision_model_state_dict["embed.proj.bias"] = torch.zeros((cfg.d_model,))
 
     # Convert layer norms
@@ -60,24 +56,66 @@ def convert_open_clip_weights(
 
     print("visual projection shape", old_state_dict["visual.proj"].shape)
 
+    new_vision_model_state_dict["head.W_H"] = old_state_dict['visual.proj']
+    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,))
 
-    #  print layernorm weights finral
+    old_layer_key = f"visual.transformer.resblocks"
+    new_vision_model_state_dict.update(_load_open_clip_attention_weights(old_state_dict, cfg, old_layer_key))
+
+    return new_vision_model_state_dict
+
+
+def convert_open_clip_text_weights(
+    old_state_dict,
+    cfg: HookedTextTransformerConfig,
+):
+    """Load the model weights from the text encoder of Open CLIP models."""
+
+    new_text_model_state_dict = {}
+
+    # Convert embedding layers
+    new_text_model_state_dict["token_embed.weight"] = old_state_dict["token_embedding.weight"]
+    new_text_model_state_dict["pos_embed"] = old_state_dict["positional_embedding"]
+
+    new_text_model_state_dict["ln_final.w"] = old_state_dict["ln_final.weight"]
+    new_text_model_state_dict["ln_final.b"] = old_state_dict["ln_final.bias"]
+
+    # Text projection
+    new_text_model_state_dict["head.W_H"] = old_state_dict["text_projection"]
+    new_text_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,))
+
+    old_layer_key = f"transformer.resblocks"
+    new_text_model_state_dict.update(_load_open_clip_attention_weights(old_state_dict, cfg, old_layer_key))
+
+    return new_text_model_state_dict
+
+
+def _load_open_clip_attention_weights(
+    old_state_dict: dict,
+    cfg: Union[HookedViTConfig, HookedTextTransformerConfig],
+    layer_key: str,
+):
+    """The Open CLIP text and vision attention weights are the same, this function
+    copies the weights to a dict with the correctly named keys for the Prisma models.
+    """
+
+    new_state_dict = dict()
 
     # Convert transformer blocks
     for layer in range(cfg.n_layers):
-        old_layer_key = f"visual.transformer.resblocks.{layer}"
         new_layer_key = f"blocks.{layer}"
+        old_layer_key = f"{layer_key}.{layer}"
 
         # Layer norms
-        new_vision_model_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{old_layer_key}.ln_1.weight"]
-        new_vision_model_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{old_layer_key}.ln_1.bias"]
-        new_vision_model_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{old_layer_key}.ln_2.weight"]
-        new_vision_model_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{old_layer_key}.ln_2.bias"]
+        new_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{old_layer_key}.ln_1.weight"]
+        new_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{old_layer_key}.ln_1.bias"]
+        new_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{old_layer_key}.ln_2.weight"]
+        new_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{old_layer_key}.ln_2.bias"]
 
         # Attention weights
         in_proj_weight = old_state_dict[f"{old_layer_key}.attn.in_proj_weight"]
         in_proj_bias = old_state_dict[f"{old_layer_key}.attn.in_proj_bias"]
-        
+
         # Split in_proj_weight and in_proj_bias into Q, K, V
         W_Q, W_K, W_V = in_proj_weight.chunk(3)
         b_Q, b_K, b_V = in_proj_bias.chunk(3)
@@ -86,7 +124,7 @@ def convert_open_clip_weights(
         W_Q = einops.rearrange(W_Q, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
         W_K = einops.rearrange(W_K, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
         W_V = einops.rearrange(W_V, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        
+
         # Reshape Q, K, V biases
         b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
         b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
@@ -97,14 +135,14 @@ def convert_open_clip_weights(
         b_O = old_state_dict[f"{old_layer_key}.attn.out_proj.bias"]
         W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
 
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+        new_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
+        new_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
+        new_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
+        new_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+        new_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
+        new_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
+        new_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
+        new_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
 
         # MLP weights
         mlp_W_in = old_state_dict[f"{old_layer_key}.mlp.c_fc.weight"]
@@ -115,20 +153,13 @@ def convert_open_clip_weights(
         mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
         mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
 
-        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
-        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
-        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
-        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+        new_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
+        new_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
+        new_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
+        new_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
 
-    # Set W_H to be an identity matrix
-    new_vision_model_state_dict["head.W_H"] = old_state_dict['visual.proj']
-    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,))
+    return new_state_dict
 
-    # print("checking awry index again")
-    # print(new_vision_model_state_dict["pos_embed.W_pos"].flatten()[8474])
-    # print(old_state_dict["visual.positional_embedding"].flatten()[8474])
-
-    return new_vision_model_state_dict
 
 def convert_dino_weights(
         old_state_dict,
@@ -460,21 +491,29 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
     return new_state_dict
 
 
-def convert_open_clip_config(model_cfg):
-    cfg = HookedViTConfig()
-    cfg.d_model = model_cfg['vision_cfg']['width']
-    cfg.n_layers = model_cfg['vision_cfg']['layers']
-    cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-    cfg.image_size = model_cfg['vision_cfg']['image_size']
+def convert_open_clip_config(model_cfg: dict, model_type: ModelType = ModelType.VISION):
+    if model_type == ModelType.TEXT:
+        cfg = HookedTextTransformerConfig()
+        cfg.d_model = model_cfg['text_cfg']['width']
+        cfg.n_layers = model_cfg['text_cfg']['layers']
+        cfg.context_length = model_cfg['text_cfg']['context_length']
+        cfg.vocab_size = model_cfg['text_cfg']['vocab_size']
+        cfg.n_heads = model_cfg['text_cfg']['heads']
+        cfg.use_cls_token = False
+    else:
+        cfg = HookedViTConfig()
+        cfg.d_model = model_cfg['vision_cfg']['width']
+        cfg.n_layers = model_cfg['vision_cfg']['layers']
+        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+        cfg.image_size = model_cfg['vision_cfg']['image_size']
+        cfg.use_cls_token = True
     cfg.d_mlp = cfg.d_model * 4
-    cfg.n_heads = 12
     cfg.d_head = cfg.d_model // cfg.n_heads
     cfg.n_classes = model_cfg['embed_dim'] # This is the projection dimensionality
     cfg.return_type = None
     cfg.layer_norm_pre = True
     cfg.eps = 1e-5
     cfg.normalization_type = "LN"
-    cfg.use_cls_token = True
     cfg.normalize_output = True
     return cfg
 
@@ -487,6 +526,7 @@ def get_pretrained_state_dict(
     hf_model=None,
     dtype: torch.dtype = torch.float32,
     return_old_state_dict=False,
+    model_type=ModelType.VISION,
     **kwargs,
 ) -> Dict[str, torch.Tensor]:
     """
@@ -525,7 +565,10 @@ def get_pretrained_state_dict(
             print("Converting OpenCLIP weights")
             checkpoint_path = download_pretrained_from_hf(remove_open_clip_prefix(official_model_name), filename='open_clip_pytorch_model.bin')
             old_state_dict = load_state_dict(checkpoint_path)
-            state_dict = convert_open_clip_weights(old_state_dict, cfg)
+            if model_type == ModelType.VISION:
+                state_dict = convert_open_clip_weights(old_state_dict, cfg)
+            else:
+                state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
         elif is_clip:
             full_model = hf_model if hf_model is not None else CLIPModel.from_pretrained(official_model_name)
             for param in full_model.parameters():
@@ -558,13 +601,18 @@ def get_pretrained_state_dict(
 
             # Load model weights, and fold in layer norm weights
                 
-
         return state_dict
 
-    except:
+
+    except Exception as e:
+
         raise ValueError(
-            f"Loading weights from the architecture is not currently supported: {cfg.original_architecture}, generated from model name {cfg.model_name}. Feel free to open an issue on GitHub to request this feature."
-        )
+
+            f"Loading weights from the architecture is not currently supported: "
+            f"{cfg.original_architecture}, generated from model name {cfg.model_name}. "
+            f"Feel free to open an issue on GitHub to request this feature."
+
+        ) from e
 
 def fill_missing_keys(model, state_dict):
     """Takes in a state dict from a pretrained model, and fills in any missing keys with the default initialization.
@@ -601,7 +649,7 @@ def remove_open_clip_prefix(text, prefix="open-clip:"):
         return text[len(prefix):]
     return text 
 
-def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
+def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False, model_type=ModelType.VISION) -> HookedViTConfig:
     
     if 'dino' in model_name:
         is_timm = False
@@ -615,7 +663,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             config = json.load(f)
             pretrained_cfg = config['preprocess_cfg']
             hf_config = config['model_cfg']
-        hf_config = convert_open_clip_config(hf_config)
+        hf_config = convert_open_clip_config(hf_config, model_type=model_type)
         return hf_config
     elif is_clip: # Extract vision encoder from dual-encoder CLIP model. HF models
         hf_config = AutoConfig.from_pretrained(model_name).vision_config

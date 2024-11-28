@@ -8,16 +8,13 @@ Inspired by TransformerLens. Some functions have been adapted from the Transform
 For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
 
+import logging
+from contextlib import contextmanager
 from typing import Dict, Optional, Tuple, Union, Callable, Sequence, List
 
-from jaxtyping import Float, Int
-
-import torch.nn as nn 
+import torch.nn as nn
 from vit_prisma.prisma_tools.hook_point import HookPoint
-
-import logging
-
-from contextlib import contextmanager
+from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict
 
 
 NamesFilter = Optional[Union[Callable[[str], bool], Sequence[str]]]
@@ -294,8 +291,3 @@ class HookedRootModule(nn.Module):
                     bwd_hooks.append((name, _save_hook_back))
         
         return cache, fwd_hooks, bwd_hooks
-
-
-
-    
-

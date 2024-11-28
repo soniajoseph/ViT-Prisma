@@ -8,57 +8,34 @@ Inspired by TransformerLens. Some functions have been adapted from the Transform
 For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
 import os
-
-import logging
-
-import torch
-import torch.nn as nn
-
-from transformers import ViTForImageClassification, ViTConfig
-
-from vit_prisma.models.layers.patch_embedding import PatchEmbedding, TubeletEmbedding
-from vit_prisma.models.layers.position_embedding import PosEmbedding
-from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
-from vit_prisma.models.layers.mlp import MLP
-from vit_prisma.models.layers.attention import Attention
-from vit_prisma.models.layers.transformer_block import TransformerBlock, BertBlock
-from vit_prisma.models.layers.head import Head
-
-from vit_prisma.training.training_dictionary import activation_dict, initialization_dict
-# from vit_prisma.models.prisma_net import PrismaNet
-from vit_prisma.prisma_tools.hook_point import HookPoint
-from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-
-from vit_prisma.configs import HookedViTConfig
-
-from vit_prisma.prisma_tools.activation_cache import ActivationCache
-
-from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, fill_missing_keys
-from vit_prisma.utils.prisma_utils import transpose
-
-from vit_prisma.utils import devices
-from vit_prisma.prisma_tools import FactoredMatrix
-
-from typing import Union, Dict, List, Tuple, Optional, Literal
-
-from jaxtyping import Float, Int
+from typing import Union, Dict, Tuple, Optional
 
 import einops
-from fancy_einsum import einsum
-
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
- 
+from fancy_einsum import einsum
+from jaxtyping import Float
+from transformers import ViTConfig
 
-DTYPE_FROM_STRING = {
-    "float32": torch.float32,
-    "fp32": torch.float32,
-    "float16": torch.float16,
-    "fp16": torch.float16,
-    "bfloat16": torch.bfloat16,
-    "bf16": torch.bfloat16,
-}
+from vit_prisma.configs import HookedViTConfig
+from vit_prisma.models.base_transformer import HookedTransformer
+from vit_prisma.models.layers.attention import Attention
+from vit_prisma.models.layers.head import Head
+from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
+from vit_prisma.models.layers.mlp import MLP
+from vit_prisma.models.layers.patch_embedding import PatchEmbedding, TubeletEmbedding
+from vit_prisma.models.layers.position_embedding import PosEmbedding
+from vit_prisma.models.layers.transformer_block import TransformerBlock, BertBlock
+from vit_prisma.prisma_tools import FactoredMatrix
+from vit_prisma.prisma_tools.activation_cache import ActivationCache
+from vit_prisma.prisma_tools.hook_point import HookPoint
+from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
+from vit_prisma.utils import devices
+from vit_prisma.utils.prisma_utils import transpose
 
-class HookedViT(HookedRootModule):
+
+class HookedViT(HookedTransformer):
     """
     Base vision model.
     Based on 'An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale' https://arxiv.org/abs/2010.11929.
@@ -67,9 +44,8 @@ class HookedViT(HookedRootModule):
     """
 
     def __init__(
-            self,
-            cfg: HookedViTConfig,
-            move_to_device: bool = True,
+        self,
+        cfg: HookedViTConfig,
     ):
         """
         Model initialization
@@ -624,77 +600,6 @@ class HookedViT(HookedRootModule):
 
         return state_dict
 
-    def load_and_process_state_dict(
-        self,
-        state_dict: Dict[str, torch.Tensor],
-        fold_ln: Optional[bool] = True,
-        center_writing_weights: Optional[bool] = True,
-        fold_value_biases: Optional[bool] = True,
-        refactor_factored_attn_matrices: Optional[bool] = False,
-    ):
-        """Load & Process State Dict.
-
-        Load a state dict into the model, and to apply processing to simplify it. The state dict is
-        assumed to be in the HookedTransformer format.
-
-        See the relevant method (same name as the flag) for more details on the folding, centering
-        and processing flags.
-
-        Args:
-            state_dict (dict): The state dict of the model, in HookedTransformer format. fold_ln
-            fold_ln (bool, optional): Whether to fold in the LayerNorm weights to the
-                subsequent linear layer. This does not change the computation. Defaults to True.
-            center_writing_weights (bool, optional): Whether to center weights writing to the
-                residual stream (ie set mean to be zero). Due to LayerNorm this doesn't change the
-                computation. Defaults to True.
-            fold_value_biases (bool, optional): Whether to fold the value biases into the output
-                bias. Because attention patterns add up to 1, the value biases always have a
-                constant effect on a layer's output, and it doesn't matter which head a bias is
-                associated with. We can factor this all into a single output bias to the layer, and
-                make it easier to interpret the head's output.
-            refactor_factored_attn_matrices (bool, optional): Whether to convert the factored
-                matrices (W_Q & W_K, and W_O & W_V) to be "even". Defaults to False.
-            model_name (str, optional): checks the model name for special cases of state dict
-                loading. Only used for Redwood 2L model currently.
-        """
-        if self.cfg.dtype not in [torch.float32, torch.float64] and fold_ln:
-            logging.warning(
-                "With reduced precision, it is advised to use `from_pretrained_no_processing` instead of `from_pretrained`."
-            )
-
-        state_dict = fill_missing_keys(self, state_dict)
-        if fold_ln:
-            if self.cfg.normalization_type in ["LN", "LNPre"]:
-                state_dict = self.fold_layer_norm(state_dict)
-            elif self.cfg.normalization_type in ["RMS", "RMSPre"]:
-                state_dict = self.fold_layer_norm(
-                    state_dict, fold_biases=False, center_weights=False
-                )
-            else:
-                logging.warning(
-                    "You are not using LayerNorm or RMSNorm, so the layer norm weights can't be folded! Skipping"
-                )
-
-        if center_writing_weights:
-            if self.cfg.normalization_type not in ["LN", "LNPre"]:
-                logging.warning(
-                    "You are not using LayerNorm, so the writing weights can't be centered! Skipping"
-                )
-            elif self.cfg.final_rms:
-                logging.warning(
-                    "This model is using final RMS normalization, so the writing weights can't be centered! Skipping"
-                )
-            else:
-                state_dict = self.center_writing_weights(state_dict)
-
-        if fold_value_biases:
-            state_dict = self.fold_value_biases(state_dict)
-
-        if refactor_factored_attn_matrices:
-            state_dict = self.refactor_factored_attn_matrices(state_dict)
-
-        self.load_state_dict(state_dict, strict=False)
-
     def cuda(self):
         """Wrapper around cuda that also changes `self.cfg.device`."""
         return self.to("cuda")
@@ -731,91 +636,6 @@ class HookedViT(HookedRootModule):
         else:
             raise Exception("Attempting to load a Prisma ViT but no file was found at "
                             f"{checkpoint_path}")
-
-    @classmethod
-    def from_pretrained(
-        cls, 
-        model_name: str,
-        is_timm: bool = True,
-        is_clip: bool = False,
-        fold_ln: Optional[bool] = True,
-        center_writing_weights: Optional[bool] = True,
-        refactor_factored_attn_matrices: Optional[bool] = False,
-        checkpoint_index: Optional[int] = None,
-        checkpoint_value: Optional[int] = None,
-        hf_model: Optional[ViTForImageClassification] = None,
-        device: Optional[Union[str, torch.device]] = None,
-        n_devices: Optional[int] = 1,
-        move_to_device: Optional[bool] = True,
-        fold_value_biases: Optional[bool] = True,
-        default_prepend_bos: Optional[bool] = True,
-        default_padding_side: Optional[Literal["left", "right"]] = "right",
-        dtype="float32",
-        use_attn_result: Optional[bool] = False,
-        **from_pretrained_kwargs,
-    ) -> "HookedViT":
-        assert not (
-            from_pretrained_kwargs.get("load_in_8bit", False)
-            or from_pretrained_kwargs.get("load_in_4bit", False)
-        ), "Quantization not supported"
-
-        if isinstance(dtype, str):
-            # Convert from string to a torch dtype
-            dtype = DTYPE_FROM_STRING[dtype]
-
-        if "torch_dtype" in from_pretrained_kwargs:
-            # For backwards compatibility with the previous way to do low precision loading
-            # This should maybe check the user did not explicitly set dtype *and* torch_dtype
-            dtype = from_pretrained_kwargs["torch_dtype"]
-
-        if (
-            (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
-            or dtype == torch.float16
-        ) and device in ["cpu", None]:
-            logging.warning(
-                "float16 models may not work on CPU. Consider using a GPU or bfloat16."
-            )
-
-        # Set up other parts of transformer
-        cfg = convert_pretrained_model_config(
-            model_name,
-            is_timm=is_timm,
-            is_clip=is_clip,
-        )
-
-        state_dict = get_pretrained_state_dict(
-            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, return_old_state_dict=True, **from_pretrained_kwargs
-        )
-
-        model = cls(cfg, move_to_device=False)
-
-        # set false if openclip; not working properly
-        if is_clip and model_name.startswith("open-clip"):
-            center_writing_weights=False
-            print("Setting center_writing_weights to False for OpenCLIP")
-            fold_ln = False
-            print("Setting fold_ln to False for OpenCLIP")
-
-        model.load_and_process_state_dict(
-            state_dict,
-            fold_ln=fold_ln,
-            center_writing_weights=center_writing_weights,
-            fold_value_biases=fold_value_biases,
-            refactor_factored_attn_matrices=refactor_factored_attn_matrices,
-        )
-
-
-
-        # Set up other parameters
-        model.set_use_attn_result(use_attn_result)
-
-
-        if move_to_device:
-            model.move_model_modules_to_device()
-
-        print(f"Loaded pretrained model {model_name} into HookedTransformer")
-
-        return model
 
     def set_use_attn_result(self, use_attn_result: bool):
         """Toggle whether to explicitly calculate and expose the result for each attention head.
