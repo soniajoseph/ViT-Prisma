@@ -49,7 +49,7 @@ class SparseAutoencoder(HookedRootModule):
         self.initialization_method = cfg.initialization_method
 
 
-        
+
         # Initialize weights based on the chosen method
         if self.cfg.architecture == "standard":
             if self.initialization_method == "independent":
@@ -128,11 +128,11 @@ class SparseAutoencoder(HookedRootModule):
 
 
         self.activation_fn = get_activation_fn(
-                self.cfg.activation_fn_str, **self.cfg.activation_fn_kwargs 
-            ) 
+                self.cfg.activation_fn_str, **self.cfg.activation_fn_kwargs
+            )
 
         self.setup()  # Required for `HookedRootModule`s
-        
+
 
     def initialize_weights_gated(self):
         self.W_enc = nn.Parameter(
@@ -171,29 +171,29 @@ class SparseAutoencoder(HookedRootModule):
     def initialize_weights(self, out_features, in_features):
         """
         Initialize weights for the Sparse Autoencoder.
-        
+
         This function uses Kaiming uniform initialization and then normalizes
         the weights to have unit normls
          along the output dimension.
-        
+
         Args:
         out_features (int): Number of output features
         in_features (int): Number of input features
-        
+
         Returns:
         torch.Tensor: Initialized weight matrix
         """
         weight = torch.empty(out_features, in_features, dtype=self.dtype, device=self.device)
-        
+
         # Kaiming uniform initialization
         nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
-        
+
         # Normalize to unit norm along output dimension
         with torch.no_grad():
             weight /= torch.norm(weight, dim=1, keepdim=True)
-        
+
         return weight
-    
+
 
     def encode_gated(self, x: torch.Tensor):
 
@@ -214,7 +214,7 @@ class SparseAutoencoder(HookedRootModule):
         feature_acts = self.hook_hidden_post(active_features * feature_magnitudes)
 
         return sae_in, feature_acts
-    
+
 
     def encode_standard(self, x: torch.Tensor):
         # move x to correct dtype
@@ -248,7 +248,7 @@ class SparseAutoencoder(HookedRootModule):
             sae_in, feature_acts = self.encode_gated(x)
         else:
             raise ValueError(f"Architecture: {self.cfg.architecture} is not supported.")
-        
+
         sae_out = self.hook_sae_out(
             einops.einsum(
                 feature_acts,
@@ -266,7 +266,7 @@ class SparseAutoencoder(HookedRootModule):
         mse_loss = torch.nn.functional.mse_loss(sae_out, x.detach(), reduction='none')
         norm_factor = torch.norm(x_centred, p=2, dim=-1, keepdim=True)
         mse_loss = mse_loss / norm_factor
- 
+
         if self.zero_loss is None:
             self.zero_loss = torch.tensor(0.0, dtype=self.dtype, device=self.device)
         # gate on config and training so evals is not slowed down.
@@ -304,7 +304,7 @@ class SparseAutoencoder(HookedRootModule):
 
         mse_loss = mse_loss.mean()
         sparsity = feature_acts.norm(p=self.lp_norm, dim=1).mean(dim=(0,))
-        
+
         if self.cfg.architecture == "standard":
             aux_reconstruction_loss = torch.tensor(0.0)
 
@@ -335,7 +335,7 @@ class SparseAutoencoder(HookedRootModule):
 
 
         return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid, aux_reconstruction_loss
-    
+
 
 
     @torch.no_grad()
@@ -476,7 +476,7 @@ class SparseAutoencoder(HookedRootModule):
         This method can be called directly on the class, without needing an instance.
         """
         from vit_prisma.sae.sae_utils import map_legacy_sae_lens_2_to_prisma_repo
-        
+
 
         # Ensure the file exists
         if not os.path.isfile(path):
@@ -512,8 +512,8 @@ class SparseAutoencoder(HookedRootModule):
             model_state_dict = state_dict['autoencoder']['state_dict']
         else:
             raise ValueError("The loaded state dictionary must contain 'config' and 'autoencoder' keys")
-        
-        
+
+
         mapped_config = map_legacy_sae_lens_2_to_prisma_repo(old_config)
 
         # Remove any fields that are not in VisionModelSAERunnerConfig
@@ -573,7 +573,7 @@ class SparseAutoencoder(HookedRootModule):
         1. A single weights_path containing both config and weights (legacy format)
         2. Separate config_path and weights_path
         3. HuggingFace-style paths
-        
+
         Args:
             weights_path (str): Path to weights file or HuggingFace repo ID
             config_path (str, optional): Path to config.json file. If None, will look for config in weights_path
@@ -633,7 +633,7 @@ class SparseAutoencoder(HookedRootModule):
                 raise FileNotFoundError(
                     f"No config file found at {config_path} and no legacy format detected"
                 )
-        
+
             # Load config and weights separately
             loaded_cfg = load_config_from_json(config_path)
             weights = state_dict if not is_legacy else state_dict["state_dict"]

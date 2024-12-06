@@ -1,11 +1,11 @@
+import json
+import math
 from abc import ABC
 from dataclasses import fields, field, asdict, dataclass
-import json
-from typing import Any, Optional, cast, Literal
-
-from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from typing import Any, Optional, Literal
 
 import torch
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
 
 @dataclass
@@ -66,6 +66,8 @@ class RunnerConfig(ABC):
     def __post_init__(self):
         self.hook_point = f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
 
+        self.num_patch = int(math.sqrt(self.context_size - 1))
+
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
@@ -92,7 +94,7 @@ class RunnerConfig(ABC):
 @dataclass
 class VisionModelSAERunnerConfig(RunnerConfig):
     """
-    Configuration for training a sparse autoencoder on a language model.
+    Configuration for training a sparse autoencoder on a vision model.
     """
 
     architecture: Literal["standard", "gated", "jumprelu"] = "gated"
