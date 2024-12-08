@@ -44,6 +44,8 @@ def convert_kandinsky_clip_weights(
 ):
     new_vision_model_state_dict = {}
 
+    print("Convering Kandinsky Clip weights")
+
     # Print sizes to verify
     print("Class embedding shape:", old_state_dict["vision_model.embeddings.class_embedding"].shape)
     print("Position embedding shape:", old_state_dict["vision_model.embeddings.position_embedding.weight"].shape)
@@ -67,6 +69,7 @@ def convert_kandinsky_clip_weights(
     print("visual projection shape", old_state_dict["visual_projection.weight"].shape)
 
     # Convert transformer blocks
+    print("doing number of layers", cfg.n_layers)
     for layer in range(cfg.n_layers):
         old_layer_key = f"vision_model.encoder.layers.{layer}"
         new_layer_key = f"blocks.{layer}"
@@ -79,7 +82,7 @@ def convert_kandinsky_clip_weights(
 
         # Attention weights
         W_Q = old_state_dict[f"{old_layer_key}.self_attn.q_proj.weight"]
-        W_K = old_state_dict[f"{old_layer_key}.self_attn.k_proj.weight"]
+        W_K = old_state_dict[f"{old_layer_key}.self_attn.k_proj.weight"] 
         W_V = old_state_dict[f"{old_layer_key}.self_attn.v_proj.weight"]
         
         b_Q = old_state_dict[f"{old_layer_key}.self_attn.q_proj.bias"]
@@ -125,7 +128,7 @@ def convert_kandinsky_clip_weights(
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
 
     # Set final projection
-    new_vision_model_state_dict["head.W_H"] = old_state_dict['visual_projection.weight']
+    new_vision_model_state_dict["head.W_H"] = old_state_dict['visual_projection.weight'].T
     new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,))
 
     return new_vision_model_state_dict
@@ -621,6 +624,17 @@ def get_pretrained_state_dict(
             checkpoint_path = download_pretrained_from_hf(remove_open_clip_prefix(official_model_name), filename='open_clip_pytorch_model.bin')
             old_state_dict = load_state_dict(checkpoint_path)
             state_dict = convert_open_clip_weights(old_state_dict, cfg)
+        elif is_clip and official_model_name.startswith("kandinsky"):
+            print("Converting Kandinsky weights")
+            from transformers import CLIPVisionModelWithProjection
+            hf_model = CLIPVisionModelWithProjection.from_pretrained(
+                'kandinsky-community/kandinsky-2-1-prior',
+                subfolder='image_encoder',
+                torch_dtype=torch.float16,
+                cache_dir = '/network/scratch/s/sonia.joseph/diffusion'
+            ).to("cuda")
+            old_state_dict = hf_model.state_dict()
+            state_dict = convert_kandinsky_clip_weights(old_state_dict, cfg)
         elif is_clip:
             full_model = hf_model if hf_model is not None else CLIPModel.from_pretrained(official_model_name)
             for param in full_model.parameters():
@@ -713,6 +727,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
         hf_config = convert_open_clip_config(hf_config)
         return hf_config
     elif is_clip and model_name.startswith("kandinsky"):
+        from types import SimpleNamespace
         hf_config = {"_name_or_path": "kandinsky-community/kandinsky-2-1-prior",
                 "architectures": [
                     "CLIPVisionModelWithProjection"
@@ -732,9 +747,10 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                 "num_hidden_layers": 24,
                 "patch_size": 14,
                 "projection_dim": 768,
-                "torch_dtype": "float32",
                 "transformers_version": "4.39.3"
                 }
+        hf_config = SimpleNamespace(**hf_config)
+        print("HF config:", hf_config)
     elif is_clip: # Extract vision encoder from dual-encoder CLIP model. HF models
         hf_config = AutoConfig.from_pretrained(model_name).vision_config
         hf_config.architecture = 'vit_clip_vision_encoder'
@@ -761,7 +777,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                     'n_channels' : hf_config.num_channels,
                     'patch_size' : ps,
                     'image_size' : hf_config.image_size,
-                    'n_classes' : getattr(hf_config, "num_classes", None),
+                    'n_classes': getattr(hf_config, "num_classes", getattr(hf_config, "projection_dim", None)),
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
                 }
     
@@ -812,7 +828,8 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                 "return_type": "class_logits"
             })
     
-    return HookedViTConfig.from_dict(pretrained_config)
+    config = HookedViTConfig.from_dict(pretrained_config)
+    return config
 
 
 def has_hf_hub(necessary=False):
