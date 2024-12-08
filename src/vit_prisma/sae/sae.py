@@ -209,7 +209,7 @@ class SparseAutoencoder(HookedRootModule):
         # Magnitude path with weight sharing
         magnitude_pre_activation = sae_in @ (self.W_enc * self.r_mag.exp()) + self.b_mag
 
-        feature_magnitudes = torch.relu(magnitude_pre_activation)
+        feature_magnitudes = self.activation_fn(magnitude_pre_activation)
 
         feature_acts = self.hook_hidden_post(active_features * feature_magnitudes)
 
@@ -317,13 +317,20 @@ class SparseAutoencoder(HookedRootModule):
 
         elif self.cfg.architecture == "gated":
             pi_gate = sae_in @ self.W_enc + self.b_gate
-            pi_gate_act = torch.relu(pi_gate)
+            
+            
+            if self.cfg.activation_fn_str != "topk": 
 
-            # SFN sparsity loss - summed over the feature dimension and averaged over the batch
-            l1_loss = (
-                self.l1_coefficient
-                * torch.sum(pi_gate_act * self.W_dec.norm(dim=1), dim=-1).mean()
-            )
+                # SFN sparsity loss - summed over the feature dimension and averaged over the batch
+                l1_loss = (
+                    self.l1_coefficient
+                    * torch.sum(pi_gate_act * self.W_dec.norm(dim=1), dim=-1).mean()
+                )
+                pi_gate_act = torch.relu(pi_gate)
+            elif self.cfg.activation_fn_str == "topk":
+                l1_loss = torch.tensor(0.0, device=sae_in.device)
+                pi_gate_act = self.activation_fn(pi_gate)
+
 
             # Auxiliary reconstruction loss - summed over the feature dimension and averaged over the batch
             via_gate_reconstruction = pi_gate_act @ self.W_dec + self.b_dec

@@ -36,6 +36,101 @@ except ImportError:
 
 import json
 
+
+def convert_kandinsky_clip_weights(
+        old_state_dict,
+        cfg: HookedViTConfig,
+        device = 'cuda',
+):
+    new_vision_model_state_dict = {}
+
+    # Print sizes to verify
+    print("Class embedding shape:", old_state_dict["vision_model.embeddings.class_embedding"].shape)
+    print("Position embedding shape:", old_state_dict["vision_model.embeddings.position_embedding.weight"].shape)
+    print("Patch embedding shape:", old_state_dict["vision_model.embeddings.patch_embedding.weight"].shape)
+
+    # Convert embedding layers
+    new_vision_model_state_dict["cls_token"] = old_state_dict["vision_model.embeddings.class_embedding"].unsqueeze(0).unsqueeze(0)
+    new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["vision_model.embeddings.position_embedding.weight"]
+    
+    # Patch embedding
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["vision_model.embeddings.patch_embedding.weight"]
+    new_vision_model_state_dict["embed.proj.bias"] = torch.zeros((cfg.d_model,))
+
+    # Convert layer norms
+    new_vision_model_state_dict["ln_final.w"] = old_state_dict["vision_model.post_layernorm.weight"]
+    new_vision_model_state_dict["ln_final.b"] = old_state_dict["vision_model.post_layernorm.bias"]
+
+    new_vision_model_state_dict["ln_pre.w"] = old_state_dict["vision_model.pre_layrnorm.weight"]
+    new_vision_model_state_dict["ln_pre.b"] = old_state_dict["vision_model.pre_layrnorm.bias"]
+
+    print("visual projection shape", old_state_dict["visual_projection.weight"].shape)
+
+    # Convert transformer blocks
+    for layer in range(cfg.n_layers):
+        old_layer_key = f"vision_model.encoder.layers.{layer}"
+        new_layer_key = f"blocks.{layer}"
+
+        # Layer norms
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{old_layer_key}.layer_norm1.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{old_layer_key}.layer_norm1.bias"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{old_layer_key}.layer_norm2.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{old_layer_key}.layer_norm2.bias"]
+
+        # Attention weights
+        W_Q = old_state_dict[f"{old_layer_key}.self_attn.q_proj.weight"]
+        W_K = old_state_dict[f"{old_layer_key}.self_attn.k_proj.weight"]
+        W_V = old_state_dict[f"{old_layer_key}.self_attn.v_proj.weight"]
+        
+        b_Q = old_state_dict[f"{old_layer_key}.self_attn.q_proj.bias"]
+        b_K = old_state_dict[f"{old_layer_key}.self_attn.k_proj.bias"]
+        b_V = old_state_dict[f"{old_layer_key}.self_attn.v_proj.bias"]
+
+        # Reshape Q, K, V weights
+        W_Q = einops.rearrange(W_Q, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_K = einops.rearrange(W_K, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_V = einops.rearrange(W_V, "(h dh) d -> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        
+        # Reshape Q, K, V biases
+        b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_V = einops.rearrange(b_V, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+
+        # Output projection
+        W_O = old_state_dict[f"{old_layer_key}.self_attn.out_proj.weight"]
+        b_O = old_state_dict[f"{old_layer_key}.self_attn.out_proj.bias"]
+        W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+
+        # MLP weights
+        mlp_W_in = old_state_dict[f"{old_layer_key}.mlp.fc1.weight"]
+        mlp_W_out = old_state_dict[f"{old_layer_key}.mlp.fc2.weight"]
+        mlp_b_in = old_state_dict[f"{old_layer_key}.mlp.fc1.bias"]
+        mlp_b_out = old_state_dict[f"{old_layer_key}.mlp.fc2.bias"]
+
+        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
+        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
+
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    # Set final projection
+    new_vision_model_state_dict["head.W_H"] = old_state_dict['visual_projection.weight']
+    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.n_classes,))
+
+    return new_vision_model_state_dict
+
+
 def convert_open_clip_weights(
         old_state_dict,
         cfg: HookedViTConfig,
@@ -617,6 +712,29 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             hf_config = config['model_cfg']
         hf_config = convert_open_clip_config(hf_config)
         return hf_config
+    elif is_clip and model_name.startswith("kandinsky"):
+        hf_config = {"_name_or_path": "kandinsky-community/kandinsky-2-1-prior",
+                "architectures": [
+                    "CLIPVisionModelWithProjection"
+                ],
+                "attention_dropout": 0.0,
+                "dropout": 0.0,
+                "hidden_act": "quick_gelu",
+                "hidden_size": 1024,
+                "image_size": 224,
+                "initializer_factor": 1.0,
+                "initializer_range": 0.02,
+                "intermediate_size": 4096,
+                "layer_norm_eps": 1e-05,
+                "model_type": "clip_vision_model",
+                "num_attention_heads": 16,
+                "num_channels": 3,
+                "num_hidden_layers": 24,
+                "patch_size": 14,
+                "projection_dim": 768,
+                "torch_dtype": "float32",
+                "transformers_version": "4.39.3"
+                }
     elif is_clip: # Extract vision encoder from dual-encoder CLIP model. HF models
         hf_config = AutoConfig.from_pretrained(model_name).vision_config
         hf_config.architecture = 'vit_clip_vision_encoder'
