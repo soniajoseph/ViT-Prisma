@@ -46,11 +46,6 @@ def convert_kandinsky_clip_weights(
 
     print("Convering Kandinsky Clip weights")
 
-    # Print sizes to verify
-    print("Class embedding shape:", old_state_dict["vision_model.embeddings.class_embedding"].shape)
-    print("Position embedding shape:", old_state_dict["vision_model.embeddings.position_embedding.weight"].shape)
-    print("Patch embedding shape:", old_state_dict["vision_model.embeddings.patch_embedding.weight"].shape)
-
     # Convert embedding layers
     new_vision_model_state_dict["cls_token"] = old_state_dict["vision_model.embeddings.class_embedding"].unsqueeze(0).unsqueeze(0)
     new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["vision_model.embeddings.position_embedding.weight"]
@@ -139,6 +134,8 @@ def convert_open_clip_weights(
         cfg: HookedViTConfig,
         device = 'cuda',
 ):
+
+    print("CONFIG", cfg)
     new_vision_model_state_dict = {}
 
     # Convert embedding layers
@@ -558,7 +555,8 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
     return new_state_dict
 
 
-def convert_open_clip_config(model_cfg):
+def convert_open_clip_config(model_cfg, model_name):
+    print(model_cfg)
     cfg = HookedViTConfig()
     cfg.d_model = model_cfg['vision_cfg']['width']
     cfg.n_layers = model_cfg['vision_cfg']['layers']
@@ -574,6 +572,12 @@ def convert_open_clip_config(model_cfg):
     cfg.normalization_type = "LN"
     cfg.use_cls_token = True
     cfg.normalize_output = True
+    if model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
+        print("Updating config for CLIP-ViT-L-14-DataComp.XL-s13B-b90K")
+        cfg.layer_norm_pre = True
+        cfg.return_type = "class_logits"  # actually returns 'visual_projection'
+        cfg.n_heads = 16
+        cfg.d_head = 64
     return cfg
 
 
@@ -711,6 +715,7 @@ def remove_open_clip_prefix(text, prefix="open-clip:"):
     return text 
 
 def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
+
     
     if 'dino' in model_name:
         is_timm = False
@@ -724,7 +729,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             config = json.load(f)
             pretrained_cfg = config['preprocess_cfg']
             hf_config = config['model_cfg']
-        hf_config = convert_open_clip_config(hf_config)
+        hf_config = convert_open_clip_config(hf_config, model_name)
         return hf_config
     elif is_clip and model_name.startswith("kandinsky"):
         from types import SimpleNamespace
@@ -797,11 +802,9 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits"
         })
 
-    if is_clip:
-        pretrained_config.update({
-            "layer_norm_pre": True,
-            "return_type": "class_logits" # actually returns 'visual_projection'
-        })
+        
+    print("Model name is ", model_name)
+    
 
     if "dino" in model_name:
         pretrained_config.update({
