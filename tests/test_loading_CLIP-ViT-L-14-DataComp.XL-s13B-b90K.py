@@ -162,6 +162,6 @@ def test_accuracy_baseline_hooked_model():
 
 # test_loading_open_clip()
 
-test_accuracy_baseline_og_model()
+# test_accuracy_baseline_og_model()
 
-# test_accuracy_baseline_hooked_model()
+test_accuracy_baseline_hooked_model()

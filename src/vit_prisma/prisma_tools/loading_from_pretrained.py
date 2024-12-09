@@ -32,8 +32,6 @@ except ImportError:
 import json
 
 
-<<<<<<< HEAD
-=======
 def convert_kandinsky_clip_weights(
         old_state_dict,
         cfg: HookedViTConfig,
@@ -126,18 +124,11 @@ def convert_kandinsky_clip_weights(
     return new_vision_model_state_dict
 
 
->>>>>>> sonia-kandinsky-vit
 def convert_open_clip_weights(
     old_state_dict,
     cfg: HookedViTConfig,
 ):
-<<<<<<< HEAD
-    """Load the model weights from the vision encoder of Open CLIP models."""
 
-=======
-
-    print("CONFIG", cfg)
->>>>>>> sonia-kandinsky-vit
     new_vision_model_state_dict = {}
 
     # Convert embedding layers
@@ -591,8 +582,7 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
     return new_state_dict
 
 
-<<<<<<< HEAD
-def convert_open_clip_config(model_cfg: dict, model_type: ModelType = ModelType.VISION):
+def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: ModelType = ModelType.VISION):
     if model_type == ModelType.TEXT:
         cfg = HookedTextTransformerConfig()
         cfg.d_model = model_cfg['text_cfg']['width']
@@ -617,7 +607,6 @@ def convert_open_clip_config(model_cfg: dict, model_type: ModelType = ModelType.
         cfg.normalization_type = "LN"
         cfg.normalize_output = True
         if model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
-            print("Updating config for CLIP-ViT-L-14-DataComp.XL-s13B-b90K")
             cfg.layer_norm_pre = True
             cfg.return_type = "class_logits"  # actually returns 'visual_projection'
             cfg.n_heads = 16
@@ -672,12 +661,10 @@ def get_pretrained_state_dict(
             print("Converting OpenCLIP weights")
             checkpoint_path = download_pretrained_from_hf(remove_open_clip_prefix(official_model_name), filename='open_clip_pytorch_model.bin')
             old_state_dict = load_state_dict(checkpoint_path)
-<<<<<<< HEAD
             if model_type == ModelType.VISION:
                 state_dict = convert_open_clip_weights(old_state_dict, cfg)
             else:
                 state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
-=======
             state_dict = convert_open_clip_weights(old_state_dict, cfg)
         elif is_clip and official_model_name.startswith("kandinsky"):
             print("Converting Kandinsky weights")
@@ -690,7 +677,6 @@ def get_pretrained_state_dict(
             ).to("cuda")
             old_state_dict = hf_model.state_dict()
             state_dict = convert_kandinsky_clip_weights(old_state_dict, cfg)
->>>>>>> sonia-kandinsky-vit
         elif is_clip:
             full_model = hf_model if hf_model is not None else CLIPModel.from_pretrained(official_model_name)
             for param in full_model.parameters():
@@ -771,12 +757,8 @@ def remove_open_clip_prefix(text, prefix="open-clip:"):
         return text[len(prefix):]
     return text 
 
-<<<<<<< HEAD
 def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False, model_type=ModelType.VISION) -> HookedViTConfig:
-=======
-def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
 
->>>>>>> sonia-kandinsky-vit
     
     if 'dino' in model_name:
         is_timm = False
@@ -790,11 +772,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             config = json.load(f)
             pretrained_cfg = config['preprocess_cfg']
             hf_config = config['model_cfg']
-<<<<<<< HEAD
-        hf_config = convert_open_clip_config(hf_config, model_type=model_type)
-=======
-        hf_config = convert_open_clip_config(hf_config, model_name)
->>>>>>> sonia-kandinsky-vit
+        hf_config = convert_open_clip_config(hf_config, model_name, model_type=model_type)
         return hf_config
     elif is_clip and model_name.startswith("kandinsky"):
         from types import SimpleNamespace
