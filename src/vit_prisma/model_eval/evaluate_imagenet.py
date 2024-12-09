@@ -11,6 +11,14 @@ from tqdm import tqdm
 # import autocast
 from torch.cuda.amp import autocast
 
+# from vit_prisma.models.build_zero_shot_classifier import build_zero_shot_classifier
+
+
+def get_autocast():
+    if torch.cuda.is_available():
+        return autocast
+    else:
+        return DummyContextManager
 
 
 def accuracy(output, target, topk=(1,)):
@@ -36,6 +44,8 @@ def run(model, classifier, dataloader, device='cuda'):
                 # predict
                 output = model(images)
                 image_features = output['image_features'] if isinstance(output, dict) else output
+                if isinstance(image_features, tuple):
+                    image_features = image_features[0]
                 image_features = image_features.cpu()
                 logits = 100. * image_features @ classifier
                 logits = logits.to(device)
