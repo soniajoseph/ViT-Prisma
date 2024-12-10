@@ -50,6 +50,10 @@ class VisionModelSAERunnerConfig:
     Configuration for training a sparse autoencoder on a vision model.
     """
 
+    ##################
+    ### SAE Setup: ###
+    ##################
+
     # Data Generating Function (Model + Training Distibuion)
     model_class_name: str = "HookedViT"
     model_name: str = "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M"
@@ -64,6 +68,18 @@ class VisionModelSAERunnerConfig:
     cached_activations_path: Optional[str] = (
         None  # Defaults to "activations/{dataset}/{model}/{full_hook_name}_{hook_point_head_index}"
     )
+    image_size: int = 224
+    architecture: Literal["standard", "gated", "jumprelu"] = "gated"
+
+    # SAE Parameters
+    b_dec_init_method: str = "geometric_median"
+    expansion_factor: int = 16
+    from_pretrained_path: Optional[str] = None
+
+    # Misc
+    device: str = "cpu"
+    seed: int = 42
+    dtype: str = "float32"
 
     # SAE Parameters
     d_in: int = 512
@@ -76,6 +92,11 @@ class VisionModelSAERunnerConfig:
     initialization_method: str = "encoder_transpose_decoder"  # or independent
     normalize_activations: str = "layer_norm"
 
+    #####################
+    ### SAE Training: ###
+    #####################
+    # I think we should seperate this into a seperate config.
+
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
     store_batch_size: int = 32
@@ -84,22 +105,8 @@ class VisionModelSAERunnerConfig:
     # Training length parameters
     num_epochs: int = 10
 
-    image_size: int = 224
-
-    # Misc
-    device: str = "cpu"
-    seed: int = 42
-    dtype: str = "float32"
-
-    architecture: Literal["standard", "gated", "jumprelu"] = "gated"
-
     # Logging
     verbose: bool = False
-
-    # SAE Parameters
-    b_dec_init_method: str = "geometric_median"
-    expansion_factor: int = 16
-    from_pretrained_path: Optional[str] = None
 
     # Training Parameters
     l1_coefficient: float = 0.0002  # 0.00008
@@ -228,6 +235,7 @@ class VisionModelSAERunnerConfig:
             raise ValueError(
                 f"b_dec_init_method must be geometric_median, mean, or zeros. Got {self.b_dec_init_method}"
             )
+
         if self.b_dec_init_method == "zeros":
             logging.warning(
                 "Warning: We are initializing b_dec to zeros. This is probably not what you want."
@@ -237,6 +245,8 @@ class VisionModelSAERunnerConfig:
             raise ValueError("cls_token_only and use_patches_only are exclusive.")
 
         # Autofill cached_activations_path unless the user overrode it
+        # @TODO this here because I don't want to break backwards compability, but I think
+        # we should refactor the activation cache fully
         if self.cached_activations_path is None:
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
             if self.hook_point_head_index is not None:
@@ -377,9 +387,6 @@ class VisionModelSAERunnerConfig:
             elif isinstance(value, torch.device):
                 value = str(value)  # Convert torch.device to string
             print(f"  {field.name}: {value}")
-
-
-from dataclasses import dataclass
 
 
 @dataclass
