@@ -26,6 +26,21 @@ dtype_mapping = {
     "int8": torch.int8,
     "uint8": torch.uint8,
     "bool": torch.bool,
+    "torch.float32": torch.float32,
+    "torch.float": torch.float32,  # alias
+    "torch.float64": torch.float64,
+    "torch.double": torch.float64,  # alias
+    "torch.float16": torch.float16,
+    "torch.half": torch.float16,  # alias
+    "torch.int64": torch.int64,
+    "torch.long": torch.int64,  # alias
+    "torch.int32": torch.int32,
+    "torch.int": torch.int32,  # alias
+    "torch.int16": torch.int16,
+    "torch.short": torch.int16,  # alias
+    "torch.int8": torch.int8,
+    "torch.uint8": torch.uint8,
+    "torch.bool": torch.bool,
 }
 
 
@@ -170,10 +185,6 @@ class VisionModelSAERunnerConfig:
 
         return self.train_batch_size * tokens_per_image * self.n_batches_in_buffer
 
-    # @tokens_per_buffer.setter
-    # def tokens_per_buffer(self, value):
-    #     logging.warning("Tried to set tokens_per_buffer - Ignored")
-
     @property
     def total_training_tokens(self):
         """Computes the total number of training tokens for the dataset and configuration."""
@@ -288,7 +299,6 @@ class VisionModelSAERunnerConfig:
 
         # Function to make data JSON-serializable
         def make_serializable(obj):
-            print(obj, inspect.isdatadescriptor(obj))
             if inspect.isdatadescriptor(obj):
                 return
 
@@ -323,16 +333,8 @@ class VisionModelSAERunnerConfig:
         def reconstruct_types(obj):
             if isinstance(obj, dict):
                 if "__type__" in obj:
-                    type_name = obj["__type__"]
-                    if type_name == "torch.device":
-                        # Reconstruct torch.device from string
-                        return torch.device(obj["value"])
-                    elif type_name == "torch.dtype":
-                        # Reconstruct torch.dtype from string
-                        dtype_name = obj["value"].split(".")[-1]
-                        return getattr(torch, dtype_name)
-                    else:
-                        return obj
+                    # Reconstruct torch.device from string
+                    return obj["value"]
                 else:
                     # Recursively process dictionaries
                     return {key: reconstruct_types(value) for key, value in obj.items()}
@@ -344,8 +346,27 @@ class VisionModelSAERunnerConfig:
 
         # Reconstruct data with proper types
         data = reconstruct_types(data)
+
+        # Get the current dataclass fields
+        current_fields = {f.name for f in fields(cls)}
+
+        # Remove legacy fields that are not part of the dataclass anymore
+        # For example, old configs might have "total_training_images" and "total_training_tokens"
+        # which are now computed properties. We should remove them.
+        for legacy_key in ["total_training_images", "total_training_tokens", "d_sae"]:
+            if legacy_key in data:
+                # Log a warning about the deprecated field being ignored
+                logging.warning(
+                    f"Deprecated field '{legacy_key}' found in config. It will be ignored."
+                )
+                # If you need to do something with these values, do it here before removing
+                del data[legacy_key]
+
+        # Filter out any other keys not defined as fields in the current class
+        cleaned_data = {k: v for k, v in data.items() if k in current_fields}
+
         # Create an instance of the class with the reconstructed data
-        return cls(**data)
+        return cls(**cleaned_data)
 
     def pretty_print(self):
         print("Configuration:")
