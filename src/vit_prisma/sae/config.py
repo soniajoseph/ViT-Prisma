@@ -4,15 +4,35 @@ from abc import ABC
 from dataclasses import fields, field, asdict, dataclass
 from typing import Any, Optional, Literal
 import logging
+import inspect
 
 import torch
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
+# Define a mapping from string to torch.dtype
+dtype_mapping = {
+    "float32": torch.float32,
+    "float": torch.float32,  # alias
+    "float64": torch.float64,
+    "double": torch.float64,  # alias
+    "float16": torch.float16,
+    "half": torch.float16,  # alias
+    "int64": torch.int64,
+    "long": torch.int64,  # alias
+    "int32": torch.int32,
+    "int": torch.int32,  # alias
+    "int16": torch.int16,
+    "short": torch.int16,  # alias
+    "int8": torch.int8,
+    "uint8": torch.uint8,
+    "bool": torch.bool,
+}
+
 
 @dataclass
-class RunnerConfig(ABC):
+class VisionModelSAERunnerConfig:
     """
-    The config that's shared across all runners.
+    Configuration for training a sparse autoencoder on a vision model.
     """
 
     # Data Generating Function (Model + Training Distibuion)
@@ -36,10 +56,6 @@ class RunnerConfig(ABC):
     activation_fn_kwargs: dict[str, Any] = field(default_factory=dict)
     cls_token_only: bool = True  # use only CLS token in training
 
-    # SAE Training run tolerance
-    min_l0 = None
-    min_explained_variance = None
-
     # New changes
     max_grad_norm: float = 1.0  # For gradient clipping, set to None to turn off
     initialization_method: str = "encoder_transpose_decoder"  # or independent
@@ -52,51 +68,13 @@ class RunnerConfig(ABC):
 
     # Training length parameters
     num_epochs: int = 10
-    total_training_images: int = int(
-        1_300_000 * num_epochs
-    )  # To do: make this not hardcoded
-    total_training_tokens: int = total_training_images * context_size  # Images x tokens
 
     image_size: int = 224
 
     # Misc
-    device: str | torch.device = "cpu"
+    device: str = "cpu"
     seed: int = 42
-    dtype: torch.dtype = torch.float32
-
-    def __post_init__(self):
-        self.hook_point = f"blocks.{self.hook_point_layer}.{self.layer_subtype}"  # change hookpoint name here
-
-        self.num_patch = int(math.sqrt(self.context_size - 1))
-
-        # Autofill cached_activations_path unless the user overrode it
-        if self.cached_activations_path is None:
-            self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
-            if self.hook_point_head_index is not None:
-                self.cached_activations_path += f"_{self.hook_point_head_index}"
-
-        if self.cls_token_only:
-            self.context_size = 1
-            self.total_training_tokens: int = (
-                self.total_training_images * self.context_size * self.num_epochs
-            )  # Images x tokens
-
-    def pretty_print(self):
-        print("Configuration:")
-        for field in fields(self):
-            value = getattr(self, field.name)
-            if isinstance(value, torch.dtype):
-                value = str(value).split(".")[-1]  # Convert torch.dtype to string
-            elif isinstance(value, torch.device):
-                value = str(value)  # Convert torch.device to string
-            print(f"  {field.name}: {value}")
-
-
-@dataclass
-class VisionModelSAERunnerConfig(RunnerConfig):
-    """
-    Configuration for training a sparse autoencoder on a vision model.
-    """
+    dtype: str = "float32"
 
     architecture: Literal["standard", "gated", "jumprelu"] = "gated"
 
@@ -107,7 +85,6 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     b_dec_init_method: str = "geometric_median"
     expansion_factor: int = 16
     from_pretrained_path: Optional[str] = None
-    d_sae: Optional[int] = None
 
     # Training Parameters
     l1_coefficient: float = 0.0002  # 0.00008
@@ -119,6 +96,10 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     lr_warm_up_steps: int = 500
 
     train_batch_size: int = 1024 * 4
+
+    # SAE Training run tolerance
+    min_l0 = None
+    min_explained_variance = None
 
     # Imagenet1k
     dataset_name: str = "imagenet1k"
@@ -150,13 +131,88 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
     )
 
+    @property
+    def device(self):
+        """Device property, returns the torch device representation of the internal _device variable."""
+        if isinstance(self._device, str):
+            return torch.device(self._device)
+        return self._device
+
+    @device.setter
+    def device(self, value: str):
+        """Device setter to update the internal _device variable."""
+        self._device = value
+
+    @property
+    def dtype(self):
+        """Data type property for model precision."""
+        return dtype_mapping[self._dtype]
+
+    @dtype.setter
+    def dtype(self, value: str):
+        """Setter to update the data type property."""
+        self._dtype = value
+
+    @property
+    def hook_point(self):
+        """Returns the hook point identifier string for a specific layer."""
+        return f"blocks.{self.hook_point_layer}.{self.layer_subtype}"
+
+    @property
+    def tokens_per_buffer(self):
+        """Calculates the total number of tokens per buffer, considering context and batch settings."""
+        if self.cls_token_only:  # Only use the CLS token per image
+            tokens_per_image = 1
+        elif self.use_patches_only:  # Exclude CLS token
+            tokens_per_image = self.context_size - 1
+        else:
+            tokens_per_image = self.context_size
+
+        return self.train_batch_size * tokens_per_image * self.n_batches_in_buffer
+
+    # @tokens_per_buffer.setter
+    # def tokens_per_buffer(self, value):
+    #     logging.warning("Tried to set tokens_per_buffer - Ignored")
+
+    @property
+    def total_training_tokens(self):
+        """Computes the total number of training tokens for the dataset and configuration."""
+        if self.cls_token_only:  # Only use the CLS token per image
+            tokens_per_image = 1
+        elif self.use_patches_only:  # Exclude CLS token
+            tokens_per_image = self.context_size - 1
+        else:
+            tokens_per_image = self.context_size
+
+        return self.total_training_images * tokens_per_image
+
+    @property
+    def total_training_steps(self):
+        """Calculates the total number of training steps based on token counts and batch size."""
+        return self.total_training_tokens // self.train_batch_size
+
+    @property
+    def total_training_images(self):
+        """Returns the total number of training images based on dataset and epochs."""
+        if self.dataset_name == "imagenet1k":
+            dataset_size = 1_300_000
+        else:
+            raise ValueError(
+                "Your current dataset is not supported by the VisionModelSAERunnerConfig"
+            )
+        return dataset_size * self.num_epochs
+
+    @property
+    def d_sae(self):
+        """Calculates the SAE dimensionality based on input dimensions and expansion factor."""
+        return self.d_in * self.expansion_factor
+
+    @property
+    def num_patch(self):
+        """Calculates the number of patches based on the context size."""
+        return int(math.sqrt(self.context_size - 1))
+
     def __post_init__(self):
-        super().__post_init__()
-        if not isinstance(self.expansion_factor, list):
-            self.d_sae = self.d_in * self.expansion_factor
-        self.tokens_per_buffer = (
-            self.train_batch_size * self.context_size * self.n_batches_in_buffer
-        )
         if self.b_dec_init_method not in ["geometric_median", "mean", "zeros"]:
             raise ValueError(
                 f"b_dec_init_method must be geometric_median, mean, or zeros. Got {self.b_dec_init_method}"
@@ -166,59 +222,62 @@ class VisionModelSAERunnerConfig(RunnerConfig):
                 "Warning: We are initializing b_dec to zeros. This is probably not what you want."
             )
 
-        self.device = torch.device(self.device)
+        if self.cls_token_only and self.use_patches_only:
+            raise ValueError("cls_token_only and use_patches_only are exclusive.")
 
-        # Print out some useful info:
+        # Autofill cached_activations_path unless the user overrode it
+        if self.cached_activations_path is None:
+            self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
+            if self.hook_point_head_index is not None:
+                self.cached_activations_path += f"_{self.hook_point_head_index}"
+
+        # Calculate key metrics
         n_tokens_per_buffer = (
             self.store_batch_size * self.context_size * self.n_batches_in_buffer
         )
-        logging.info(f"n_tokens_per_buffer (millions): {n_tokens_per_buffer / 10 **6}")
         n_contexts_per_buffer = self.store_batch_size * self.n_batches_in_buffer
-        logging.info(
-            f"Lower bound: n_contexts_per_buffer (millions): {n_contexts_per_buffer / 10 **6}"
-        )
-
-        self.total_training_steps = self.total_training_tokens // self.train_batch_size
-        logging.info(f"Total training steps: {self.total_training_steps}")
-
-        logging.info(f"Total training images: {self.total_training_images}")
-
-        total_wandb_updates = self.total_training_steps // self.wandb_log_frequency
-        logging.info(f"Total wandb updates: {total_wandb_updates}")
-
-        # print  expansion factor
-        logging.info(f"Expansion factor: {self.expansion_factor}")
-
-        # how many times will we sample dead neurons?
-        # assert self.dead_feature_window <= self.feature_sampling_window, "dead_feature_window must be smaller than feature_sampling_window"
         n_feature_window_samples = (
             self.total_training_steps // self.feature_sampling_window
         )
+
+        # fmt:off
+        # Log useful information
+        logging.info(f"n_tokens_per_buffer (millions): {n_tokens_per_buffer / 1e6}")
         logging.info(
-            f"n_tokens_per_feature_sampling_window (millions): {(self.feature_sampling_window * self.context_size * self.train_batch_size) / 10 **6}"
+            f"Lower bound: n_contexts_per_buffer (millions): {n_contexts_per_buffer / 1e6}"
+        )
+        logging.info(f"Total training steps: {self.total_training_steps}")
+        logging.info(f"Total training images: {self.total_training_images}")
+        logging.info(
+            f"Total wandb updates: {self.total_training_steps // self.wandb_log_frequency}"
+        )
+        logging.info(f"Expansion factor: {self.expansion_factor}")
+
+        logging.info(
+            f"n_tokens_per_feature_sampling_window (millions): {self.feature_sampling_window * self.context_size * self.train_batch_size / 1e6}"
         )
         logging.info(
-            f"n_tokens_per_dead_feature_window (millions): {(self.dead_feature_window * self.context_size * self.train_batch_size) / 10 **6}"
+            f"n_tokens_per_dead_feature_window (millions): {self.dead_feature_window * self.context_size * self.train_batch_size / 1e6}"
         )
-
-        if self.use_ghost_grads:
-            logging.info("Using Ghost Grads.")
-
         logging.info(
             f"We will reset the sparsity calculation {n_feature_window_samples} times."
         )
-        # print ("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
         logging.info(
             f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}"
         )
 
+        # Log configuration options
+        if self.use_ghost_grads:
+            logging.info("Using Ghost Grads.")
+
         if self.max_grad_norm:
             logging.info(f"Gradient clipping with max_norm={self.max_grad_norm}")
 
-        # print  initialization method
         logging.info(f"Using SAE initialization method: {self.initialization_method}")
+        # fmt:on
 
-        self.activation_fn_kwargs = self.activation_fn_kwargs or {}
+    def is_property(self, attr_name):
+        return isinstance(getattr(self.__class__, attr_name, None), property)
 
     def save_config(self, path: str):
         """
@@ -229,18 +288,20 @@ class VisionModelSAERunnerConfig(RunnerConfig):
 
         # Function to make data JSON-serializable
         def make_serializable(obj):
-            if isinstance(obj, torch.device):
-                # Special case: torch.device needs to be converted to string
-                return {"__type__": "torch.device", "value": str(obj)}
-            elif isinstance(obj, torch.dtype):
-                # Special case: torch.dtype needs to be converted to string
-                return {"__type__": "torch.dtype", "value": obj.__repr__()}
-            elif isinstance(obj, (list, tuple)):
+            print(obj, inspect.isdatadescriptor(obj))
+            if inspect.isdatadescriptor(obj):
+                return
+
+            if isinstance(obj, (list, tuple)):
                 # Recursively process lists and tuples
                 return [make_serializable(item) for item in obj]
             elif isinstance(obj, dict):
                 # Recursively process dictionaries
-                return {key: make_serializable(value) for key, value in obj.items()}
+                return {
+                    key: make_serializable(value)
+                    for key, value in obj.items()
+                    if not self.is_property(key)
+                }
             else:
                 return obj  # Other types are left as-is
 
@@ -286,12 +347,22 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         # Create an instance of the class with the reconstructed data
         return cls(**data)
 
+    def pretty_print(self):
+        print("Configuration:")
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if isinstance(value, torch.dtype):
+                value = str(value).split(".")[-1]  # Convert torch.dtype to string
+            elif isinstance(value, torch.device):
+                value = str(value)  # Convert torch.device to string
+            print(f"  {field.name}: {value}")
+
 
 from dataclasses import dataclass
 
 
 @dataclass
-class CacheActivationsRunnerConfig(RunnerConfig):
+class CacheActivationsRunnerConfig:
     """Configuration for caching activations of an LLM."""
 
     # Activation caching stuff

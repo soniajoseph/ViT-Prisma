@@ -11,7 +11,7 @@ from vit_prisma.training.training_utils import (
 )
 from vit_prisma.utils.wandb_utils import dataclass_to_dict, update_dataclass_from_dict
 from vit_prisma.training.training_dictionary import optimizer_dict, loss_function_dict
-from vit_prisma.training.schedulers import WarmupThenStepLR
+from vit_prisma.training.schedulers import WarmupThenStepLR, WarmupCosineAnnealingLR
 from vit_prisma.training.early_stopping import EarlyStopping
 from vit_prisma.utils.saving_utils import save_config_to_file
 import os
