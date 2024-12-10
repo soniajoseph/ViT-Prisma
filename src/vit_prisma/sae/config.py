@@ -3,6 +3,7 @@ import math
 from abc import ABC
 from dataclasses import fields, field, asdict, dataclass
 from typing import Any, Optional, Literal
+import logging
 
 import torch
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
@@ -143,7 +144,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
     wandb_log_frequency: int = 10
 
     # Misc
-    n_validation_runs: int = 100 # spaced linearly throughout training
+    n_validation_runs: int = 100  # spaced linearly throughout training
     n_checkpoints: int = 10
     checkpoint_path: str = (
         "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
@@ -161,7 +162,7 @@ class VisionModelSAERunnerConfig(RunnerConfig):
                 f"b_dec_init_method must be geometric_median, mean, or zeros. Got {self.b_dec_init_method}"
             )
         if self.b_dec_init_method == "zeros":
-            print(
+            logging.warning(
                 "Warning: We are initializing b_dec to zeros. This is probably not what you want."
             )
 
@@ -171,51 +172,51 @@ class VisionModelSAERunnerConfig(RunnerConfig):
         n_tokens_per_buffer = (
             self.store_batch_size * self.context_size * self.n_batches_in_buffer
         )
-        print(f"n_tokens_per_buffer (millions): {n_tokens_per_buffer / 10 **6}")
+        logging.info(f"n_tokens_per_buffer (millions): {n_tokens_per_buffer / 10 **6}")
         n_contexts_per_buffer = self.store_batch_size * self.n_batches_in_buffer
-        print(
+        logging.info(
             f"Lower bound: n_contexts_per_buffer (millions): {n_contexts_per_buffer / 10 **6}"
         )
 
         self.total_training_steps = self.total_training_tokens // self.train_batch_size
-        print(f"Total training steps: {self.total_training_steps}")
+        logging.info(f"Total training steps: {self.total_training_steps}")
 
-        print(f"Total training images: {self.total_training_images}")
+        logging.info(f"Total training images: {self.total_training_images}")
 
         total_wandb_updates = self.total_training_steps // self.wandb_log_frequency
-        print(f"Total wandb updates: {total_wandb_updates}")
+        logging.info(f"Total wandb updates: {total_wandb_updates}")
 
-        # print expansion factor
-        print(f"Expansion factor: {self.expansion_factor}")
+        # print  expansion factor
+        logging.info(f"Expansion factor: {self.expansion_factor}")
 
         # how many times will we sample dead neurons?
         # assert self.dead_feature_window <= self.feature_sampling_window, "dead_feature_window must be smaller than feature_sampling_window"
         n_feature_window_samples = (
             self.total_training_steps // self.feature_sampling_window
         )
-        print(
+        logging.info(
             f"n_tokens_per_feature_sampling_window (millions): {(self.feature_sampling_window * self.context_size * self.train_batch_size) / 10 **6}"
         )
-        print(
+        logging.info(
             f"n_tokens_per_dead_feature_window (millions): {(self.dead_feature_window * self.context_size * self.train_batch_size) / 10 **6}"
         )
 
         if self.use_ghost_grads:
-            print("Using Ghost Grads.")
+            logging.info("Using Ghost Grads.")
 
-        print(
+        logging.info(
             f"We will reset the sparsity calculation {n_feature_window_samples} times."
         )
-        # print("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
-        print(
+        # print ("Number tokens in dead feature calculation window: ", self.dead_feature_window * self.train_batch_size)
+        logging.info(
             f"Number tokens in sparsity calculation window: {self.feature_sampling_window * self.train_batch_size:.2e}"
         )
 
         if self.max_grad_norm:
-            print(f"Gradient clipping with max_norm={self.max_grad_norm}")
+            logging.info(f"Gradient clipping with max_norm={self.max_grad_norm}")
 
-        # Print initialization method
-        print(f"Using SAE initialization method: {self.initialization_method}")
+        # print  initialization method
+        logging.info(f"Using SAE initialization method: {self.initialization_method}")
 
         self.activation_fn_kwargs = self.activation_fn_kwargs or {}
 
