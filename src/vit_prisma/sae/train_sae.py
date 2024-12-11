@@ -1,7 +1,9 @@
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
-from vit_prisma.sae.sae import SparseAutoencoder
+from vit_prisma.sae.sae import StandardSparseAutoencoder, GatedSparseAutoencoder
 from vit_prisma.sae.training.activations_store import VisionActivationsStore
+
+import wandb
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
@@ -58,16 +60,19 @@ class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
 
-        if self.cfg.log_to_wandb:
-            import wandb
-
         self.set_default_attributes()  # For backward compatability
 
         self.bad_run_check = (
             True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         )
         self.model = load_model(self.cfg, self.cfg.model_name)
-        self.sae = SparseAutoencoder(self.cfg)
+
+        if self.cfg.architecture == "gated":
+            self.sae = GatedSparseAutoencoder(self.cfg)
+        elif self.cfg.architecture == "standard" or self.cfg.architecture == "vanilla":
+            self.sae = StandardSparseAutoencoder(self.cfg)
+        else:  # @TODO
+            raise ValueError(f"Loading of {self.cfg.architecture} not supported")
 
         dataset, eval_dataset = self.load_dataset()
         self.dataset = dataset
