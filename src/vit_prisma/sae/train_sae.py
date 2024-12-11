@@ -71,7 +71,7 @@ class VisionSAETrainer:
             self.sae = GatedSparseAutoencoder(self.cfg)
         elif self.cfg.architecture == "standard" or self.cfg.architecture == "vanilla":
             self.sae = StandardSparseAutoencoder(self.cfg)
-        else:  # @TODO
+        else:
             raise ValueError(f"Loading of {self.cfg.architecture} not supported")
 
         dataset, eval_dataset = self.load_dataset()
@@ -717,7 +717,7 @@ class VisionSAETrainer:
             optimizer,
             scheduler,
         ) = self.initialize_training_variables()
-        geometric_medians = self.initialize_geometric_medians()
+        self.initialize_geometric_medians()
 
         print("Starting training") if self.cfg.verbose else None
 
