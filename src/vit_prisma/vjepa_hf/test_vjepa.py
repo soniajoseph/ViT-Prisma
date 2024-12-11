@@ -15,14 +15,15 @@ def prepare_img():
 
 
 
-og_model_name = "vjepa_v1_vit_huge"
-print("Loading hooked model")
-hooked_model = HookedViT.from_pretrained(og_model_name, is_timm=False, is_clip=False, fold_ln=False, center_writing_weights=False) # in future, do all models
+# og_model_name = "vjepa_v1_vit_huge"
+# print("Loading hooked model")
+# hooked_model = HookedViT.from_pretrained(og_model_name, is_timm=False, is_clip=False, fold_ln=False, center_writing_weights=False) # in future, do all models
 
-print(hooked_model)
+# print(hooked_model)
 
 model_name = "vjepa_v1_vit_huge"
 config = CONFIGS["v1"]["vit_h"]
+print(config)
 model_paths = yaml.safe_load(open('paths_cw.yaml'))
 model_path = model_paths[model_name]["loc"]
 
