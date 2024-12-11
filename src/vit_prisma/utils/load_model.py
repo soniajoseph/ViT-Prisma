@@ -17,7 +17,7 @@ def load_model(
     model_from_pretrained_kwargs: dict[str, Any] | None = None
 ) -> HookedViT:
     model_from_pretrained_kwargs = model_from_pretrained_kwargs or {}
-    
+
     if "n_devices" in model_from_pretrained_kwargs:
         n_devices = model_from_pretrained_kwargs["n_devices"]
         if n_devices > 1:
@@ -33,7 +33,9 @@ def load_model(
         if is_local:
             return HookedViT.from_local(cfg.prisma_vit_cfg, cfg.model_path).to(cfg.device)
 
-        return HookedViT.from_pretrained(cfg.model_name, is_timm=is_timm, is_clip=is_clip).to(cfg.device)
+        fold_ln = cfg.model_name != "openai/clip-vit-base-patch32"
+
+        return HookedViT.from_pretrained(cfg.model_name, is_timm=is_timm, is_clip=is_clip, fold_ln=fold_ln).to(cfg.device)
 
     else:  # pragma: no cover
         raise ValueError(f"Unknown model class: {cfg.model_class_name}")
@@ -70,5 +72,3 @@ def load_remote_sae_and_model(
     print(f"Using device: {DEVICE}")
 
     return sae, language_model, model
-
-
