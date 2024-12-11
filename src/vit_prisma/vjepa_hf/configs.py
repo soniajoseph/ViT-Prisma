@@ -1,4 +1,4 @@
-from app.vjepa_hf.modeling_vjepa import VJEPAConfig
+from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAConfig
 
 CONFIGS = {
     "v1": {
