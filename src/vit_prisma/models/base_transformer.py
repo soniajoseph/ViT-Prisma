@@ -1,4 +1,5 @@
 """Parent class for both the hooked text and vision encoder models."""
+
 import logging
 from typing import Optional, Literal
 from typing import Union, Dict
@@ -9,7 +10,10 @@ from transformers import ViTForImageClassification
 
 from vit_prisma.prisma_tools import FactoredMatrix
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict
+from vit_prisma.prisma_tools.loading_from_pretrained import (
+    convert_pretrained_model_config,
+    get_pretrained_state_dict,
+)
 from vit_prisma.prisma_tools.loading_from_pretrained import fill_missing_keys
 from vit_prisma.utils.enums import ModelType
 from vit_prisma.utils.prisma_utils import transpose
@@ -28,7 +32,6 @@ class HookedTransformer(HookedRootModule):
 
     def __init__(self):
         super().__init__()
-
 
     def load_and_process_state_dict(
         self,
@@ -134,7 +137,7 @@ class HookedTransformer(HookedRootModule):
                     - state_dict[f"blocks.{l}.mlp.b_out"].mean()
                 )
 
-        print("Centered weights writing to residual stream")
+        logging.info("Centered weights writing to residual stream")
         return state_dict
 
     def fold_value_biases(self, state_dict: Dict[str, torch.Tensor]):
@@ -339,8 +342,8 @@ class HookedTransformer(HookedRootModule):
         **from_pretrained_kwargs,
     ) -> "HookedViT":
         assert not (
-                from_pretrained_kwargs.get("load_in_8bit", False)
-                or from_pretrained_kwargs.get("load_in_4bit", False)
+            from_pretrained_kwargs.get("load_in_8bit", False)
+            or from_pretrained_kwargs.get("load_in_4bit", False)
         ), "Quantization not supported"
 
         if isinstance(dtype, str):
@@ -353,8 +356,8 @@ class HookedTransformer(HookedRootModule):
             dtype = from_pretrained_kwargs["torch_dtype"]
 
         if (
-                (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
-                or dtype == torch.float16
+            (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+            or dtype == torch.float16
         ) and device in ["cpu", None]:
             logging.warning(
                 "float16 models may not work on CPU. Consider using a GPU or bfloat16."
@@ -385,9 +388,9 @@ class HookedTransformer(HookedRootModule):
         # set false if openclip; not working properly
         if is_clip and model_name.startswith("open-clip"):
             center_writing_weights = False
-            print("Setting center_writing_weights to False for OpenCLIP")
+            logging.info("Setting center_writing_weights to False for OpenCLIP")
             fold_ln = False
-            print("Setting fold_ln to False for OpenCLIP")
+            logging.info("Setting fold_ln to False for OpenCLIP")
 
         model.load_and_process_state_dict(
             state_dict,
@@ -400,6 +403,6 @@ class HookedTransformer(HookedRootModule):
         # Set up other parameters
         model.set_use_attn_result(use_attn_result)
 
-        print(f"Loaded pretrained model {model_name} into HookedTransformer")
+        logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
 
         return model
