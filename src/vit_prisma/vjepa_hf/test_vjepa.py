@@ -15,11 +15,17 @@ def prepare_img():
 
 
 
+
+# # LOADH HOOKED MODEL
+
 # og_model_name = "vjepa_v1_vit_huge"
 # print("Loading hooked model")
 # hooked_model = HookedViT.from_pretrained(og_model_name, is_timm=False, is_clip=False, fold_ln=False, center_writing_weights=False) # in future, do all models
 
 # print(hooked_model)
+
+
+# LOAD ORIGINAL MODEL
 
 model_name = "vjepa_v1_vit_huge"
 config = CONFIGS["v1"]["vit_h"]
@@ -34,6 +40,9 @@ pixel_values = pixel_values.repeat(1, 16, 1, 1, 1) # repeating image 16 times fo
 pixel_values = pixel_values.permute(0, 2, 1, 3, 4)  # B x C x T x H x W
 
 model = VJEPAModel.from_pretrained(model_path)
+
+for name, param in model.named_parameters():
+    print(name, param.shape)
 
 # print out config and state dictionary
 print(model.config)
