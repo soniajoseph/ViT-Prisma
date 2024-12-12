@@ -1,3 +1,4 @@
+from vit_prisma.utils.data_utils.cifar.cifar_10_utils import load_cifar_10
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.sae import SparseAutoencoder
@@ -66,7 +67,7 @@ class VisionSAETrainer:
         self.bad_run_check = (
             True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         )
-        self.model = load_model(self.cfg, self.cfg.model_name)
+        self.model = load_model(self.cfg)
         self.sae = SparseAutoencoder(self.cfg)
 
         dataset, eval_dataset = self.load_dataset()
@@ -105,14 +106,17 @@ class VisionSAETrainer:
                 setattr(self.cfg, attr, None)
 
     def setup_checkpoint_path(self):
-        # Create checkpoint path with run_name, which contains unique identifier
-        self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
-        os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
-        (
-            print(f"Checkpoint path: {self.cfg.checkpoint_path}")
-            if self.cfg.verbose
-            else None
-        )
+        if self.cfg.n_checkpoints:
+            # Create checkpoint path with run_name, which contains unique identifier
+            self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
+            os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
+            (
+                print(f"Checkpoint path: {self.cfg.checkpoint_path}")
+                if self.cfg.verbose
+                else None
+            )
+        else:
+            print(f"Not saving checkpoints so skipping creating checkpoint directory")
 
     def initialize_activations_store(self, dataset, eval_dataset):
         # raise separate errors if dataset or eval_dataset is none or invalid format. instead of none, do dataset type
@@ -166,6 +170,13 @@ class VisionSAETrainer:
                 if self.cfg.verbose
                 else None
             )
+            return train_data, val_data
+        elif self.cfg.dataset_name == "cifar10":
+            train_data, val_data, test_data = load_cifar_10(
+                self.cfg.dataset_path, image_size=self.cfg.image_size
+            )
+            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
+            print(f"Validation data length: {len(val_data)}") if self.cfg.verbose else None
             return train_data, val_data
         else:
             # raise error
@@ -362,7 +373,7 @@ class VisionSAETrainer:
             # needs to start with batch_size dimension
             _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
-            
+
             sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
 
             # explained variance
@@ -427,13 +438,13 @@ class VisionSAETrainer:
             f"validation_metrics/substitution_loss": sae_recon_loss,
             f"validation_metrics/explained_variance": explained_variance.mean().item(),
             f"validation_metrics/L0": l0,
-        
+
         # # New image-level metrics
         # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
         # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
         # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
         # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
-        })  
+        })
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
@@ -713,9 +724,8 @@ class VisionSAETrainer:
                 n_frac_active_tokens=n_frac_active_tokens,
             )
 
-
-            # if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
-            #     self.val(self.sae)
+            if n_training_steps > 1 and self.cfg.n_validation_runs and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
+                self.val(self.sae)
 
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
@@ -745,9 +755,10 @@ class VisionSAETrainer:
             )
 
         # Final checkpoint
-        self.checkpoint(
-            self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
-        )
+        if self.cfg.n_checkpoints:
+            self.checkpoint(
+                self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
+            )
 
         if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
