@@ -10,7 +10,6 @@ def test_loading_vit_for_image_classification():
     TOLERANCE = 1e-4
     model_name="google/vit-base-patch16-224"
 
-
     batch_size = 5
     channels = 3
     height = 224
@@ -26,7 +25,6 @@ def test_loading_vit_for_image_classification():
         torch.manual_seed(1)
         input_image = torch.rand((batch_size, channels, height, width)).to(device)
 
-    
     hooked_output, vit_output = hooked_model(input_image), vit_model(input_image).logits
 
     assert torch.allclose(hooked_output, vit_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - vit_output))}"
