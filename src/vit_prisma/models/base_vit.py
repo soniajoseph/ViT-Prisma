@@ -171,7 +171,10 @@ class HookedViT(HookedTransformer):
         x = self.ln_final(residual)
         self.hook_ln_final(x)
 
-        if self.cfg.classification_type == 'gaap':  # GAAP
+        if self.cfg.classification_type == 'last_hidden':
+            return x # No head
+            
+        elif self.cfg.classification_type == 'gaap':  # GAAP
             x = x.mean(dim=1)
             print(self.cfg.return_type)
         elif self.cfg.classification_type == 'cls':  # CLS token
