@@ -49,6 +49,17 @@ from vit_prisma.vjepa_hf.src.utils.logging import (
     CSVLogger
 )
 
+from PIL import Image
+import requests
+from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel, VJEPAImageProcessor
+from vit_prisma.vjepa_hf.configs import CONFIGS
+import yaml
+
+import torch
+
+from vit_prisma.models.base_vit import HookedViT
+
+
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -80,7 +91,7 @@ def main(args_eval, resume_preempt=False):
     wide_SiLU = args_pretrain.get('wide_silu', True)
     uniform_power = args_pretrain.get('uniform_power', False)
     is_causal = args_pretrain.get('is_causal', False)
-    pretrained_path = os.path.join(pretrain_folder, ckp_fname)
+    # pretrained_path = os.path.join(pretrain_folder, ckp_fname)
     # Optional [for Video model]:
     tubelet_size = args_pretrain.get('tubelet_size', 2)
     frames_per_clip = args_pretrain.get('frames_per_clip', 1)
@@ -143,33 +154,45 @@ def main(args_eval, resume_preempt=False):
 
     # Initialize model
 
-    # -- pretrained encoder (frozen)
-    encoder = init_model(
-        crop_size=resolution,
-        device=device,
-        pretrained=pretrained_path,
-        model_name=model_name,
-        patch_size=patch_size,
-        frames_per_clip=frames_per_clip,
-        tubelet_size=tubelet_size,
-        uniform_power=uniform_power,
-        is_causal=is_causal,
-        checkpoint_key=checkpoint_key,
-        use_SiLU=use_SiLU,
-        wide_SiLU=wide_SiLU,
-        use_sdpa=use_sdpa)
+    # # -- pretrained encoder (frozen)
+    # encoder = init_model(
+    #     crop_size=resolution,
+    #     device=device,
+    #     pretrained=pretrained_path,
+    #     model_name=model_name,
+    #     patch_size=patch_size,
+    #     frames_per_clip=frames_per_clip,
+    #     tubelet_size=tubelet_size,
+    #     uniform_power=uniform_power,
+    #     is_causal=is_causal,
+    #     checkpoint_key=checkpoint_key,
+    #     use_SiLU=use_SiLU,
+    #     wide_SiLU=wide_SiLU,
+    #     use_sdpa=use_sdpa)
+
+    model_name = "vjepa_v1_vit_huge"
+    config = CONFIGS["v1"]["vit_h"]
+    model_paths = yaml.safe_load(open('/private/home/soniajoseph/ViT-Prisma/src/vit_prisma/vjepa_hf/paths_cw.yaml'))
+    model_path = model_paths[model_name]["loc"]
+    encoder = VJEPAModel.from_pretrained(model_path)
     encoder.eval()
+
+
+    embed_dim = encoder.config.hidden_size
+    num_heads = encoder.config.num_attention_heads
+
     for p in encoder.parameters():
         p.requires_grad = False
 
     # -- init classifier
+    torch.distributed.init_process_group(backend='nccl')
+
     classifier = AttentiveClassifier(
-        embed_dim=encoder.embed_dim,
-        num_heads=encoder.num_heads,
+        embed_dim=embed_dim,
+        num_heads=num_heads,
         depth=num_probe_blocks,
         num_classes=num_classes
     ).to(device)
-    print(classifier)
 
     # -- init data (use per-cluster defined path if one is not specified)
     if root_path is None and image_folder is None:
@@ -514,6 +537,24 @@ def init_opt(
 
 
 from vit_prisma.vjepa_hf.evals.eval_configs import imagenet_config
+import submitit
+
 args_eval = imagenet_config.args_eval
-print(args_eval)
-main(args_eval)
+
+
+args_eval = imagenet_config.args_eval
+
+args_eval = imagenet_config.args_eval
+executor = submitit.AutoExecutor(folder="logs")
+executor.update_parameters(
+    mem_gb=64,  # Request 64 GB of memory
+    nodes=1,  # Use 1 node
+    ntasks_per_node=8,  # Use 8 tasks (i.e., 8 GPUs) per node
+    time="01:00:00",  # Set the maximum time limit to 1 hour
+    constraint="volta32gb",  # Request Volta 32GB GPUs
+    partition="learnfair",  # Submit to the learnfair partition
+    gres="gpu:volta:8",  # Request 8 Volta GPUs
+    cpus_per_task=10,  # Request 10 CPUs per task
+)
+job = executor.submit(main, args_eval)
+print(f"Submitted job with ID: {job.job_id}")

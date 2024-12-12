@@ -3,7 +3,7 @@ args_eval = {
         'checkpoint_key': 'target_encoder',
         'model_name': 'vit_huge',
         'patch_size': 16,
-        'pretrain_folder': '/path/to/pretrained/model/folder',
+        'folder':  "/checkpoint/soniajoseph/v1_vit_huge_conv/",
         'ckp_fname': 'model_checkpoint.pth',
         'tag': 'my_model_tag',
         'use_sdpa': True,
@@ -15,8 +15,8 @@ args_eval = {
     'data': {
         'dataset_name': 'ImageNet',
         'num_classes': 1000,
-        'root_path': '/path/to/dataset/root',
-        'image_folder': 'images'
+        'root_path': None,
+        'image_folder': None,
     },
     'optimization': {
         'batch_size': 32,
