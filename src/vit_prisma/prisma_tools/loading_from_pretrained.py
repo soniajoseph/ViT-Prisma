@@ -798,11 +798,11 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                 "transformers_version": "4.39.3"
                 }
         hf_config = SimpleNamespace(**hf_config)
-        print("HF config:", hf_config)
     elif is_clip: # Extract vision encoder from dual-encoder CLIP model. HF models
         hf_config = AutoConfig.from_pretrained(model_name).vision_config
         hf_config.architecture = 'vit_clip_vision_encoder'
         hf_config.num_classes = hf_config.projection_dim # final output dimension instead of classes
+
     else:
         hf_config = AutoConfig.from_pretrained(model_name)
 
@@ -811,9 +811,12 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
     elif hasattr(hf_config, "tubelet_size"):
         ps = hf_config.tubelet_size[1]
 
+    print(hf_config)
+
     pretrained_config = {
                     'n_layers' : hf_config.num_hidden_layers,
                     'd_model' : hf_config.hidden_size,
+                    'n_heads': hf_config.num_attention_heads,
                     'd_head' : hf_config.hidden_size // hf_config.num_attention_heads,
                     'model_name' : hf_config._name_or_path,
                     'n_heads' : hf_config.num_attention_heads,
@@ -827,6 +830,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
                     'image_size' : hf_config.image_size,
                     'n_classes': getattr(hf_config, "num_classes", getattr(hf_config, "projection_dim", None)),
                     'n_params' : sum(p.numel() for p in model.parameters() if p.requires_grad) if is_timm else None,
+                    "return_type": "class_logits",
                 }
     
     # Rectifying Huggingface bugs:
@@ -845,9 +849,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits"
         })
 
-        
-    print("Model name is ", model_name)
-    
+            
 
     if "dino" in model_name:
         pretrained_config.update({
