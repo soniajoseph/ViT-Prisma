@@ -850,7 +850,10 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits"
         })
 
-            
+    if is_clip:
+        pretrained_config.update({
+            "layer_norm_pre": True,
+        })
 
     if "dino" in model_name:
         pretrained_config.update({
