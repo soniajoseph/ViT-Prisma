@@ -48,7 +48,7 @@ from transformers import CLIPVisionModelWithProjection
 # if __name__ == "__main__":
 #     test_loading_kandinsky()
 
-
+@pytest.mark.skip(reason="Reliant on files not in repo")
 def test_loading_kandinsky():
     TOLERANCE = 1e-4
 

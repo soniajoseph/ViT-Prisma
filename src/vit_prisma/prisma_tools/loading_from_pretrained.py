@@ -577,8 +577,6 @@ def convert_hf_vit_for_image_classification_weights(   old_state_dict,
     new_state_dict["head.W_H"] = einops.rearrange(old_state_dict["classifier.weight"], "c d -> d c")
     new_state_dict["head.b_H"] = old_state_dict["classifier.bias"]
 
-
-
     return new_state_dict
 
 
@@ -597,20 +595,24 @@ def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: Model
         cfg.n_layers = model_cfg['vision_cfg']['layers']
         cfg.patch_size = model_cfg['vision_cfg']['patch_size']
         cfg.image_size = model_cfg['vision_cfg']['image_size']
+        cfg.n_heads = 12
         cfg.use_cls_token = True
-        cfg.d_mlp = cfg.d_model * 4
-        cfg.d_head = cfg.d_model // cfg.n_heads
-        cfg.n_classes = model_cfg['embed_dim'] # This is the projection dimensionality
-        cfg.return_type = None
-        cfg.layer_norm_pre = True
-        cfg.eps = 1e-5
-        cfg.normalization_type = "LN"
-        cfg.normalize_output = True
+
         if model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
             cfg.layer_norm_pre = True
             cfg.return_type = "class_logits"  # actually returns 'visual_projection'
             cfg.n_heads = 16
             cfg.d_head = 64
+
+    cfg.d_mlp = cfg.d_model * 4
+    cfg.d_head = cfg.d_model // cfg.n_heads
+    cfg.n_classes = model_cfg['embed_dim'] # This is the projection dimensionality
+    cfg.return_type = None
+    cfg.layer_norm_pre = True
+    cfg.eps = 1e-5
+    cfg.normalization_type = "LN"
+    cfg.normalize_output = True
+
     return cfg
 
 
@@ -665,7 +667,6 @@ def get_pretrained_state_dict(
                 state_dict = convert_open_clip_weights(old_state_dict, cfg)
             else:
                 state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
-            state_dict = convert_open_clip_weights(old_state_dict, cfg)
         elif is_clip and official_model_name.startswith("kandinsky"):
             print("Converting Kandinsky weights")
             from transformers import CLIPVisionModelWithProjection
@@ -849,7 +850,10 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "return_type": "class_logits"
         })
 
-            
+    if is_clip:
+        pretrained_config.update({
+            "layer_norm_pre": True,
+        })
 
     if "dino" in model_name:
         pretrained_config.update({

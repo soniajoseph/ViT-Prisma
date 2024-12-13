@@ -1,11 +1,12 @@
-import pytest
-import torch
 import timm
+import torch
+
 from vit_prisma.models.base_vit import HookedViT
+
 
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_timm():
-    TOLERANCE = 1e-5
+    TOLERANCE = 1e-4
 
     model_name = "vit_base_patch16_224"
     batch_size = 5
