@@ -21,10 +21,10 @@ os.environ['HUGGINGFACE_HUB_CACHE'] = cache_dir
 os.environ['OPEN_CLIP_CACHE'] = cache_dir
 os.environ['TRANSFORMERS_CACHE'] = cache_dir
 
-
-
 og_model_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
+
+@pytest.mark.skip(reason="Running out of space on Github Actions device")
 def test_output():
     random_input = torch.rand((1, 3, 224, 224))
     hooked_vit_g = HookedViT.from_pretrained(og_model_name, is_clip=True, is_timm=False, fold_ln=False)
