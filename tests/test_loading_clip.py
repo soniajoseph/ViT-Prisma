@@ -1,10 +1,11 @@
-import pytest
-import torch
 from vit_prisma.models.base_vit import HookedViT
-import numpy as np
 import torch
 
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPModel
+import torch
+from transformers import CLIPModel
+
+from vit_prisma.models.base_vit import HookedViT
 
 
 def test_loading_clip():
@@ -36,5 +37,3 @@ def test_loading_clip():
 
     assert torch.allclose(hooked_output, tinyclip_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
     print("Model output matches!")
-
-test_loading_clip()

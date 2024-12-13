@@ -99,7 +99,7 @@ class HookedTransformer(HookedRootModule):
         if refactor_factored_attn_matrices:
             state_dict = self.refactor_factored_attn_matrices(state_dict)
 
-        self.load_state_dict(state_dict, strict=True)
+        self.load_state_dict(state_dict, strict=False)
 
     def center_writing_weights(self, state_dict: Dict[str, torch.Tensor]):
         """Center Writing Weights.

@@ -9,7 +9,6 @@ from vit_prisma.dataloaders.imagenet_dataset import load_imagenet
 from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
 from vit_prisma.models.base_vit import HookedViT
 
-
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
     TOLERANCE = 1e-4

@@ -25,8 +25,7 @@ os.environ['TRANSFORMERS_CACHE'] = cache_dir
 
 og_model_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
-def test_output()
-
+def test_output():
     random_input = torch.rand((1, 3, 224, 224))
     hooked_vit_g = HookedViT.from_pretrained(og_model_name, is_clip=True, is_timm=False, fold_ln=False)
     hooked_vit_op = hooked_vit_g(random_input)
@@ -39,6 +38,7 @@ def test_output()
     print("Do does output match?")
     print(torch.allclose(hooked_vit_op, op.image_embeds, atol=1e-4))
 
+@pytest.mark.skip(reason="TODO: Reliant on files not in repo")
 def test_accuracy_baseline_og_model():
     parent_dir = '/network/scratch/s/sonia.joseph/clip_benchmark/'
     classifier = np.load(os.path.join(parent_dir, 'imagenet_classifier_hf_hub_laion_CLIP_ViT_bigG_14_laion2B_39B_b160k.npy'))
@@ -57,7 +57,7 @@ def test_accuracy_baseline_og_model():
     print("Results", results)
     # I get 0.6918 on ImageNet Val; benchmarked in ML Foundations OpenCLIP repo is 0.6917
 
-
+@pytest.mark.skip(reason="TODO: Reliant on files not in repo")
 def test_accuracy_baseline_hooked_model():
     parent_dir = '/network/scratch/s/sonia.joseph/clip_benchmark/'
     classifier = np.load(os.path.join(parent_dir, 'imagenet_classifier_hf_hub_laion_CLIP_ViT_bigG_14_laion2B_39B_b160k.npy'))
@@ -81,5 +81,3 @@ def test_accuracy_baseline_hooked_model():
     results = zero_shot_eval(hooked_model, data, epoch, model_name=og_model_name, pretrained_classifier=classifier)
     print("Results", results)
     # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
-
-test_accuracy_baseline_hooked_model()
