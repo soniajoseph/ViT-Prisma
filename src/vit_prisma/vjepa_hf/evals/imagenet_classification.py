@@ -185,7 +185,6 @@ def main(args_eval, resume_preempt=False):
         p.requires_grad = False
 
     # -- init classifier
-    torch.distributed.init_process_group(backend='nccl')
 
     classifier = AttentiveClassifier(
         embed_dim=embed_dim,
@@ -197,6 +196,9 @@ def main(args_eval, resume_preempt=False):
     # -- init data (use per-cluster defined path if one is not specified)
     if root_path is None and image_folder is None:
         root_path, image_folder = '', get_dataset_path(dataset_name)
+
+    print('root_path', root_path)
+    print('image_folder', image_folder)
     train_loader = make_dataloader(
         dataset_name=dataset_name,
         root_path=root_path,
@@ -535,26 +537,7 @@ def init_opt(
     scaler = torch.cuda.amp.GradScaler() if use_bfloat16 else None
     return optimizer, scaler, scheduler, wd_scheduler
 
-
-# from vit_prisma.vjepa_hf.evals.eval_configs import imagenet_config
-# import submitit
-
-# args_eval = imagenet_config.args_eval
-
-
-# args_eval = imagenet_config.args_eval
-
-# args_eval = imagenet_config.args_eval
-# executor = submitit.AutoExecutor(folder="logs")
-# executor.update_parameters(
-#     mem_gb=64,  # Request 64 GB of memory
-#     nodes=1,  # Use 1 node
-#     ntasks_per_node=8,  # Use 8 tasks (i.e., 8 GPUs) per node
-#     time="01:00:00",  # Set the maximum time limit to 1 hour
-#     constraint="volta32gb",  # Request Volta 32GB GPUs
-#     partition="learnfair",  # Submit to the learnfair partition
-#     gres="gpu:volta:8",  # Request 8 Volta GPUs
-#     cpus_per_task=10,  # Request 10 CPUs per task
-# )
-# job = executor.submit(main, args_eval)
-# print(f"Submitted job with ID: {job.job_id}")
+import yaml
+with open('eval_configs/imagenet_config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+main(config)

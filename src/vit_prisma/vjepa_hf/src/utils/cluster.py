@@ -18,6 +18,7 @@ SUPPORTED_CLUSTERS = {
     "fair-a100": AWS_CLUSTER,
     "rsc": RSC_CLUSTER,
     "h2learnfair": H2_CLUSTER,
+    "learnfair": H2_CLUSTER,
     "dm1-control": COREWEAVE_CLUSTER,
 }
 
@@ -181,6 +182,8 @@ DATASET_PATHS_BY_CLUSTER = {
 def get_dataset_path(dataset: str, cluster=None) -> str:
     if cluster is None:
         cluster = get_cluster()
+
+    print(cluster)
 
     return DATASET_PATHS_BY_CLUSTER[cluster][dataset]
 

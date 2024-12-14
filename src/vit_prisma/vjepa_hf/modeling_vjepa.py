@@ -680,6 +680,9 @@ class VJEPAEmbeddings(nn.Module):
             return pos_embed
 
     def forward(self, pixel_values: torch.Tensor, bool_masked_pos: Optional[torch.Tensor] = None) -> torch.Tensor:
+        if len(pixel_values.shape) != 5:
+            pixel_values = pixel_values.unsqueeze(2)  # add a new dimension for time
+            pixel_values = pixel_values.repeat(1, 1, self.config.frames_per_clip, 1, 1) 
         batch_size, c, t, height, width = pixel_values.shape
         target_dtype = self.patch_embeddings.proj.weight.dtype
 
