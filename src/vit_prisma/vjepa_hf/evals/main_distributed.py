@@ -122,6 +122,7 @@ def launch_evals_with_parsed_args(
         tasks_per_node=tasks_per_node,
         cpus_per_task=cpus_per_task,
         gpus_per_node=tasks_per_node,
+        cpu_bind=None
     )
 
     print(executor.parameters)
