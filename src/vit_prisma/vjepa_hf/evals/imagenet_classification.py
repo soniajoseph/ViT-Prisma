@@ -536,25 +536,25 @@ def init_opt(
     return optimizer, scaler, scheduler, wd_scheduler
 
 
-from vit_prisma.vjepa_hf.evals.eval_configs import imagenet_config
-import submitit
+# from vit_prisma.vjepa_hf.evals.eval_configs import imagenet_config
+# import submitit
 
-args_eval = imagenet_config.args_eval
+# args_eval = imagenet_config.args_eval
 
 
-args_eval = imagenet_config.args_eval
+# args_eval = imagenet_config.args_eval
 
-args_eval = imagenet_config.args_eval
-executor = submitit.AutoExecutor(folder="logs")
-executor.update_parameters(
-    mem_gb=64,  # Request 64 GB of memory
-    nodes=1,  # Use 1 node
-    ntasks_per_node=8,  # Use 8 tasks (i.e., 8 GPUs) per node
-    time="01:00:00",  # Set the maximum time limit to 1 hour
-    constraint="volta32gb",  # Request Volta 32GB GPUs
-    partition="learnfair",  # Submit to the learnfair partition
-    gres="gpu:volta:8",  # Request 8 Volta GPUs
-    cpus_per_task=10,  # Request 10 CPUs per task
-)
-job = executor.submit(main, args_eval)
-print(f"Submitted job with ID: {job.job_id}")
+# args_eval = imagenet_config.args_eval
+# executor = submitit.AutoExecutor(folder="logs")
+# executor.update_parameters(
+#     mem_gb=64,  # Request 64 GB of memory
+#     nodes=1,  # Use 1 node
+#     ntasks_per_node=8,  # Use 8 tasks (i.e., 8 GPUs) per node
+#     time="01:00:00",  # Set the maximum time limit to 1 hour
+#     constraint="volta32gb",  # Request Volta 32GB GPUs
+#     partition="learnfair",  # Submit to the learnfair partition
+#     gres="gpu:volta:8",  # Request 8 Volta GPUs
+#     cpus_per_task=10,  # Request 10 CPUs per task
+# )
+# job = executor.submit(main, args_eval)
+# print(f"Submitted job with ID: {job.job_id}")

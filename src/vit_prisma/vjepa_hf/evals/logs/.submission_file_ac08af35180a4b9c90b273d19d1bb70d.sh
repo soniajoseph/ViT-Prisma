@@ -1,1 +1,0 @@
-/private/home/soniajoseph/ViT-Prisma/src/vit_prisma/vjepa_hf/evals/logs/12378225_submission.sh

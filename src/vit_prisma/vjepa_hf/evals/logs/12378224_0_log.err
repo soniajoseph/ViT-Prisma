@@ -1,1 +1,0 @@
-srun: fatal: cpus_per_task set by two different environment variables SLURM_CPUS_PER_TASK=1 != SLURM_TRES_PER_TASK=cpu:20
