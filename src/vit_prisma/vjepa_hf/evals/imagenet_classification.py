@@ -175,6 +175,7 @@ def main(args_eval, resume_preempt=False):
     model_paths = yaml.safe_load(open('/private/home/soniajoseph/ViT-Prisma/src/vit_prisma/vjepa_hf/paths_cw.yaml'))
     model_path = model_paths[model_name]["loc"]
     encoder = VJEPAModel.from_pretrained(model_path)
+    encoder = encoder.to(device)
     encoder.eval()
 
 
@@ -320,9 +321,9 @@ def run_one_epoch(
             with torch.no_grad():
                 outputs = encoder(imgs)
                 if not training:
-                    outputs = classifier(outputs)
+                    outputs = classifier(outputs[0])
             if training:
-                outputs = classifier(outputs)
+                outputs = classifier(outputs[0])
 
         loss = criterion(outputs, labels)
         top1_acc = 100. * outputs.max(dim=1).indices.eq(labels).sum() / len(imgs)

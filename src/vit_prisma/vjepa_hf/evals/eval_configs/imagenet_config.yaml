@@ -1,7 +1,7 @@
 tag: imagenet
 eval_name: imagenet_classification
-nodes: 1
-tasks_per_node: 1
+nodes: 4
+tasks_per_node: 2
 cpus_per_task: 10
 num_probe_blocks: 1
 resume_checkpoint: false
@@ -12,7 +12,7 @@ data:
   # image_folder: None
 optimization:
   num_epochs: 10
-  batch_size: 32
+  batch_size: 256
   lr: 0.001
   start_lr: 0.001
   final_lr: 0.00001
