@@ -52,7 +52,7 @@ from vit_prisma.vjepa_hf.src.utils.logging import (
 from PIL import Image
 import requests
 from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel, VJEPAImageProcessor
-from vit_prisma.vjepa_hf.configs import CONFIGS
+from vit_prisma.vjepa_hf.model_configs.configs import CONFIGS
 import yaml
 
 import torch
@@ -538,7 +538,7 @@ def init_opt(
     scaler = torch.cuda.amp.GradScaler() if use_bfloat16 else None
     return optimizer, scaler, scheduler, wd_scheduler
 
-import yaml
-with open('eval_configs/imagenet_config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
-main(config)
+# import yaml
+# with open('eval_configs/imagenet_config.yaml', 'r') as f:
+#     config = yaml.safe_load(f)
+# main(config)
