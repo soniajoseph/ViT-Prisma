@@ -319,12 +319,11 @@ class SparseAutoencoder(HookedRootModule):
             pi_gate = sae_in @ self.W_enc + self.b_gate
             
             
-            if self.cfg.activation_fn_str != "topk": 
-
+            if self.cfg.activation_fn_str != "topk":
                 # SFN sparsity loss - summed over the feature dimension and averaged over the batch
                 l1_loss = (
                     self.l1_coefficient
-                    * torch.sum(pi_gate_act * self.W_dec.norm(dim=1), dim=-1).mean()
+                    * torch.sum(pi_gate * self.W_dec.norm(dim=1), dim=-1).mean()
                 )
                 pi_gate_act = torch.relu(pi_gate)
             elif self.cfg.activation_fn_str == "topk":

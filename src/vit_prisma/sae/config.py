@@ -7,6 +7,8 @@ from typing import Any, Optional, Literal
 import torch
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+
 
 @dataclass
 class RunnerConfig(ABC):

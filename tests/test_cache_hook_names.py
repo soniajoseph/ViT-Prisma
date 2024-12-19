@@ -4,7 +4,7 @@ import torch
 from vit_prisma.models.base_vit import HookedViT
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
-#Test taken from transformerlens with minor modifications
+# Test taken from transformerlens with minor modifications
 
 batch_size = 2
 channels = 3
@@ -23,6 +23,7 @@ model = HookedViT(HookedViTConfig(n_layers,d_head,d_model, d_mlp, return_type="l
 act_names_in_cache = [
     "hook_embed",
     "hook_pos_embed",
+    "hook_full_embed",
     "blocks.0.hook_resid_pre",
     "blocks.0.ln1.hook_scale",
     "blocks.0.ln1.hook_normalized",
@@ -45,6 +46,8 @@ act_names_in_cache = [
     "blocks.0.hook_resid_post",
     "ln_final.hook_scale",
     "ln_final.hook_normalized",
+    "hook_ln_final",
+    "hook_post_head_pre_normalize",
 ]
 
 

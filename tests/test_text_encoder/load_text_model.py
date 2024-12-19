@@ -1,16 +1,11 @@
 import open_clip
-from PIL import Image
-import os
-
 import torch
+from PIL import Image
 
 from vit_prisma.models.base_text_transformer import HookedTextTransformer
 from vit_prisma.models.base_vit import HookedViT
+from vit_prisma.utils.constants import DEVICE, BASE_DIR
 from vit_prisma.utils.enums import ModelType
-from vit_prisma.utils.load_model import load_remote_sae_and_model
-from vit_prisma.utils.constants import DATA_DIR, MODEL_DIR, DEVICE, BASE_DIR
-
-from experiments.testing.load_text_encoder import load_open_clip
 
 
 def get_all_layer_outputs(model, image_tensor=None, text_tensor=None):
@@ -72,7 +67,6 @@ def test_loading_text_and_vision_laion_open_clip_model():
     assert torch.allclose(class_probs, torch.tensor([[1., 0., 0.]]), atol=0.02)
     assert torch.allclose(loaded_class_probs, torch.tensor([[1., 0., 0.]]), atol=0.02)
 
-    return  # TODO EdS: Get the below tests working
     # Then: check activation values the same for loaded and local models
     TOLERANCE = 1e-4
     for i, (output, name) in enumerate(zip(all_outputs, layer_names)):
