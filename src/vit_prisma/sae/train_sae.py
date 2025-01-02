@@ -2,7 +2,7 @@ from vit_prisma.utils.data_utils.cifar.cifar_10_utils import load_cifar_10
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.sae import StandardSparseAutoencoder, GatedSparseAutoencoder
-from vit_prisma.sae.training.activations_store import VisionActivationsStore
+from vit_prisma.sae.training.activations_store import VisionActivationsStore, CacheVisionActivationStore
 
 import wandb
 
@@ -130,6 +130,11 @@ class VisionSAETrainer:
             raise ValueError("Training dataset is None")
         if eval_dataset is None:
             raise ValueError("Eval dataset is None")
+        
+
+        if self.cfg.use_cached_activations:
+            return CacheVisionActivationStore(self.cfg)
+
         return VisionActivationsStore(
             self.cfg,
             self.model,
@@ -737,7 +742,7 @@ class VisionSAETrainer:
         n_training_steps = 0
         n_training_tokens = 0
 
-        pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE")
+        pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE", mininterval=20)
         while n_training_tokens < self.cfg.total_training_tokens:
             layer_acts = self.activations_store.next_batch()
 

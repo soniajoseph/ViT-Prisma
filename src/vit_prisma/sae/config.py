@@ -218,7 +218,7 @@ class VisionModelSAERunnerConfig:
             raise ValueError(
                 "Your current dataset is not supported by the VisionModelSAERunnerConfig"
             )
-        return dataset_size * self.num_epochs
+        return int(dataset_size * self.num_epochs)
 
     @property
     def d_sae(self):

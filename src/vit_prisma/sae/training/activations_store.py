@@ -3,8 +3,9 @@ from typing import Any, Iterator, cast
 
 import torch
 from torch.utils.data import DataLoader
-
+from tqdm import tqdm
 from vit_prisma.models.base_vit import HookedViT
+from functools import lru_cache
 
 
 def collate_fn(data):
@@ -15,6 +16,141 @@ def collate_fn(data):
 def collate_fn_eval(data):
     imgs = [d[0] for d in data]
     return torch.stack(imgs, dim=0), torch.tensor([d[1] for d in data])
+
+
+class CacheVisionActivationStore:
+
+    def __init__(
+        self,
+        cfg: Any,
+    ):
+        self.cfg = cfg
+
+        # Fill the storage buffer with half the desired number of batches
+        half_batches = self.cfg.n_batches_in_buffer // 2
+        self.storage_buffer = self.get_buffer(half_batches)
+        self.dataloader = self.get_data_loader()
+
+        # If using cached activations
+        if not self.cfg.use_cached_activations:
+            raise ValueError("CacheVisionActivationStore cannot be initialized with cfg.use_cached_activations = False ")
+
+    @lru_cache(maxsize=2)
+    def load_file_cached(self, file):
+        print(f"\n\nLoad File {file}\n\”")
+        return torch.load(file)
+
+    def _load_cached_activations(self, total_size, context_size, num_layers, d_in):
+        """
+        Load cached activations from disk until the buffer is filled or no more files are found.
+        """
+        buffer_size = total_size * context_size
+        new_buffer = torch.zeros(
+            (buffer_size, num_layers, d_in),
+            dtype=self.cfg.dtype,
+            device=self.cfg.device,
+        )
+        n_tokens_filled = 0
+        next_cache_idx = 0
+
+        # Load from cached files one by one
+        while n_tokens_filled < buffer_size:
+            cache_file = f"{self.cfg.cached_activations_path}/{next_cache_idx}.pt"
+            if not os.path.exists(cache_file):
+                # self._print_cache_warning(n_tokens_filled, buffer_size)
+                new_buffer = new_buffer[:n_tokens_filled, ...]
+                return new_buffer
+
+            activations = self.load_file_cached(cache_file)
+            if n_tokens_filled + activations.shape[0] > buffer_size:
+                # Take only the needed subset
+                activations = activations[: buffer_size - n_tokens_filled, ...]
+                taking_subset_of_file = True
+            else:
+                taking_subset_of_file = False
+
+            new_buffer[
+                n_tokens_filled : n_tokens_filled + activations.shape[0], ...
+            ] = activations
+            n_tokens_filled += activations.shape[0]
+
+            if taking_subset_of_file:
+                self.next_idx_within_buffer = activations.shape[0]
+            else:
+                next_cache_idx += 1
+                self.next_idx_within_buffer = 0
+
+        return new_buffer
+
+    def get_data_loader(self) -> Iterator[Any]:
+        """
+        Create a new DataLoader from a mixed buffer of half "stored" and half "new" activations.
+        This ensures variety and mixing each time the DataLoader is refreshed.
+
+        Steps:
+            1. Create a mixing buffer by combining newly generated buffer and existing storage buffer.
+            2. Shuffle and split the mixed buffer: half goes back to storage, half is used to form a DataLoader.
+            3. Return an iterator from the new DataLoader.
+        """
+        batch_size = self.cfg.train_batch_size
+        half_batches = self.cfg.n_batches_in_buffer // 2
+
+        # Mix current storage buffer with new buffer
+        mixing_buffer = torch.cat(
+            [self.get_buffer(half_batches), self.storage_buffer], dim=0
+        )
+        mixing_buffer = mixing_buffer[torch.randperm(mixing_buffer.shape[0])]
+
+        # Half of the mixed buffer is stored again
+        self.storage_buffer = mixing_buffer[: mixing_buffer.shape[0] // 2]
+
+        # The other half is used as the new training DataLoader
+        data_for_loader = mixing_buffer[mixing_buffer.shape[0] // 2 :]
+
+        dataloader = iter(
+            DataLoader(
+                cast(Any, data_for_loader),
+                batch_size=batch_size,
+                shuffle=True,
+            )
+        )
+        return dataloader
+
+    def next_batch(self) -> torch.Tensor:
+        """
+        Get the next batch from the current DataLoader. If the DataLoader is exhausted,
+        refill the buffer and create a new DataLoader, then fetch the next batch.
+        """
+        try:
+            return next(self.dataloader)
+        except StopIteration:
+            self.dataloader = self.get_data_loader()
+            return next(self.dataloader)
+
+    def get_buffer(self, n_batches_in_buffer: int) -> torch.Tensor:
+        """
+        Creates and returns a buffer of activations by either:
+            - Loading from cached activations if `use_cached_activations` is True
+            - Or generating them from the model if not cached.
+
+        Returns a tensor of shape (total_size * context_size, num_layers, d_in) if cached,
+        or (total_size, context_size, num_layers, d_in) reshaped and shuffled otherwise.
+        """
+        context_size = self.cfg.context_size
+        batch_size = self.cfg.store_batch_size
+        d_in = self.cfg.d_in
+        total_size = batch_size * n_batches_in_buffer
+
+        num_layers = (
+            len(self.cfg.hook_point_layer)
+            if isinstance(self.cfg.hook_point_layer, list)
+            else 1
+        )
+
+        return self._load_cached_activations(
+            total_size, context_size, num_layers, d_in
+        )
+
 
 
 class VisionActivationsStore:
@@ -167,6 +303,13 @@ class VisionActivationsStore:
             n_batches_in_buffer, batch_size, context_size, num_layers, d_in
         )
 
+    # @lru_cache(maxsize=2)
+    def load_file_cached(self, file):
+        print(f"\n\nLoad File {file}\n")
+        data = torch.load(file, map_location=self.cfg.device, weights_only=True)
+        print(data.shape)
+        return data
+
     def _load_cached_activations(self, total_size, context_size, num_layers, d_in):
         """
         Load cached activations from disk until the buffer is filled or no more files are found.
@@ -178,16 +321,19 @@ class VisionActivationsStore:
             device=self.cfg.device,
         )
         n_tokens_filled = 0
+        next_cache_idx = 0
 
         # Load from cached files one by one
         while n_tokens_filled < buffer_size:
-            cache_file = f"{self.cfg.cached_activations_path}/{self.next_cache_idx}.pt"
+            cache_file = f"{self.cfg.cached_activations_path}/{next_cache_idx}.pt"
             if not os.path.exists(cache_file):
-                self._print_cache_warning(n_tokens_filled, buffer_size)
+                # self._print_cache_warning(n_tokens_filled, buffer_size)
                 new_buffer = new_buffer[:n_tokens_filled, ...]
                 return new_buffer
+            
 
-            activations = torch.load(cache_file)
+            print(f"\n\nLoad next buffer from file {cache_file}\n\”")
+            activations = self.load_file_cached(cache_file)
             if n_tokens_filled + activations.shape[0] > buffer_size:
                 # Take only the needed subset
                 activations = activations[: buffer_size - n_tokens_filled, ...]
@@ -203,7 +349,9 @@ class VisionActivationsStore:
             if taking_subset_of_file:
                 self.next_idx_within_buffer = activations.shape[0]
             else:
-                self.next_cache_idx += 1
+
+                print(f"Increase cache idx")
+                next_cache_idx += 1
                 self.next_idx_within_buffer = 0
 
         return new_buffer
@@ -280,3 +428,75 @@ class VisionActivationsStore:
         except StopIteration:
             self.dataloader = self.get_data_loader()
             return next(self.dataloader)
+
+    def generate_cached_activations_from_dataset(
+        self,
+        tokens_per_file: int = 1_000_000,
+        shuffle_data: bool = False,
+    ):
+        """
+        Generate cached activation tensors from the already loaded dataset (self.dataset)
+        and store them in .pt files that can be later loaded by `_load_cached_activations`.
+        """
+        save_dir = self.cfg.cached_activations_path
+
+        os.makedirs(save_dir, exist_ok=True)
+
+        self.model = self.model
+
+        loader = DataLoader(
+            self.dataset,
+            batch_size=self.cfg.store_batch_size,
+            shuffle=shuffle_data,
+            num_workers=self.cfg.num_workers,
+            drop_last=False,
+        )
+
+        device = self.cfg.device
+        context_size = self.cfg.context_size
+        num_layers = (
+            len(self.cfg.hook_point_layer)
+            if isinstance(self.cfg.hook_point_layer, list)
+            else 1
+        )
+        d_in = self.cfg.d_in
+
+        buffer = []
+        tokens_stored = 0
+        file_idx = 0
+
+        for batch in tqdm(loader):
+            batch = batch[0].to(device)
+            batch.requires_grad_(False)
+
+            # Get activations
+            batch_acts = self.get_activations(batch).half()
+
+            if getattr(self.cfg, "use_patches_only", False):
+                batch_acts = batch_acts[:, 1:, :, :]  # remove CLS token if applicable
+
+            batch_size = batch_acts.shape[0]
+            flat_acts = batch_acts.reshape(batch_size * context_size, num_layers, d_in)
+
+            buffer.append(flat_acts)
+            tokens_stored += flat_acts.shape[0]
+
+            while tokens_stored >= tokens_per_file:
+                combined = torch.cat(buffer, dim=0)
+                to_save = combined[:tokens_per_file]
+
+                save_path = os.path.join(save_dir, f"{file_idx}.pt")
+                torch.save(to_save.cpu(), save_path)
+                # print(f"Saved {tokens_per_file} tokens to {save_path}")
+
+                file_idx += 1
+                combined = combined[tokens_per_file:]
+                tokens_stored = combined.shape[0]
+                buffer = [combined] if tokens_stored > 0 else []
+
+        # Save leftovers
+        if tokens_stored > 0:
+            combined = torch.cat(buffer, dim=0)
+            save_path = os.path.join(save_dir, f"{file_idx}.pt")
+            torch.save(combined.cpu(), save_path)
+            print(f"Saved {tokens_stored} leftover tokens to {save_path}")
