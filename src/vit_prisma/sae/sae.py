@@ -148,6 +148,7 @@ class SparseAutoencoder(HookedRootModule, ABC):
         mse_loss = (mse_loss / norm_factor).mean()
         return mse_loss
 
+
     def _compute_ghost_residual_loss(
         self,
         x: torch.Tensor,

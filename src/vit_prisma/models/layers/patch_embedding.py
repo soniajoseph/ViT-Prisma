@@ -51,7 +51,7 @@ class TubeletEmbedding(nn.Module):
     def forward(self, x:Float[torch.Tensor, "batch num_frames channels height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
         
         # Flip num_frames and channels
-        x = einops.rearrange(x, "b t c h w -> b c t h w")
+        # x = einops.rearrange(x, "b t c h w -> b c t h w")
         
         x = self.proj(x)
 

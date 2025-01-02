@@ -42,6 +42,86 @@ except ImportError:
 import json
 
 
+def convert_vjepa_weights(
+        old_state_dict,
+        cfg: HookedViTConfig,
+        device = 'cuda',
+):
+
+    print("CONFIG", cfg)
+    
+    new_vision_model_state_dict = {}
+
+    new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["embeddings.position_embeddings"].squeeze()
+
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["embeddings.patch_embeddings.proj.weight"]
+    new_vision_model_state_dict["embed.proj.bias"] =  old_state_dict["embeddings.patch_embeddings.proj.bias"]
+
+    new_vision_model_state_dict["ln_final.w"] = old_state_dict["layernorm.weight"]
+    new_vision_model_state_dict["ln_final.b"] = old_state_dict["layernorm.bias"]
+    
+    # new_vision_model_state_dict["ln_pre.w"] = old_state_dict["pre_layrnorm.weight"] #typo in ClipModel
+    # new_vision_model_state_dict["ln_pre.b"] = old_state_dict["pre_layrnorm.bias"]
+
+
+    for layer in range(cfg.n_layers):
+        layer_key = f"encoder.layer.{layer}"
+        new_layer_key = f"blocks.{layer}"
+
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{layer_key}.norm1.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln1.b"] = old_state_dict[f"{layer_key}.norm1.bias"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.norm2.weight"]
+        new_vision_model_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.norm2.bias"]
+
+        W_Q = old_state_dict[f"{layer_key}.attention.query.weight"]
+        W_K = old_state_dict[f"{layer_key}.attention.key.weight"]
+        W_V = old_state_dict[f"{layer_key}.attention.value.weight"]
+        W_O = old_state_dict[f"{layer_key}.attention.proj.weight"]
+
+        W_Q = einops.rearrange(W_Q, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_K = einops.rearrange(W_K, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_V = einops.rearrange(W_V, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
+        
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+
+        b_Q = old_state_dict[f"{layer_key}.attention.query.bias"]
+        b_K = old_state_dict[f"{layer_key}.attention.key.bias"]
+        b_V = old_state_dict[f"{layer_key}.attention.value.bias"]
+        b_O = old_state_dict[f"{layer_key}.attention.proj.bias"]
+
+        b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_V = einops.rearrange(b_V, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
+        new_vision_model_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
+
+        mlp_W_in = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
+        mlp_W_out = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
+        mlp_b_in = old_state_dict[f"{layer_key}.mlp.fc1.bias"]
+        mlp_b_out = old_state_dict[f"{layer_key}.mlp.fc2.bias"]
+
+        mlp_W_in = einops.rearrange(mlp_W_in, "m d -> d m")
+        mlp_W_out = einops.rearrange(mlp_W_out, "d m -> m d")
+
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_in"] = mlp_W_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.W_out"] = mlp_W_out
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
+        new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
+
+    new_vision_model_state_dict["head.W_H"] = torch.eye(cfg.d_model)
+    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.d_model,))
+        
+    return new_vision_model_state_dict
+
+
+
 def convert_kandinsky_clip_weights(
     old_state_dict,
     cfg: HookedViTConfig,
@@ -794,6 +874,7 @@ def convert_hf_vit_for_image_classification_weights(
     )
     new_state_dict["head.b_H"] = old_state_dict["classifier.bias"]
 
+
     return new_state_dict
 
 
@@ -828,6 +909,16 @@ def convert_open_clip_config(
             cfg.return_type = "class_logits"  # actually returns 'visual_projection'
             cfg.n_heads = 16
             cfg.d_head = 64
+
+    cfg.d_mlp = cfg.d_model * 4
+    cfg.d_head = cfg.d_model // cfg.n_heads
+    cfg.n_classes = model_cfg['embed_dim'] # This is the projection dimensionality
+    cfg.return_type = None
+    cfg.layer_norm_pre = True
+    cfg.eps = 1e-5
+    cfg.normalization_type = "LN"
+    cfg.normalize_output = True
+
     return cfg
 
 
@@ -889,7 +980,6 @@ def get_pretrained_state_dict(
                 state_dict = convert_open_clip_weights(old_state_dict, cfg)
             else:
                 state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
-            state_dict = convert_open_clip_weights(old_state_dict, cfg)
         elif is_clip and official_model_name.startswith("kandinsky"):
             logging.info("Converting Kandinsky weights")
             from transformers import CLIPVisionModelWithProjection
@@ -927,8 +1017,17 @@ def get_pretrained_state_dict(
 
                 for param in hf_model.parameters():
                     param.requires_grad = False
-
                 state_dict = convert_vivet_weights(hf_model.state_dict(), cfg)
+            elif "vjepa" in official_model_name:
+                # load from internal config
+                from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel
+                from importlib import resources
+                import yaml
+                with resources.open_text('vit_prisma.vjepa_hf', 'paths_cw.yaml') as f:
+                    model_paths = yaml.safe_load(f) 
+                model_path = model_paths[official_model_name]["loc"]
+                hf_model = VJEPAModel.from_pretrained(model_path)
+                state_dict = convert_vjepa_weights(hf_model.state_dict(), cfg)
             else:
                 raise ValueError
 
@@ -1061,6 +1160,16 @@ def convert_pretrained_model_config(
         hf_config.num_classes = (
             hf_config.projection_dim
         )  # final output dimension instead of classes
+    elif "vjepa" in model_name:
+        from vit_prisma.vjepa_hf.configs import CONFIGS
+        if model_name == "vjepa_v1_vit_huge":
+            hf_config = CONFIGS["v1"]["vit_h"]
+            hf_config.update({
+                "intermediate_size": 4.0,
+                "num_channels": hf_config.in_chans
+            })
+
+         
     else:
         hf_config = AutoConfig.from_pretrained(model_name)
 
@@ -1068,6 +1177,8 @@ def convert_pretrained_model_config(
         ps = hf_config.patch_size
     elif hasattr(hf_config, "tubelet_size"):
         ps = hf_config.tubelet_size[1]
+
+    print(hf_config)
 
     pretrained_config = {
         "n_layers": hf_config.num_hidden_layers,
@@ -1154,6 +1265,30 @@ def convert_pretrained_model_config(
             }
         )
 
+
+    if "vjepa" in model_name:
+        print("removing CLS token...")
+        pretrained_config.update({
+            "use_cls_token": False,
+            "layer_norm_pre": False,
+            "n_classes": pretrained_config["d_model"],
+            "return_type": "pre_logits",
+            "classification_type": "last_hidden",
+        })
+
+    # if pretrained_config['n_classes'] is None:
+    #     id2label = getattr(hf_config, "id2label", None)
+    #     print(id2label)
+    #     if id2label is not None:
+    #         pretrained_config.update({
+    #             "n_classes": len(id2label),
+    #             "return_type": "class_logits"
+    #         })
+    #     else:
+    #         pretrained_config.update({
+    #             "n_classes": pretrained_config.d_model,
+    #             "return_type": "pre_logits"
+    #         })
     config = HookedViTConfig.from_dict(pretrained_config)
     return config
 

@@ -1,10 +1,11 @@
-import pytest
-import torch
 from vit_prisma.models.base_vit import HookedViT
-import numpy as np
 import torch
 
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPModel
+import torch
+from transformers import CLIPModel
+
+from vit_prisma.models.base_vit import HookedViT
 
 
 def test_loading_clip(model_name):
@@ -44,3 +45,4 @@ def test_loading_clip(model_name):
 
 test_loading_clip("openai/clip-vit-base-patch32")
 test_loading_clip("wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M")
+

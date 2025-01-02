@@ -1,3 +1,4 @@
+from vit_prisma.utils.data_utils.cifar.cifar_10_utils import load_cifar_10
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 from vit_prisma.sae.sae import StandardSparseAutoencoder, GatedSparseAutoencoder
@@ -74,6 +75,7 @@ class VisionSAETrainer:
         else:
             raise ValueError(f"Loading of {self.cfg.architecture} not supported")
 
+
         dataset, eval_dataset = self.load_dataset()
         self.dataset = dataset
         self.eval_dataset = eval_dataset
@@ -110,14 +112,17 @@ class VisionSAETrainer:
                 setattr(self.cfg, attr, None)
 
     def setup_checkpoint_path(self):
-        # Create checkpoint path with run_name, which contains unique identifier
-        self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
-        os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
-        (
-            print(f"Checkpoint path: {self.cfg.checkpoint_path}")
-            if self.cfg.verbose
-            else None
-        )
+        if self.cfg.n_checkpoints:
+            # Create checkpoint path with run_name, which contains unique identifier
+            self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
+            os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
+            (
+                print(f"Checkpoint path: {self.cfg.checkpoint_path}")
+                if self.cfg.verbose
+                else None
+            )
+        else:
+            print(f"Not saving checkpoints so skipping creating checkpoint directory")
 
     def initialize_activations_store(self, dataset, eval_dataset):
         # raise separate errors if dataset or eval_dataset is none or invalid format. instead of none, do dataset type
@@ -173,6 +178,13 @@ class VisionSAETrainer:
                 if self.cfg.verbose
                 else None
             )
+            return train_data, val_data
+        elif self.cfg.dataset_name == "cifar10":
+            train_data, val_data, test_data = load_cifar_10(
+                self.cfg.dataset_path, image_size=self.cfg.image_size
+            )
+            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
+            print(f"Validation data length: {len(val_data)}") if self.cfg.verbose else None
             return train_data, val_data
         else:
             # raise error
@@ -474,6 +486,7 @@ class VisionSAETrainer:
                 }
             )
 
+
             # log to w&b
             print(f"cos_sim: {cos_sim}")
             break  # Currently runs just one batch for efficiency
@@ -755,6 +768,7 @@ class VisionSAETrainer:
             # if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
             #     self.val(self.sae)
 
+
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
 
@@ -783,9 +797,10 @@ class VisionSAETrainer:
             )
 
         # Final checkpoint
-        self.checkpoint(
-            self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
-        )
+        if self.cfg.n_checkpoints:
+            self.checkpoint(
+                self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
+            )
 
         if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
