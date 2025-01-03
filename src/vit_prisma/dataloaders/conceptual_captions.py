@@ -1,11 +1,4 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from PIL import Image
-import pandas as pd
 import os
-from typing import Optional, Dict
-from pathlib import Path
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -14,13 +7,7 @@ from PIL import Image
 import pandas as pd
 from typing import Optional, Dict
 from pathlib import Path
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from PIL import Image
-import pandas as pd
-from typing import Optional, Dict
-from pathlib import Path
+
 
 class ConceptualCaptionsLocalDataset(Dataset):
     def __init__(
@@ -59,6 +46,7 @@ class ConceptualCaptionsLocalDataset(Dataset):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                std=[0.229, 0.224, 0.225])
         ])
+
 
     def __len__(self) -> int:
         return len(self.image_ids)
