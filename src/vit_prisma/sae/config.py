@@ -77,9 +77,9 @@ class VisionModelSAERunnerConfig:
     from_pretrained_path: Optional[str] = None
 
     # Misc
-    device: str = "cpu"
+    _device: str = "cpu"
     seed: int = 42
-    dtype: str = "float32"
+    _dtype: str = "float32"
 
     # SAE Parameters
     d_in: int = 512
