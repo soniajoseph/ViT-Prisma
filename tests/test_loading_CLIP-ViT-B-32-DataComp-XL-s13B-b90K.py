@@ -8,7 +8,8 @@ import torch
 from vit_prisma.dataloaders.imagenet_dataset import load_imagenet
 from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
 from vit_prisma.models.base_vit import HookedViT
-from vit_prisma.utils.constants import DATA_DIR, MODEL_DIR
+from vit_prisma.utils.constants import DATA_DIR, MODEL_DIR, DEVICE
+
 
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
@@ -137,7 +138,7 @@ def test_accuracy_baseline_hooked_model():
 
     og_model_name = 'laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
     hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
-    hooked_model.to('mps')
+    hooked_model.to(DEVICE)
     hooked_model.eval()
 
     print("Classifier and model loaded")

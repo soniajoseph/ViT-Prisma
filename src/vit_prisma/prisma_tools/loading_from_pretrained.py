@@ -895,16 +895,10 @@ def convert_open_clip_config(
         cfg.n_layers = model_cfg["vision_cfg"]["layers"]
         cfg.patch_size = model_cfg["vision_cfg"]["patch_size"]
         cfg.image_size = model_cfg["vision_cfg"]["image_size"]
+        cfg.n_heads = 12
         cfg.use_cls_token = True
-        cfg.d_mlp = cfg.d_model * 4
-        cfg.d_head = cfg.d_model // cfg.n_heads
-        cfg.n_classes = model_cfg["embed_dim"]  # This is the projection dimensionality
-        cfg.return_type = None
-        cfg.layer_norm_pre = True
-        cfg.eps = 1e-5
-        cfg.normalization_type = "LN"
-        cfg.normalize_output = True
-        if model_name == "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K":
+
+        if model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
             cfg.layer_norm_pre = True
             cfg.return_type = "class_logits"  # actually returns 'visual_projection'
             cfg.n_heads = 16
