@@ -9,4 +9,12 @@ MODEL_DIR = BASE_DIR / "models"
 MODEL_CHECKPOINTS_DIR = MODEL_DIR / "checkpoints"
 SAE_CHECKPOINTS_DIR = MODEL_DIR / "sae"
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+DEVICE = get_device()
