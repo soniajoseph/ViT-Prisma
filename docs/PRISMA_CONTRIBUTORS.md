@@ -6,4 +6,12 @@ If you'd like to join us, check out our [open issues](https://github.com/soniajo
 
 ## Contributors
 
-*Alphabetical* 
+*In alphabetical order*
+
+* [Edward Stevinson](https://github.com/stevinson)
+* [Ethan Goldfarb](https://github.com/ekg15)
+* [Lorenz Hufe](https://github.com/lowlorenz)
+* [Praneet Suresh](https://github.com/PraneetNeuro)
+* [Rob Graham](https://github.com/themachinefan)
+* [Sonia Joseph](https://github.com/soniajoseph)
+* [Yash Vadi](https://github.com/YashVadi)
