@@ -629,7 +629,7 @@ class StandardSparseAutoencoder(SparseAutoencoder):
             else None
         )
 
-        loss = mse_loss + (l1_loss or None) + mse_loss_ghost_resid
+        loss = mse_loss + (l1_loss if l1_loss is not None else 0) + mse_loss_ghost_resid
 
         # Placeholder for auxiliary reconstruction loss
         aux_reconstruction_loss = torch.tensor(0.0)
