@@ -327,6 +327,9 @@ class VisionModelSAERunnerConfig:
 
         # Process data to make it serializable
         serializable_data = make_serializable(data)
+        serializable_data["_dtype"] = self._dtype
+        serializable_data["_device"] = self._device
+
         # Save to JSON file
         with open(path, "w") as f:
             json.dump(serializable_data, f, indent=4)
