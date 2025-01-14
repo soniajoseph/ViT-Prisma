@@ -798,7 +798,7 @@ class VisionSAETrainer:
                 l1_loss = torch.tensor(0.0)
 
             pbar.set_description(
-                f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}"
+                f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}", refresh=False
             )
 
         # Final checkpoint
