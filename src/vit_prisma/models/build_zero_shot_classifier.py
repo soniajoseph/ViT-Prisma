@@ -4,6 +4,7 @@ Build zero shot classifier for CLIP to classify image embeddings into your choic
 
 from vit_prisma.utils.openai_templates import OPENAI_IMAGENET_TEMPLATES
 from vit_prisma.dataloaders.imagenet_classes_simple import imagenet_classes
+from vit_prisma.utils.data_utils.imagenet.imagenet100_classes import imagenet100_classes
 
 import torch
 import tqdm
@@ -29,7 +30,7 @@ def get_args_parser():
     # Model parameters
     parser.add_argument('--model_name', default='hf-hub:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', type=str, metavar='MODEL',
                         help='Name of model to use')
-    parser.add_argument('--dataset', default='imagenet', help='waterbirds or imagenet')
+    parser.add_argument('--dataset', default='imagenet', help='waterbirds, imagenet, or imagenet100')
     # Dataset parameters
     parser.add_argument('--output_dir', default='/network/scratch/s/sonia.joseph/clip_benchmark',
                         help='path where to save')
@@ -107,6 +108,7 @@ def build_zero_shot_classifier(args):
     print("Vocab size:", vocab_size)
     classes = {
         'imagenet': imagenet_classes, 
+        'imagenet100': imagenet100_classes,
         }[args.dataset]
     classifier = zero_shot_classifier(model, tokenizer, classes, OPENAI_IMAGENET_TEMPLATES, args.device)
 
