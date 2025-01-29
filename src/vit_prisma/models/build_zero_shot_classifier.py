@@ -106,11 +106,17 @@ def build_zero_shot_classifier(args):
     print("Model parameters:", f"{np.sum([int(np.prod(p.shape)) for p in model.parameters()]):,}")
     print("Context length:", context_length)
     print("Vocab size:", vocab_size)
+
+    
     classes = {
         'imagenet': imagenet_classes, 
-        'imagenet100': imagenet100_classes,
+        'imagenet100': [v.split(',')[0].strip() for v in imagenet100_classes.values()]
+,
         }[args.dataset]
     classifier = zero_shot_classifier(model, tokenizer, classes, OPENAI_IMAGENET_TEMPLATES, args.device)
+
+    for i, classname in enumerate(list(classes)[:10]):
+        print(f"{i}: {classname}")
 
     clean_name = clean_model_name(args.model_name)
 

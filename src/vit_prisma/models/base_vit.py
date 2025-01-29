@@ -614,6 +614,7 @@ class HookedViT(HookedTransformer):
         return self.to("mps")
 
     def move_model_modules_to_device(self):
+        self.embed.proj.to(device)
         self.embed.to(devices.get_device_for_block_index(0, self.cfg))
         self.hook_embed.to(devices.get_device_for_block_index(0, self.cfg))
         if self.cfg.positional_embedding_type != "rotary":
