@@ -606,16 +606,13 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         
     ):
 
-        print(self.cfg.cls_token_only)
-        print(self.cfg.use_patches_only)
-        if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
-            remaining_patches = x[:, 1:, :]
-            x = x[:, 0:1, :]
-        if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
-            remaining_patches = x[:, 0:1,:]
-            x = x[:, 1:, :]
-
-        print(x.shape)
+        if not self.cfg.is_training:
+            if self.cfg.cls_token_only: # only pass in CLS token if CLS SAE
+                remaining_patches = x[:, 1:, :]
+                x = x[:, 0, :]
+            if self.cfg.use_patches_only: # only pass in patches token if Patch SAE
+                remaining_patches = x[:, 0,:]
+                x = x[:, 1:, :]
 
         # Encode input and get feature activations and pre-activation hidden state
         _, feature_acts, hidden_pre = self.encode(x, return_hidden_pre=True)
@@ -652,6 +649,8 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         if self.cfg.use_patches_only and not self.cfg.is_training:
             sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
+        if self.cfg.return_out_only: # to work with HookedSAEViT efficiently
+            return sae_out
 
         return (
             sae_out,
@@ -789,6 +788,9 @@ class GatedSparseAutoencoder(SparseAutoencoder):
             sae_out = torch.cat((sae_out, remaining_patches), dim=1)
         if self.cfg.use_patches_only and not self.cfg.is_training:
             sae_out = torch.cat((remaining_patches, sae_out), dim=1)
+        
+        if self.cfg.return_out_only: # to work with HookedSAEViT efficiently
+            return sae_out
 
         return (
             sae_out,
