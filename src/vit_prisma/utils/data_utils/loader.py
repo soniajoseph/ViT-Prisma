@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from vit_prisma.dataloaders.imagenet_dataset import (
     ImageNetValidationDataset,
 )
-from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+from vit_prisma.transforms.model_transforms import get_model_transforms
 from vit_prisma.utils.data_utils.cifar.cifar_10_utils import load_cifar_10
 from vit_prisma.utils.data_utils.imagenet.imagenet_utils import setup_imagenet_paths
 
@@ -35,18 +35,15 @@ class SubsetDataset(Dataset):
         return self.n
 
 
-def load_dataset(cfg, model_type="clip", visualize=False):
+def load_dataset(cfg, visualize=False):
     """Load and prepare datasets based on configuration and model type. Currently the
     function loads either ImageNet1K or CIFAR-10 datasets.
     """
     print(f"Dataset type: {cfg.dataset_name}") if cfg.verbose else None
 
+    data_transforms = get_model_transforms(cfg.model_name)
+       
     if cfg.dataset_name == "imagenet1k":
-        if model_type == "clip":
-            data_transforms = get_clip_val_transforms()
-        else:
-            raise ValueError("Invalid model type")
-
         imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
         train_data = torchvision.datasets.ImageFolder(
             cfg.dataset_train_path, transform=data_transforms
