@@ -95,7 +95,8 @@ class VisionModelSAERunnerConfig:
     #####################
     ### SAE Training: ###
     #####################
-    # I think we should seperate this into a seperate config.
+
+    is_training = True
 
     # Activation Store Parameters
     n_batches_in_buffer: int = 20
