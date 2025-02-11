@@ -259,6 +259,9 @@ class VisionModelSAERunnerConfig:
             self.is_training = False
             logging.info("Evaluation mode detected via environment variable; setting is_training to False.")
 
+        if self.cls_token_only and self.use_patches_only:
+            raise ValueError("Configuration error: 'cls_token_only' and 'use_patches_only' cannot both be True.")
+
         # Calculate key metrics
         n_tokens_per_buffer = (
             self.store_batch_size * self.context_size * self.n_batches_in_buffer

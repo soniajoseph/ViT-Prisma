@@ -11,7 +11,7 @@ from tqdm import tqdm
 import einops
 from typing import List
 
-from vit_prisma.transforms.open_clip_transforms import get_clip_val_transforms
+from vit_prisma.transforms.model_transforms import get_clip_val_transforms, get_model_transforms
 
 
 import argparse
@@ -193,16 +193,9 @@ def load_dataset(cfg, batch_size=4):
     dataset_path = cfg.dataset_path
     # dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
     dataset_val_path = cfg.dataset_val_path
-    if 'clip' in cfg.model_name:
-        data_transforms = get_clip_val_transforms()
-    elif 'dino' in cfg.model_name: # dino transforms
-        print("Using DINO transforms")
-        data_transforms = transforms.Compose([
-transforms.Resize(256),  # Resize the image to 256x256 pixels
-transforms.CenterCrop(224),  # Crop the image to 224x224 pixels
-transforms.ToTensor(),  # Convert the image to a tensor
-transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize the image
-])
+    
+    data_transforms = get_model_transforms(cfg.model_name)
+
     imagenet_paths = setup_imagenet_paths(dataset_path)
     val_data = ImageNetValidationDataset(dataset_val_path, 
                                     imagenet_paths['label_strings'], 

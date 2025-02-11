@@ -143,7 +143,14 @@ class VisionSAETrainer:
             num_workers=self.cfg.num_workers,
         )
 
-    def load_dataset(self, model_type="clip"):
+    def load_dataset(self):
+
+        from vit_prisma.transforms.model_transforms import (
+            get_model_transforms,
+        )
+                
+        data_transforms = get_model_transforms(self.cfg.model_name)
+
         if self.cfg.dataset_name == "imagenet1k":
             (
                 print(f"Dataset type: {self.cfg.dataset_name}")
@@ -158,42 +165,50 @@ class VisionSAETrainer:
                 ImageNetValidationDataset,
             )
 
-            if model_type == "clip":
-                from vit_prisma.transforms.open_clip_transforms import (
-                    get_clip_val_transforms,
-                )
-
-                data_transforms = get_clip_val_transforms(self.cfg.image_size)
-            else:
-                raise ValueError("Invalid model type")
             imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
 
             train_data = torchvision.datasets.ImageFolder(
                 self.cfg.dataset_train_path, transform=data_transforms
             )
+
             val_data = ImageNetValidationDataset(
                 self.cfg.dataset_val_path,
                 imagenet_paths["label_strings"],
                 imagenet_paths["val_labels"],
                 data_transforms,
             )
-            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
-            (
-                print(f"Validation data length: {len(val_data)}")
-                if self.cfg.verbose
-                else None
-            )
-            return train_data, val_data
+
         elif self.cfg.dataset_name == "cifar10":
             train_data, val_data, test_data = load_cifar_10(
                 self.cfg.dataset_path, image_size=self.cfg.image_size
             )
-            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
-            print(f"Validation data length: {len(val_data)}") if self.cfg.verbose else None
-            return train_data, val_data
         else:
-            # raise error
-            raise ValueError("Invalid dataset name")
+            try:
+                from torchvision.datasets import DatasetFolder
+                from torchvision.datasets.folder import default_loader
+                from torch.utils.data import random_split
+
+                dataset = DatasetFolder(
+                    root=self.cfg.dataset_path,
+                    loader=default_loader,
+                    extensions=('.jpg', '.jpeg', '.png'),
+                    transform=data_transforms
+                )
+
+                train_size = int(0.8 * len(dataset))
+                print("traning data size : ", train_size)
+                self.cfg.total_training_images = train_size
+
+                val_size = len(dataset) - train_size
+
+                train_data, val_data = random_split(dataset, [train_size, val_size])
+            except:
+                raise ValueError("Invalid dataset")
+        
+        print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
+        print(f"Validation data length: {len(val_data)}") if self.cfg.verbose else None
+    
+        return train_data, val_data
 
     def get_checkpoint_thresholds(self):
         if self.cfg.n_checkpoints > 0:
@@ -716,17 +731,20 @@ class VisionSAETrainer:
                 result[field.name] = value
         return result
 
+    def initalize_wandb(self):
+        config_dict = self.dataclass_to_dict(self.cfg)
+        run_name = self.cfg.run_name.replace(":", "_")
+        wandb_project = self.cfg.wandb_project.replace(":", "_")
+        wandb.init(
+            project=wandb_project,
+            config=config_dict,
+            entity=self.cfg.wandb_entity,
+            name=run_name,
+        )
+
     def run(self):
         if self.cfg.log_to_wandb:
-            config_dict = self.dataclass_to_dict(self.cfg)
-            run_name = self.cfg.run_name.replace(":", "_")
-            wandb_project = self.cfg.wandb_project.replace(":", "_")
-            wandb.init(
-                project=wandb_project,
-                config=config_dict,
-                entity=self.cfg.wandb_entity,
-                name=run_name,
-            )
+            self.initalize_wandb()
 
         (
             act_freq_scores,
