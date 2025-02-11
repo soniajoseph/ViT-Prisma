@@ -252,6 +252,10 @@ class VisionModelSAERunnerConfig:
             self.cached_activations_path = f"activations/{self.dataset_path.replace('/', '_')}/{self.model_name.replace('/', '_')}/{self.hook_point}"
             if self.hook_point_head_index is not None:
                 self.cached_activations_path += f"_{self.hook_point_head_index}"
+        
+        if os.getenv("EVAL_MODE", "false").lower() in {"true", "1"}:
+            self.is_training = False
+            logging.info("Evaluation mode detected via environment variable; setting is_training to False.")
 
         # Calculate key metrics
         n_tokens_per_buffer = (

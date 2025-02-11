@@ -613,6 +613,8 @@ class StandardSparseAutoencoder(SparseAutoencoder):
             remaining_patches = x[:, 0:1,:]
             x = x[:, 1:, :]
 
+        print(x.shape)
+
         # Encode input and get feature activations and pre-activation hidden state
         _, feature_acts, hidden_pre = self.encode(x, return_hidden_pre=True)
         sae_out = self.decode(feature_acts)
