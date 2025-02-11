@@ -606,16 +606,13 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         
     ):
 
-        print(self.cfg.cls_token_only)
-        print(self.cfg.use_patches_only)
-        if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
-            remaining_patches = x[:, 1:, :]
-            x = x[:, 0:1, :]
-        if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
-            remaining_patches = x[:, 0:1,:]
-            x = x[:, 1:, :]
-
-        print(x.shape)
+      
+        # if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
+        #     remaining_patches = x[:, 1:, :]
+        #     x = x[:, 0:1, :]
+        # if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
+        #     remaining_patches = x[:, 0:1,:]
+        #     x = x[:, 1:, :]
 
         # Encode input and get feature activations and pre-activation hidden state
         _, feature_acts, hidden_pre = self.encode(x, return_hidden_pre=True)
@@ -647,10 +644,10 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         # Placeholder for auxiliary reconstruction loss
         aux_reconstruction_loss = torch.tensor(0.0) 
 
-        if self.cfg.cls_token_only and not self.cfg.is_training:
-            sae_out = torch.cat((sae_out, remaining_patches), dim=1)
-        if self.cfg.use_patches_only and not self.cfg.is_training:
-            sae_out = torch.cat((remaining_patches, sae_out), dim=1)
+        # if self.cfg.cls_token_only and not self.cfg.is_training:
+        #     sae_out = torch.cat((sae_out, remaining_patches), dim=1)
+        # if self.cfg.use_patches_only and not self.cfg.is_training:
+        #     sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
 
         return (
@@ -748,12 +745,12 @@ class GatedSparseAutoencoder(SparseAutoencoder):
     def forward(self, x: torch.Tensor, *args, **kwargs):
         # Encode input and get feature activations and pre-activation hidden state
 
-        if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
-            remaining_patches = x[:, 1:, :]
-            x = x[:, 0:1, :]
-        if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
-            remaining_patches = x[:, 0:1,:]
-            x = x[:, 1:, :]
+        # if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
+        #     remaining_patches = x[:, 1:, :]
+        #     x = x[:, 0:1, :]
+        # if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
+        #     remaining_patches = x[:, 0:1,:]
+        #     x = x[:, 1:, :]
 
 
         
@@ -785,10 +782,10 @@ class GatedSparseAutoencoder(SparseAutoencoder):
 
 
         
-        if self.cfg.cls_token_only and not self.cfg.is_training:
-            sae_out = torch.cat((sae_out, remaining_patches), dim=1)
-        if self.cfg.use_patches_only and not self.cfg.is_training:
-            sae_out = torch.cat((remaining_patches, sae_out), dim=1)
+        # if self.cfg.cls_token_only and not self.cfg.is_training:
+        #     sae_out = torch.cat((sae_out, remaining_patches), dim=1)
+        # if self.cfg.use_patches_only and not self.cfg.is_training:
+        #     sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
         return (
             sae_out,
