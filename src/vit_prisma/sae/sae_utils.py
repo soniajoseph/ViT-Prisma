@@ -192,3 +192,37 @@ def wandb_log_suffix(cfg: Any, hyperparams: Any):
         if isinstance(value, list)
     )
     return suffix
+
+def get_deep_attr(obj: Any, path: str):
+    """Helper function to get a nested attribute from a object.
+    In practice used to access HookedViT HookPoints (eg model.blocks[0].attn.hook_z)
+
+    Args:
+        obj: Any object. In practice, this is a HookedViT (or subclass)
+        path: str. The path to the attribute you want to access. (eg "blocks.0.attn.hook_z")
+
+    returns:
+        Any. The attribute at the end of the path
+    """
+    parts = path.split(".")
+    # Navigate to the last component in the path
+    for part in parts:
+        obj = obj[int(part)] if part.isdigit() else getattr(obj, part)
+    return obj
+
+
+def set_deep_attr(obj: Any, path: str, value: Any):
+    """Helper function to change the value of a nested attribute from a object.
+    In practice used to swap HookedViT HookPoints (eg model.blocks[0].attn.hook_z) with HookedSAEs and vice versa
+
+    Args:
+        obj: Any object. In practice, this is a HookedViT (or subclass)
+        path: str. The path to the attribute you want to access. (eg "blocks.0.attn.hook_z")
+        value: Any. The value you want to set the attribute to (eg a HookedSAE object)
+    """
+    parts = path.split(".")
+    # Navigate to the last component in the path
+    for part in parts[:-1]:
+        obj = obj[int(part)] if part.isdigit() else getattr(obj, part)
+    # Set the value on the final attribute
+    setattr(obj, parts[-1], value)
