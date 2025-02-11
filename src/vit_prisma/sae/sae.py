@@ -607,7 +607,6 @@ class StandardSparseAutoencoder(SparseAutoencoder):
     ):
 
         print(self.cfg.cls_token_only)
-
         print(self.cfg.use_patches_only)
         if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
             remaining_patches = x[:, 1:, :]
