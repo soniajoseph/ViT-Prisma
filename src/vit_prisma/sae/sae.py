@@ -728,6 +728,13 @@ class GatedSparseAutoencoder(SparseAutoencoder):
 
     def forward(self, x: torch.Tensor, *args, **kwargs):
         # Encode input and get feature activations and pre-activation hidden state
+
+        if self.cfg.cls_token_only:
+            x = x[:, :, 0:1]
+        if self.cfg.use_patches_only:
+            x = x[:, :, 1:]
+
+        
         sae_in, feature_acts = self.encode(x)
         sae_out = self.decode(feature_acts)
 
