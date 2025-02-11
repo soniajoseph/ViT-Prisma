@@ -143,7 +143,7 @@ class VisionSAETrainer:
             num_workers=self.cfg.num_workers,
         )
 
-    def load_dataset(self, model_type="clip"):
+    def load_dataset(self):
 
         from vit_prisma.transforms.model_transforms import (
             get_model_transforms,
