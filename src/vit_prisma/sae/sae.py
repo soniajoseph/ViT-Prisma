@@ -603,13 +603,16 @@ class StandardSparseAutoencoder(SparseAutoencoder):
 
     def forward(
         self, x: torch.Tensor, dead_neuron_mask: torch.Tensor = None, *args, **kwargs
+        
     ):
 
+        print(self.cfg.cls_token_only)
 
-        if self.cfg.cls_token_only and not self.cfg.is_training:: # only pass in CLS token if CLS SAE
+        print(self.cfg.use_patches_only)
+        if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
             remaining_patches = x[:, 1:, :]
             x = x[:, 0:1, :]
-        if self.cfg.use_patches_only and not self.cfg.is_training:: # only pass in patches token if Patch SAE
+        if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
             remaining_patches = x[:, 0:1,:]
             x = x[:, 1:, :]
 
@@ -645,9 +648,9 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         # Placeholder for auxiliary reconstruction loss
         aux_reconstruction_loss = torch.tensor(0.0) 
 
-        if self.cfg.cls_token_only and not self.cfg.is_training::
+        if self.cfg.cls_token_only and not self.cfg.is_training:
             sae_out = torch.cat((sae_out, remaining_patches), dim=1)
-        if self.cfg.use_patches_only and not self.cfg.is_training::
+        if self.cfg.use_patches_only and not self.cfg.is_training:
             sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
 
@@ -830,24 +833,11 @@ class TopK(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        if self.cfg.cls_token_only and not self.cfg.is_training: # only pass in CLS token if CLS SAE
-            remaining_patches = x[:, 1:, :]
-            x = x[:, 0:1, :]
-        if self.cfg.use_patches_only and not self.cfg.is_training: # only pass in patches token if Patch SAE
-            remaining_patches = x[:, 0:1,:]
-            x = x[:, 1:, :]
-
 
         topk = torch.topk(x, k=self.k, dim=-1)
         values = self.postact_fn(topk.values)
         result = torch.zeros_like(x)
         result.scatter_(-1, topk.indices, values)
-
-
-        if self.cfg.cls_token_only and not self.cfg.is_training::
-            sae_out = torch.cat((result, remaining_patches), dim=1)
-        if self.cfg.use_patches_only and not self.cfg.is_training::
-            sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
         return result
 

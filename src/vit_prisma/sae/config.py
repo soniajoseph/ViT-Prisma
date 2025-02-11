@@ -6,6 +6,8 @@ from typing import Any, Optional, Literal
 import logging
 import inspect
 
+import os
+
 import torch
 from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 
