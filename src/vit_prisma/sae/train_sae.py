@@ -76,7 +76,7 @@ class VisionSAETrainer:
             raise ValueError(f"Loading of {self.cfg.architecture} not supported")
 
 
-        dataset, eval_dataset = self.load_dataset()
+        dataset, eval_dataset = VisionSAETrainer.load_dataset(self.cfg)
         self.dataset = dataset
         self.eval_dataset = eval_dataset
         self.activations_store = self.initialize_activations_store(
