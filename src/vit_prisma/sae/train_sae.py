@@ -142,19 +142,20 @@ class VisionSAETrainer:
             eval_dataset=eval_dataset,
             num_workers=self.cfg.num_workers,
         )
-
-    def load_dataset(self):
+    
+    @staticmethod
+    def load_dataset(cfg):
 
         from vit_prisma.transforms.model_transforms import (
             get_model_transforms,
         )
                 
-        data_transforms = get_model_transforms(self.cfg.model_name)
+        data_transforms = get_model_transforms(cfg.model_name)
 
-        if self.cfg.dataset_name == "imagenet1k":
+        if cfg.dataset_name == "imagenet1k":
             (
-                print(f"Dataset type: {self.cfg.dataset_name}")
-                if self.cfg.verbose
+                print(f"Dataset type: {cfg.dataset_name}")
+                if cfg.verbose
                 else None
             )
             # Imagenet-specific logic
@@ -165,22 +166,22 @@ class VisionSAETrainer:
                 ImageNetValidationDataset,
             )
 
-            imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
+            imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
 
             train_data = torchvision.datasets.ImageFolder(
-                self.cfg.dataset_train_path, transform=data_transforms
+                cfg.dataset_train_path, transform=data_transforms
             )
 
             val_data = ImageNetValidationDataset(
-                self.cfg.dataset_val_path,
+                cfg.dataset_val_path,
                 imagenet_paths["label_strings"],
                 imagenet_paths["val_labels"],
                 data_transforms,
             )
 
-        elif self.cfg.dataset_name == "cifar10":
+        elif cfg.dataset_name == "cifar10":
             train_data, val_data, test_data = load_cifar_10(
-                self.cfg.dataset_path, image_size=self.cfg.image_size
+                cfg.dataset_path, image_size=cfg.image_size
             )
         else:
             try:
@@ -189,7 +190,7 @@ class VisionSAETrainer:
                 from torch.utils.data import random_split
 
                 dataset = DatasetFolder(
-                    root=self.cfg.dataset_path,
+                    root=cfg.dataset_path,
                     loader=default_loader,
                     extensions=('.jpg', '.jpeg', '.png'),
                     transform=data_transforms
@@ -197,7 +198,7 @@ class VisionSAETrainer:
 
                 train_size = int(0.8 * len(dataset))
                 print("traning data size : ", train_size)
-                self.cfg.total_training_images = train_size
+                cfg.total_training_images = train_size
 
                 val_size = len(dataset) - train_size
 
@@ -205,8 +206,8 @@ class VisionSAETrainer:
             except:
                 raise ValueError("Invalid dataset")
         
-        print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
-        print(f"Validation data length: {len(val_data)}") if self.cfg.verbose else None
+        print(f"Train data length: {len(train_data)}") if cfg.verbose else None
+        print(f"Validation data length: {len(val_data)}") if cfg.verbose else None
     
         return train_data, val_data
 
