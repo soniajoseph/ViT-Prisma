@@ -156,6 +156,7 @@ class VisionModelSAERunnerConfig:
         "/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out"
     )
 
+
     @property
     def device(self):
         """Device property, returns the torch device representation of the internal _device variable."""

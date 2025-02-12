@@ -649,8 +649,9 @@ class StandardSparseAutoencoder(SparseAutoencoder):
         # if self.cfg.use_patches_only and not self.cfg.is_training:
         #     sae_out = torch.cat((remaining_patches, sae_out), dim=1)
 
-        if self.cfg.return_out_only: # to work with HookedSAEViT efficiently
-            return sae_out
+        if hasattr(self.cfg, "return_out_only"): # to work with HookedSAEViT efficiently
+            if self.cfg.return_out_only:    
+                return sae_out
 
         return (
             sae_out,
@@ -789,8 +790,10 @@ class GatedSparseAutoencoder(SparseAutoencoder):
         # if self.cfg.use_patches_only and not self.cfg.is_training:
         #     sae_out = torch.cat((remaining_patches, sae_out), dim=1)
         
-        if self.cfg.return_out_only: # to work with HookedSAEViT efficiently
-            return sae_out
+
+        if hasattr(self.cfg, "return_out_only"): # to work with HookedSAEViT efficiently
+            if self.cfg.return_out_only:    
+                return sae_out
 
         return (
             sae_out,
