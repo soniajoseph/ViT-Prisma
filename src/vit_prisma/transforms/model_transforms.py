@@ -27,14 +27,14 @@ def get_model_transforms(
     else:
         try:
             img_processor = AutoImageProcessor.from_pretrained(model_name)
-            img_size = img_processor['size']['height']
-            return transforms.Compose(
-                transforms.Resize(size=img_size, interpolation=InterpolationMode.BICUBIC, max_size=None, antialias=True),
-                transforms.CenterCrop(size=(img_size, img_size)),
-                _convert_to_rgb,
-                transforms.ToTensor(),
-                transforms.Normalize(mean=img_processor['image_mean'], std=img_processor['image_std'])
-            )
+            img_size = img_processor.size['height']
+            return transforms.Compose([
+                    transforms.Resize(size=img_size, interpolation=InterpolationMode.BICUBIC, max_size=None, antialias=True),
+                    transforms.CenterCrop(size=(img_size, img_size)),
+                    _convert_to_rgb,
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=img_processor.image_mean, std=img_processor.image_std)
+            ])
         except:
             raise ValueError(f"Image processor for {model_name} not found. Please define the appropriate data transforms")
     
