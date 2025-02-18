@@ -157,3 +157,6 @@ def test_accuracy_baseline_hooked_model():
     print("Results", results)
     # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
     assert np.isclose(results["imagenet-zeroshot-val-top1"], 0.69, atol=0.01)
+
+
+test_loading_open_clip()
