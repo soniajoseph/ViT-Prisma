@@ -968,12 +968,13 @@ def convert_open_clip_vision_config(model_cfg: dict, model_name: str) -> HookedV
     # Common configurations
     cfg.use_cls_token = True
     cfg.d_head = cfg.d_model // cfg.n_heads
-    cfg.return_type = getattr(cfg, 'return_type', None)
+    cfg.return_type = getattr(cfg, 'return_type', 'class_logits')
     cfg.layer_norm_pre = True
     cfg.eps = 1e-5
     cfg.normalization_type = "LN"
     cfg.normalize_output = True
 
+    
     return cfg
   
   
@@ -1206,14 +1207,17 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
             if config.get('model_cfg'):
-                hf_config = config['model_cfg']
+                model_config = config['model_cfg']
             elif config.get('vision_cfg'):
-                hf_config = config
+                model_config = config
             else:
-                raise ValueError(f"TODO EdS:")
-        hf_config = convert_open_clip_config(hf_config, model_name)
-
-        return hf_config
+                raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
+        
+        cfg = convert_open_clip_vision_config(model_config, model_name)
+        cfg.layer_norm_pre = getattr(cfg, "layer_norm_pre", True)  # Default to True if not present
+        cfg.return_type = "class_logits"
+        return cfg
+        
     elif is_clip and model_name.startswith("kandinsky"):
         from types import SimpleNamespace
 
@@ -1263,7 +1267,6 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
     elif hasattr(hf_config, "tubelet_size"):
         ps = hf_config.tubelet_size[1]
 
-    print(hf_config)
 
     pretrained_config = {
         "n_layers": hf_config.num_hidden_layers,
@@ -1337,6 +1340,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             pretrained_config.update(
                 {"n_classes": len(id2label), "return_type": "class_logits"}
             )
+    
 
     if is_clip:
         pretrained_config.update(
