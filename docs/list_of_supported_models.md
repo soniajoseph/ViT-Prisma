@@ -3,6 +3,10 @@
 
 **Model name list coming soon**
 
+# How to load the transformer...
+
+# Available Vision/Video Transformers to Load # 
+
 # Vision Transformers
 
 ## Vanilla Vision Transformers
@@ -13,9 +17,9 @@
 
 ## CLIP Transformers
 
-### OpenAI
+#### OpenAI
 
-### timm
+#### timm
 
 ### LAION 
 
@@ -37,9 +41,9 @@
 * Predictor 
 
 
-## Not yet supported
+# Not yet supported
 
 
-## Testing the model
+# Testing the model
 
 To test for yourself that the model is properly adapted into the HookedViT, check out this file (COMING SOON).
