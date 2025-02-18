@@ -1,73 +1,164 @@
-
-
+import pytest
 import torch
 from transformers import CLIPModel
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
+# Define a list of models to test
+MODEL_LIST = [
+
+    # MODELS THAT CURRENTLY PASS
+    "openai/clip-vit-base-patch32",
+    "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
+
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K",
+
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
+
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.clip-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.laion-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K",
+
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31",
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32",
+    "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16",
+    
+    "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K",
+
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31",
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32",
+    "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
+    
+    "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
+
+
+
+
+    # # MODELS THAT FAIL CURRENTLY
+    "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
+    "open-clip:timm/vit_base_patch16_clip_224.openai",
+    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
+    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
+    "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
+    "open-clip:timm/vit_base_patch32_clip_224.openai",
+    "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
+    "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
+    "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
+    "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
+    "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
+    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
+    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
+    "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
+    "open-clip:timm/vit_large_patch14_clip_224.openai",
+    "open-clip:timm/vit_large_patch14_clip_336.openai",
+    "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
+    "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
+    "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
+    "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b",
+]
+
+TOLERANCE = 1e-4
+DEVICE = "cuda"
+
+@pytest.mark.parametrize("model_name", MODEL_LIST)
 def test_loading_clip(model_name):
-    TOLERANCE = 1e-4
+    """Test that the outputs of the HookedViT model match the original model."""
+    # Generate a random input image
+    input_image = generate_random_input(batch_size=5, channels=3, height=224, width=224, device=DEVICE)
 
-    batch_size = 5
-    channels = 3
-    height = 224
-    width = 224
-    device = "cuda"
+    if model_name.startswith("open-clip:"):
+        test_open_clip_model(model_name, input_image)
+    else:
+        test_hf_clip_model(model_name, input_image)
 
-    # Get random image
+
+def generate_random_input(batch_size, channels, height, width, device):
+    """Generate a random tensor to simulate input images."""
     with torch.random.fork_rng():
         torch.manual_seed(1)
-        input_image = torch.rand((batch_size, channels, height, width)).to(device)
-
-    # If part of open-clip library
-    if "open-clip" in model_name:
-        # remove open-clip
-        og_model_name = model_name[len("open-clip:"):]
-        og_model_name = "hf-hub:" + og_model_name
-        og_model, *data = open_clip.create_model_and_transforms(og_model_name)
-        og_model.to(device)
-        og_model.eval()
-
-        hooked_model = HookedViT.from_pretrained(model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
-        hooked_model.to(device)
-        hooked_model.eval()
-        
-        with torch.no_grad():
-            og_output, *data = og_model(input_image)
-            hooked_output = hooked_model(input_image)
-
-        assert torch.allclose(
-            og_output, hooked_output, atol=TOLERANCE
-        ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
-        print(f"{model_name} output matches!")
+        return torch.rand((batch_size, channels, height, width)).to(device)
 
 
-    else:
-        full = CLIPModel.from_pretrained(model_name)
-        tinyclip = full.vision_model
+def test_open_clip_model(model_name, input_image):
+    """Test models from the open-clip library."""
+    # Convert open-clip model name to hf-hub format
+    og_model_name = "hf-hub:" + model_name[len("open-clip:"):]
+    
+    # Load original model
+    og_model, *_ = open_clip.create_model_and_transforms(og_model_name)
+    og_model.to(DEVICE)
+    og_model.eval()
 
-        tinyclip_final_proj = full.visual_projection
-        tinyclip.to(device)
-        tinyclip_final_proj.to(device)
+    # Load HookedViT model
+    hooked_model = HookedViT.from_pretrained(
+        model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False
+    )
+    hooked_model.to(DEVICE)
+    hooked_model.eval()
 
-        hooked_model = HookedViT.from_pretrained(
-            model_name, is_timm=False, is_clip=True, fold_ln=False
-        )
-        hooked_model.to(device)
+    # Compare outputs
+    with torch.no_grad():
+        og_output, *_ = og_model(input_image)
+        hooked_output = hooked_model(input_image)
 
-        
-        with torch.no_grad():
-            tinyclip_output, hooked_output = tinyclip_final_proj(
-                tinyclip(input_image)[1]
-            ), hooked_model(input_image)
-
-        assert torch.allclose(
-            hooked_output, tinyclip_output, atol=TOLERANCE
-        ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
-        print(f"{model_name} output matches!")
+    assert torch.allclose(
+        og_output, hooked_output, atol=TOLERANCE
+    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - og_output))}"
 
 
-test_loading_clip("openai/clip-vit-base-patch32")
-test_loading_clip("wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M")
-test_loading_clip('open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K')
+def test_hf_clip_model(model_name, input_image):
+    """Test models from Hugging Face's CLIP library."""
+    # Load full CLIP model and extract components
+    full = CLIPModel.from_pretrained(model_name)
+    tinyclip = full.vision_model
+    tinyclip_final_proj = full.visual_projection
+    tinyclip.to(DEVICE)
+    tinyclip_final_proj.to(DEVICE)
 
+    # Load HookedViT model
+    hooked_model = HookedViT.from_pretrained(
+        model_name, is_timm=False, is_clip=True, fold_ln=False
+    )
+    hooked_model.to(DEVICE)
+
+    # Compare outputs
+    with torch.no_grad():
+        tinyclip_output = tinyclip_final_proj(tinyclip(input_image)[1])
+        hooked_output = hooked_model(input_image)
+
+    assert torch.allclose(
+        hooked_output, tinyclip_output, atol=TOLERANCE
+    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
+
+    
