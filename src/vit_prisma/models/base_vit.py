@@ -8,8 +8,9 @@ Inspired by TransformerLens. Some functions have been adapted from the Transform
 For more information on TransformerLens, visit: https://github.com/neelnanda-io/TransformerLens
 """
 
+import logging
+from typing import Union, Dict, Tuple, Optional, Literal
 import os
-from typing import Union, Dict, Tuple, Optional
 
 import einops
 import torch
@@ -17,6 +18,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fancy_einsum import einsum
 from jaxtyping import Float
+
+from transformers import ViTForImageClassification
 from transformers import ViTConfig
 
 from vit_prisma.configs import HookedViTConfig
@@ -32,6 +35,8 @@ from vit_prisma.prisma_tools import FactoredMatrix
 from vit_prisma.prisma_tools.activation_cache import ActivationCache
 from vit_prisma.prisma_tools.hook_point import HookPoint
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
+from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, \
+    fill_missing_keys
 from vit_prisma.utils import devices
 from vit_prisma.utils.prisma_utils import transpose
 from vit_prisma.sae.sae_utils import get_deep_attr, set_deep_attr
@@ -41,6 +46,17 @@ from contextlib import contextmanager
 from typing import Any, Callable, List
 
 from vit_prisma.sae.sae import SparseAutoencoder as SAE
+
+DTYPE_FROM_STRING = {
+    "float32": torch.float32,
+    "fp32": torch.float32,
+    "float16": torch.float16,
+    "fp16": torch.float16,
+    "bfloat16": torch.bfloat16,
+    "bf16": torch.bfloat16,
+}
+
+
 
 class HookedViT(HookedTransformer):
     """
@@ -634,6 +650,92 @@ class HookedViT(HookedTransformer):
             block.to(devices.get_device_for_block_index(i, self.cfg))
 
     @classmethod
+    def from_pretrained(
+        cls, 
+        model_name: str,
+        is_timm: bool = True,
+        is_clip: bool = False,
+        fold_ln: Optional[bool] = True,
+        center_writing_weights: Optional[bool] = True,
+        refactor_factored_attn_matrices: Optional[bool] = False,
+        checkpoint_index: Optional[int] = None,
+        checkpoint_value: Optional[int] = None,
+        hf_model: Optional[ViTForImageClassification] = None,
+        device: Optional[Union[str, torch.device]] = None,
+        n_devices: Optional[int] = 1,
+        move_to_device: Optional[bool] = True,
+        fold_value_biases: Optional[bool] = True,
+        default_prepend_bos: Optional[bool] = True,
+        default_padding_side: Optional[Literal["left", "right"]] = "right",
+        dtype="float32",
+        use_attn_result: Optional[bool] = False,
+        **from_pretrained_kwargs,
+    ) -> "HookedViT":
+
+        assert not (
+            from_pretrained_kwargs.get("load_in_8bit", False)
+            or from_pretrained_kwargs.get("load_in_4bit", False)
+        ), "Quantization not supported"
+
+        if isinstance(dtype, str):
+            # Convert from string to a torch dtype
+            dtype = DTYPE_FROM_STRING[dtype]
+
+        if "torch_dtype" in from_pretrained_kwargs:
+            # For backwards compatibility with the previous way to do low precision loading
+            # This should maybe check the user did not explicitly set dtype *and* torch_dtype
+            dtype = from_pretrained_kwargs["torch_dtype"]
+
+        if (
+            (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+            or dtype == torch.float16
+        ) and device in ["cpu", None]:
+            logging.warning(
+                "float16 models may not work on CPU. Consider using a GPU or bfloat16."
+            )
+
+        # Set up other parts of transformer
+        
+        cfg = convert_pretrained_model_config(
+            model_name,
+            is_timm=is_timm,
+            is_clip=is_clip,
+        )
+
+        state_dict = get_pretrained_state_dict(
+            model_name, is_timm, is_clip, cfg, hf_model, dtype=dtype, return_old_state_dict=True, **from_pretrained_kwargs
+        )
+
+        model = cls(cfg, move_to_device=False)
+
+        # set false if openclip; not working properly
+        if is_clip and model_name.startswith("open-clip"):
+            center_writing_weights=False
+            print("Setting center_writing_weights to False for OpenCLIP")
+            fold_ln = False
+            print("Setting fold_ln to False for OpenCLIP")
+
+        model.load_and_process_state_dict(
+            state_dict,
+            fold_ln=fold_ln,
+            center_writing_weights=center_writing_weights,
+            fold_value_biases=fold_value_biases,
+            refactor_factored_attn_matrices=refactor_factored_attn_matrices,
+        )
+
+
+
+        # Set up other parameters
+        model.set_use_attn_result(use_attn_result)
+
+
+        if move_to_device:
+            model.move_model_modules_to_device()
+
+        print(f"Loaded pretrained model {model_name} into HookedTransformer")
+
+        return model
+      
     def from_local(cls, model_config: ViTConfig, checkpoint_path: str):
         model = cls(model_config)
         print(f"Loading the model locally from: {checkpoint_path}")
