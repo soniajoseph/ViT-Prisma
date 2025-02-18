@@ -403,6 +403,10 @@ class HookedTransformer(HookedRootModule):
         # Set up other parameters
         model.set_use_attn_result(use_attn_result)
 
+
+        if move_to_device:
+            model.move_model_modules_to_device()
+
         logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
 
         return model
