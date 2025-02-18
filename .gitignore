@@ -1,3 +1,5 @@
+data
+
 # Other repos
 beta-tcvae
 disent
@@ -140,3 +142,4 @@ configs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+.idea

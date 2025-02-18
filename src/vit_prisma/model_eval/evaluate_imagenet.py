@@ -1,16 +1,24 @@
 
 import logging
-import torch
 
 import open_clip
-
-from torch.utils.data import DataLoader
-
-from tqdm import tqdm
-
+import torch
 # import autocast
 from torch.cuda.amp import autocast
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
+from vit_prisma.utils.constants import DEVICE
+
+
+# from vit_prisma.models.build_zero_shot_classifier import build_zero_shot_classifier
+
+
+def get_autocast():
+    if torch.cuda.is_available():
+        return autocast
+    else:
+        return DummyContextManager
 
 
 def accuracy(output, target, topk=(1,)):
@@ -24,6 +32,7 @@ def run(model, classifier, dataloader, device='cuda'):
     
     # input_dtype = get_input_dtype(args.precision)
 
+    print(f"Running on {device}")
     model.to(device)
 
     with torch.inference_mode():
@@ -36,6 +45,8 @@ def run(model, classifier, dataloader, device='cuda'):
                 # predict
                 output = model(images)
                 image_features = output['image_features'] if isinstance(output, dict) else output
+                if isinstance(image_features, tuple):
+                    image_features = image_features[0]
                 image_features = image_features.cpu()
                 logits = 100. * image_features @ classifier
                 logits = logits.to(device)
@@ -88,11 +99,11 @@ def zero_shot_eval(model, data, epoch, model_name, pretrained_classifier, tokeni
     results = {}
     if 'imagenet-val' in data:
         dataloader = DataLoader(data['imagenet-val'], batch_size=128, num_workers=8, pin_memory=True)
-        top1, top5 = run(model, classifier, dataloader)
+        top1, top5 = run(model, classifier, dataloader, device=DEVICE)
         results['imagenet-zeroshot-val-top1'] = top1
         results['imagenet-zeroshot-val-top5'] = top5
     if 'imagenet-v2' in data:
-        top1, top5 = run(model, classifier, data['imagenet-v2'].dataloader)
+        top1, top5 = run(model, classifier, data['imagenet-v2'].dataloader, device=DEVICE)
         results['imagenetv2-zeroshot-val-top1'] = top1
         results['imagenetv2-zeroshot-val-top5'] = top5
 

@@ -1,13 +1,16 @@
+from vit_prisma.utils.data_utils.cifar.cifar_10_utils import load_cifar_10
 from vit_prisma.utils.load_model import load_model
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
-from vit_prisma.sae.sae import SparseAutoencoder
-from vit_prisma.sae.training.activations_store import VisionActivationsStore
+from vit_prisma.sae.sae import StandardSparseAutoencoder, GatedSparseAutoencoder
+from vit_prisma.sae.training.activations_store import VisionActivationsStore, CacheVisionActivationStore
+
+import wandb
 
 from vit_prisma.sae.training.geometric_median import compute_geometric_median
 from vit_prisma.sae.training.get_scheduler import get_scheduler
 
 # from vit_prisma.sae.evals import run_evals_vision
-from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
+# from vit_prisma.sae.evals.evals import get_substitution_loss, get_text_embeddings, get_text_embeddings_openclip, get_text_labels
 
 from vit_prisma.dataloaders.imagenet_index import imagenet_index
 
@@ -58,18 +61,22 @@ class VisionSAETrainer:
     def __init__(self, cfg: VisionModelSAERunnerConfig):
         self.cfg = cfg
 
-        if self.cfg.log_to_wandb:
-            import wandb
-
         self.set_default_attributes()  # For backward compatability
 
         self.bad_run_check = (
             True if self.cfg.min_l0 and self.cfg.min_explained_variance else False
         )
-        self.model = load_model(self.cfg.model_class_name, self.cfg.model_name)
-        self.sae = SparseAutoencoder(self.cfg)
+        self.model = load_model(self.cfg, self.cfg.model_name)
 
-        dataset, eval_dataset = self.load_dataset()
+        if self.cfg.architecture == "gated":
+            self.sae = GatedSparseAutoencoder(self.cfg)
+        elif self.cfg.architecture == "standard" or self.cfg.architecture == "vanilla":
+            self.sae = StandardSparseAutoencoder(self.cfg)
+        else:
+            raise ValueError(f"Loading of {self.cfg.architecture} not supported")
+
+
+        dataset, eval_dataset = VisionSAETrainer.load_dataset(self.cfg)
         self.dataset = dataset
         self.eval_dataset = eval_dataset
         self.activations_store = self.initialize_activations_store(
@@ -77,12 +84,12 @@ class VisionSAETrainer:
         )
         if not self.cfg.wandb_project:
             self.cfg.wandb_project = (
-            self.cfg.model_name.replace("/", "-")
-            + "-expansion-"
-            + str(self.cfg.expansion_factor)
-            + "-layer-"
-            + str(self.cfg.hook_point_layer)
-        )
+                self.cfg.model_name.replace("/", "-")
+                + "-expansion-"
+                + str(self.cfg.expansion_factor)
+                + "-layer-"
+                + str(self.cfg.hook_point_layer)
+            )
         self.cfg.unique_hash = uuid.uuid4().hex[
             :8
         ]  # Generate a random 8-character hex string
@@ -105,14 +112,17 @@ class VisionSAETrainer:
                 setattr(self.cfg, attr, None)
 
     def setup_checkpoint_path(self):
-        # Create checkpoint path with run_name, which contains unique identifier
-        self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
-        os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
-        (
-            print(f"Checkpoint path: {self.cfg.checkpoint_path}")
-            if self.cfg.verbose
-            else None
-        )
+        if self.cfg.n_checkpoints:
+            # Create checkpoint path with run_name, which contains unique identifier
+            self.cfg.checkpoint_path = f"{self.cfg.checkpoint_path}/{self.cfg.run_name}"
+            os.makedirs(self.cfg.checkpoint_path, exist_ok=True)
+            (
+                print(f"Checkpoint path: {self.cfg.checkpoint_path}")
+                if self.cfg.verbose
+                else None
+            )
+        else:
+            print(f"Not saving checkpoints so skipping creating checkpoint directory")
 
     def initialize_activations_store(self, dataset, eval_dataset):
         # raise separate errors if dataset or eval_dataset is none or invalid format. instead of none, do dataset type
@@ -120,6 +130,11 @@ class VisionSAETrainer:
             raise ValueError("Training dataset is None")
         if eval_dataset is None:
             raise ValueError("Eval dataset is None")
+        
+
+        if self.cfg.use_cached_activations:
+            return CacheVisionActivationStore(self.cfg)
+
         return VisionActivationsStore(
             self.cfg,
             self.model,
@@ -127,50 +142,74 @@ class VisionSAETrainer:
             eval_dataset=eval_dataset,
             num_workers=self.cfg.num_workers,
         )
+    
+    @staticmethod
+    def load_dataset(cfg):
 
-    def load_dataset(self, model_type="clip"):
-        if self.cfg.dataset_name == "imagenet1k":
+        from vit_prisma.transforms.model_transforms import (
+            get_model_transforms,
+        )
+                
+        data_transforms = get_model_transforms(cfg.model_name)
+
+        if cfg.dataset_name == "imagenet1k":
             (
-                print(f"Dataset type: {self.cfg.dataset_name}")
-                if self.cfg.verbose
+                print(f"Dataset type: {cfg.dataset_name}")
+                if cfg.verbose
                 else None
             )
             # Imagenet-specific logic
-            from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
+            from vit_prisma.utils.data_utils.imagenet.imagenet_utils import (
+                setup_imagenet_paths,
+            )
             from vit_prisma.dataloaders.imagenet_dataset import (
                 ImageNetValidationDataset,
             )
 
-            if model_type == "clip":
-                from vit_prisma.transforms.open_clip_transforms import (
-                    get_clip_val_transforms,
-                )
-
-                data_transforms = get_clip_val_transforms(self.cfg.image_size)
-            else:
-                raise ValueError("Invalid model type")
-            imagenet_paths = setup_imagenet_paths(self.cfg.dataset_path)
+            imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
 
             train_data = torchvision.datasets.ImageFolder(
-                self.cfg.dataset_train_path, transform=data_transforms
+                cfg.dataset_train_path, transform=data_transforms
             )
+
             val_data = ImageNetValidationDataset(
-                self.cfg.dataset_val_path,
+                cfg.dataset_val_path,
                 imagenet_paths["label_strings"],
                 imagenet_paths["val_labels"],
                 data_transforms,
             )
 
-            print(f"Train data length: {len(train_data)}") if self.cfg.verbose else None
-            (
-                print(f"Validation data length: {len(val_data)}")
-                if self.cfg.verbose
-                else None
+        elif cfg.dataset_name == "cifar10":
+            train_data, val_data, test_data = load_cifar_10(
+                cfg.dataset_path, image_size=cfg.image_size
             )
-            return train_data, val_data
         else:
-            # raise error
-            raise ValueError("Invalid dataset name")
+            try:
+                from torchvision.datasets import DatasetFolder
+                from torchvision.datasets.folder import default_loader
+                from torch.utils.data import random_split
+
+                dataset = DatasetFolder(
+                    root=cfg.dataset_path,
+                    loader=default_loader,
+                    extensions=('.jpg', '.jpeg', '.png'),
+                    transform=data_transforms
+                )
+
+                train_size = int(0.8 * len(dataset))
+                print("traning data size : ", train_size)
+                cfg.total_training_images = train_size
+
+                val_size = len(dataset) - train_size
+
+                train_data, val_data = random_split(dataset, [train_size, val_size])
+            except:
+                raise ValueError("Invalid dataset")
+        
+        print(f"Train data length: {len(train_data)}") if cfg.verbose else None
+        print(f"Validation data length: {len(val_data)}") if cfg.verbose else None
+    
+        return train_data, val_data
 
     def get_checkpoint_thresholds(self):
         if self.cfg.n_checkpoints > 0:
@@ -276,7 +315,6 @@ class VisionSAETrainer:
             )
             n_frac_active_tokens = 0
 
-        scheduler.step()
         optimizer.zero_grad()
 
         ghost_grad_neuron_mask = (
@@ -338,6 +376,7 @@ class VisionSAETrainer:
 
         sparse_autoencoder.remove_gradient_parallel_to_decoder_directions()
         optimizer.step()
+        scheduler.step()
 
         return (
             loss,
@@ -349,27 +388,49 @@ class VisionSAETrainer:
             n_frac_active_tokens,
         )
 
-
     # layer_acts be a poor format - need to run in ctx_len, gt_labels format
     @torch.no_grad()
     def val(self, sparse_autoencoder):
         sparse_autoencoder.eval()
+
+        print("Running validation") if self.cfg.verbose else None
+
         for images, gt_labels in self.activations_store.image_dataloader_eval:
             images = images.to(self.cfg.device)
             gt_labels = gt_labels.to(self.cfg.device)
             # needs to start with batch_size dimension
-            _, cache = self.model.run_with_cache(images, names_filter=sparse_autoencoder.cfg.hook_point)
-            hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(self.cfg.device)
-            
+            _, cache = self.model.run_with_cache(
+                images, names_filter=sparse_autoencoder.cfg.hook_point
+            )
+            hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(
+                self.cfg.device
+            )
 
-            print()
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(
+                hook_point_activation
+            )
 
+            # explained variance
+            sae_in = hook_point_activation
+            per_token_l2_loss = (sae_out - sae_in).pow(2).sum(dim=-1).squeeze()
+            total_variance = (sae_in - sae_in.mean(0)).pow(2).sum(-1)
+            explained_variance = 1 - per_token_l2_loss / total_variance
+
+            # L0
+            l0 = (feature_acts > 0).float().sum(-1).mean()
 
             # Calculate cosine similarity between original activations and sae output
-            cos_sim = torch.cosine_similarity(einops.rearrange(hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"),
-                                                                              einops.rearrange(sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
-                                                                                dim=0).mean(-1).tolist()
+            cos_sim = (
+                torch.cosine_similarity(
+                    einops.rearrange(
+                        hook_point_activation, "batch seq d_mlp -> (batch seq) d_mlp"
+                    ),
+                    einops.rearrange(sae_out, "batch seq d_mlp -> (batch seq) d_mlp"),
+                    dim=0,
+                )
+                .mean(-1)
+                .tolist()
+            )
             # all_cosine_similarity.append(cos_sim)
 
             # Calculate substitution loss
@@ -380,27 +441,49 @@ class VisionSAETrainer:
             if self.cfg.model_name.startswith("open-clip:"):
                 # create a list of all imagenet classes
                 num_imagenet_classes = 1000
-                batch_label_names = [imagenet_index[str(int(label))][1] for label in range(num_imagenet_classes)]
+                batch_label_names = [
+                    imagenet_index[str(int(label))][1]
+                    for label in range(num_imagenet_classes)
+                ]
 
-                model_name = self.cfg.model_name if not self.cfg.model_name.startswith("open-clip:") else self.cfg.model_name[10:]
+                model_name = (
+                    self.cfg.model_name
+                    if not self.cfg.model_name.startswith("open-clip:")
+                    else self.cfg.model_name[10:]
+                )
                 print(f"model_name: {model_name}")
                 # bad bad bad
-                oc_model_name = 'hf-hub:' + model_name
+                oc_model_name = "hf-hub:" + model_name
 
                 # should be moved to hookedvit pretrained long terms
-                og_model, _, preproc = open_clip.create_model_and_transforms(oc_model_name)
-                tokenizer = open_clip.get_tokenizer('ViT-B-32')
+                og_model, _, preproc = open_clip.create_model_and_transforms(
+                    oc_model_name
+                )
+                tokenizer = open_clip.get_tokenizer("ViT-B-32")
 
-                text_embeddings = get_text_embeddings_openclip(og_model, preproc, tokenizer, batch_label_names)
+                text_embeddings = get_text_embeddings_openclip(
+                    og_model, preproc, tokenizer, batch_label_names
+                )
                 # print(f"text_embeddings: {text_embeddings.shape}")
-                score, model_loss, sae_recon_loss, zero_abl_loss = get_substitution_loss(sparse_autoencoder, self.model, images, gt_labels, 
-                                                                          text_embeddings, device=self.cfg.device)
+                score, model_loss, sae_recon_loss, zero_abl_loss = (
+                    get_substitution_loss(
+                        sparse_autoencoder,
+                        self.model,
+                        images,
+                        gt_labels,
+                        text_embeddings,
+                        device=self.cfg.device,
+                    )
+                )
                 # log to w&b
                 # print(f"score: {score}")
                 # print(f"loss: {model_loss}")
                 # print(f"subst_loss: {sae_recon_loss}")
                 # print(f"zero_abl_loss: {zero_abl_loss}")
 
+            # count += 1
+            # if count > self.cfg.max_val_points:
+            #     break
 
             # print(f"sae loss: {loss}")
             # print(f"sae loss.shape: {loss.shape}")
@@ -408,24 +491,26 @@ class VisionSAETrainer:
             # print(f"l1_loss: {l1_loss}")
             # print(f"l1_loss.shape: {l1_loss.shape}")
 
-            wandb.log({
-            # Original metrics
-            f"validation_losses/mse_loss": mse_loss,
-            f"validation_losses/substitution_score": score,
-            f"validation_losses/substitution_loss": sae_recon_loss,
-            
-            # # New image-level metrics
-            # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
-            # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
-            # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
-            # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
-            })  
+            wandb.log(
+                {
+                    # Original metrics
+                    f"validation_metrics/mse_loss": mse_loss,
+                    f"validation_metrics/substitution_score": score,
+                    f"validation_metrics/substitution_loss": sae_recon_loss,
+                    f"validation_metrics/explained_variance": explained_variance.mean().item(),
+                    f"validation_metrics/L0": l0,
+                    # # New image-level metrics
+                    # f"metrics/mean_log10_per_image_sparsity{suffix}": per_image_log_sparsity.mean().item(),
+                    # f"plots/log_per_image_sparsity_histogram{suffix}": image_log_sparsity_histogram,
+                    # f"sparsity/images_below_1e-5{suffix}": (per_image_sparsity < 1e-5).sum().item(),
+                    # f"sparsity/images_below_1e-6{suffix}": (per_image_sparsity < 1e-6).sum().item(),
+                }
+            )
+
 
             # log to w&b
             print(f"cos_sim: {cos_sim}")
-            break
-            
-
+            break  # Currently runs just one batch for efficiency
 
     # def _log_feature_sparsity(self, sparse_autoencoder, hyperparams, log_feature_sparsity, feature_sparsity, n_training_steps):
     #     suffix = wandb_log_suffix(sparse_autoencoder.cfg, hyperparams)
@@ -593,6 +678,12 @@ class VisionSAETrainer:
         sae.set_decoder_norm_to_unit_norm()
         sae.save_model(path)
 
+        wandb.log(
+            {
+                "details/checkpoint_path": path,
+            }
+        )
+
         # Save log feature sparsity
         log_feature_sparsity_path = (
             self.cfg.checkpoint_path
@@ -641,17 +732,20 @@ class VisionSAETrainer:
                 result[field.name] = value
         return result
 
+    def initalize_wandb(self):
+        config_dict = self.dataclass_to_dict(self.cfg)
+        run_name = self.cfg.run_name.replace(":", "_")
+        wandb_project = self.cfg.wandb_project.replace(":", "_")
+        wandb.init(
+            project=wandb_project,
+            config=config_dict,
+            entity=self.cfg.wandb_entity,
+            name=run_name,
+        )
+
     def run(self):
         if self.cfg.log_to_wandb:
-            config_dict = self.dataclass_to_dict(self.cfg)
-            run_name = self.cfg.run_name.replace(":", "_")
-            wandb_project = self.cfg.wandb_project.replace(":", "_")
-            wandb.init(
-                project=wandb_project,
-                config=config_dict,
-                entity=self.cfg.wandb_entity,
-                name=run_name,
-            )
+            self.initalize_wandb()
 
         (
             act_freq_scores,
@@ -660,14 +754,14 @@ class VisionSAETrainer:
             optimizer,
             scheduler,
         ) = self.initialize_training_variables()
-        geometric_medians = self.initialize_geometric_medians()
+        self.initialize_geometric_medians()
 
         print("Starting training") if self.cfg.verbose else None
 
         n_training_steps = 0
         n_training_tokens = 0
 
-        pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE")
+        pbar = tqdm(total=self.cfg.total_training_tokens, desc="Training SAE", mininterval=20)
         while n_training_tokens < self.cfg.total_training_tokens:
             layer_acts = self.activations_store.next_batch()
 
@@ -695,9 +789,9 @@ class VisionSAETrainer:
                 n_frac_active_tokens=n_frac_active_tokens,
             )
 
+            # if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
+            #     self.val(self.sae)
 
-            if n_training_steps > 1 and n_training_steps % ((self.cfg.total_training_tokens//self.cfg.train_batch_size)//self.cfg.n_validation_runs) == 0:
-                self.val(self.sae)
 
             n_training_steps += 1
             n_training_tokens += self.cfg.train_batch_size
@@ -723,13 +817,14 @@ class VisionSAETrainer:
                 l1_loss = torch.tensor(0.0)
 
             pbar.set_description(
-                f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}"
+                f"Training SAE: Loss: {loss.item():.4f}, MSE Loss: {mse_loss.item():.4f}, L1 Loss: {l1_loss.item():.4f}, L0: {l0:.4f}", refresh=False
             )
 
         # Final checkpoint
-        self.checkpoint(
-            self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
-        )
+        if self.cfg.n_checkpoints:
+            self.checkpoint(
+                self.sae, n_training_tokens, act_freq_scores, n_frac_active_tokens
+            )
 
         if self.cfg.verbose:
             print(f"Final checkpoint saved at {n_training_tokens} tokens")
@@ -737,4 +832,3 @@ class VisionSAETrainer:
         pbar.close()
 
         return self.sae
-

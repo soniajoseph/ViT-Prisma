@@ -2,19 +2,13 @@ import torch
 import torchvision
 
 import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-
 
 from tqdm import tqdm
 
 import einops
 from typing import List
 
-
 import argparse
-
-import random
 
 import numpy as np
 import os
@@ -27,13 +21,12 @@ import textwrap
 from dataclasses import dataclass
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
-from vit_prisma.sae.training.activations_store import VisionActivationsStore
-# import dataloader
+from vit_prisma.sae.train_sae import VisionSAETrainer
 from torch.utils.data import DataLoader
 
 
-from vit_prisma.utils.data_utils.imagenet_utils import setup_imagenet_paths
-from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
+from vit_prisma.utils.data_utils.imagenet.imagenet_utils import setup_imagenet_paths
+from vit_prisma.dataloaders.imagenet_dataset import ImageNetValidationDataset
 from vit_prisma.models.base_vit import HookedViT
 
 from vit_prisma.sae.sae import SparseAutoencoder
@@ -44,8 +37,6 @@ from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_index_to_name
 import matplotlib.pyplot as plt
 
 from typing import Any, List, Tuple, Dict
-
-from scipy.stats import gaussian_kde
 
 import json
 
@@ -71,11 +62,12 @@ class EvalConfig(VisionModelSAERunnerConfig):
     device: bool = 'cuda'
 
     eval_max: int = 50_000 # Number of images to evaluate
-    batch_size: int = 32
+    batch_size: int = 64
 
     samples_per_bin: int = 10 # Number of features to sample per pre-specified interval
     max_images_per_feature: int = 20 # Number of max images to collect per feature
     
+    sampling_type: str = 'avg'
 
 
     @property
@@ -116,7 +108,8 @@ def create_eval_config(args):
         verbose=args.verbose,
         eval_max=args.eval_max,
         batch_size=args.batch_size,
-        samples_per_bin=args.samples_per_bin
+        samples_per_bin=args.samples_per_bin,
+        sampling_type=args.sampling_type,
 
     )
 
@@ -129,11 +122,18 @@ def load_model(cfg):
     model.eval()
     return model
 
+# def load_sae(cfg):
+#     sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
+#     sparse_autoencoder.to(cfg.device)
+#     sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who 
+#     return sparse_autoencoder
+
 def load_sae(cfg):
-    sparse_autoencoder = SparseAutoencoder(cfg).load_from_pretrained(cfg.sae_path)
-    sparse_autoencoder.to(cfg.device)
-    sparse_autoencoder.eval()  # prevents error if we're expecting a dead neuron mask for who 
-    return sparse_autoencoder
+    sae_path = cfg.sae_path
+    config_path = os.path.dirname(sae_path) + '/config.json'
+    config = VisionModelSAERunnerConfig.load_config(config_path)
+    sae = SparseAutoencoder.load_from_pretrained(sae_path, config)
+    return sae
 
 def save_stats(sae_path, stats):
     # Unpack the stats tuple
@@ -178,30 +178,15 @@ def save_stats(sae_path, stats):
     print(f"Stats saved to {stats_path}")
 
 
-def load_dataset(cfg):
-    if cfg.model_type == 'clip':
-        data_transforms = get_imagenet_transforms_clip(cfg.model_name)
-    else:
-        raise ValueError("Invalid model type")
+def get_imagenet_val_dataset_visualize(cfg):
     imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
-    # train_data = torchvision.datasets.ImageFolder(cfg.dataset_train_path, transform=data_transforms)
-    val_data = ImageNetValidationDataset(cfg.dataset_val_path, 
-                                    imagenet_paths['label_strings'], 
-                                    imagenet_paths['val_labels'], 
-                                    data_transforms,
-                                    return_index=True,
-    )
-    val_data_visualize = ImageNetValidationDataset(cfg.dataset_val_path, 
-                                    imagenet_paths['label_strings'], 
-                                    imagenet_paths['val_labels'],
-                                    torchvision.transforms.Compose([
-        torchvision.transforms.Resize((224, 224)),
-        torchvision.transforms.ToTensor(),]), return_index=True)
 
-    print(f"Validation data length: {len(val_data)}") if cfg.verbose else None
-    # activations_loader = VisionActivationsStore(cfg, model, train_data, eval_dataset=val_data)
-    val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=False, num_workers=4)
-    return val_data, val_data_visualize, val_dataloader
+    return ImageNetValidationDataset(imagenet_paths['val'], 
+                                imagenet_paths['label_strings'], 
+                                imagenet_paths['val_labels'],
+                                torchvision.transforms.Compose([
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),]), return_index=True)
 
 def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_max=100):
     total_l0 = []
@@ -210,7 +195,7 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
             batch_tokens, labels, indices = next(iter(val_dataloader))
             batch_tokens = batch_tokens.to(cfg.device)
             _, cache = model.run_with_cache(batch_tokens, names_filter = sparse_autoencoder.cfg.hook_point)
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(
                 cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
             )
             del cache
@@ -236,54 +221,66 @@ def average_l0_test(cfg, val_dataloader, sparse_autoencoder, model, evaluation_m
     print(f"Saved average l0 figure to {save_path}") if cfg.verbose else None
 
 
-# due to loading issues with laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90k
-def get_text_embeddings_openclip(vanilla_model, processor, tokenizer, original_text, batch_size=32):
-    # Split the text into batches
-    text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
+# # due to loading issues with laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90k
+# def get_text_embeddings_openclip(vanilla_model, processor, tokenizer, original_text, batch_size=32):
+#     # Split the text into batches
+#     text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
 
-    all_embeddings = []
+#     all_embeddings = []
 
-    for batch in text_batches:
-        inputs = tokenizer(batch)
-        # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
-        with torch.no_grad():
-            text_embeddings = vanilla_model.encode_text(inputs)
+#     for batch in text_batches:
+#         inputs = tokenizer(batch)
+#         # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+#         with torch.no_grad():
+#             text_embeddings = vanilla_model.encode_text(inputs)
 
-        text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
-        all_embeddings.append(text_embeddings)
+#         text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+#         all_embeddings.append(text_embeddings)
 
-    # Concatenate all batches
-    final_embeddings = torch.cat(all_embeddings, dim=0)
+#     # Concatenate all batches
+#     final_embeddings = torch.cat(all_embeddings, dim=0)
 
-    return final_embeddings
+#     return final_embeddings
 
 
-# this needs to be redone to not assume huggingface
-def get_text_embeddings(model_name, original_text, batch_size=32):
-    from transformers import CLIPProcessor, CLIPModel
-    vanilla_model = CLIPModel.from_pretrained(model_name)
-    processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
+# # this needs to be redone to not assume huggingface
+# def get_text_embeddings(model_name, original_text, batch_size=32):
+#     from transformers import CLIPProcessor, CLIPModel
+#     # remove clip tag
+    
+#     model_name = open_clip.create_model_and_transforms('hf-hub:' + model_name.replace('open-clip:', ''))
+#     vanilla_model = CLIPModel.from_pretrained(model_name)
+#     processor = CLIPProcessor.from_pretrained(model_name, do_rescale=False)
 
-    # Split the text into batches
-    text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
+#     # Split the text into batches
+#     text_batches = [original_text[i:i+batch_size] for i in range(0, len(original_text), batch_size)]
 
-    all_embeddings = []
+#     all_embeddings = []
 
-    for batch in text_batches:
-        inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
-        # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
+#     for batch in text_batches:
+#         inputs = processor(text=batch, return_tensors='pt', padding=True, truncation=True, max_length=77)
+#         # inputs = {k: v.to(cfg.device) for k, v in inputs.items()}
 
-        with torch.no_grad():
-            text_embeddings = vanilla_model.get_text_features(**inputs)
+#         with torch.no_grad():
+#             text_embeddings = vanilla_model.get_text_features(**inputs)
 
-        text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
-        all_embeddings.append(text_embeddings)
+#         text_embeddings = text_embeddings / text_embeddings.norm(dim=-1, keepdim=True)
+#         all_embeddings.append(text_embeddings)
 
-    # Concatenate all batches
-    final_embeddings = torch.cat(all_embeddings, dim=0)
+#     # Concatenate all batches
+#     final_embeddings = torch.cat(all_embeddings, dim=0)
 
-    return final_embeddings
+#     return final_embeddings
 
+
+def get_text_embeddings(model_name, device):
+    model_simple_name = model_name.split("/")[-1]
+    text_embedding_path = f'/home/mila/s/sonia.joseph/cvpr-2025/src/clip_circuits/sparse_feature_circuits/greedy_steering/text_data/{model_simple_name}_text_embeddings.npy'
+    text_features = np.load(text_embedding_path)
+    print(f"Loading precomputed text embeddings from {text_embedding_path}...")
+    text_features = torch.tensor(text_features).to(device)
+    text_features = F.normalize(text_features)
+    return text_features
 
 @torch.no_grad()
 def get_substitution_loss(
@@ -369,7 +366,6 @@ def get_similarity(image_features, text_features, k=5, device='cuda'):
 
   softmax_values = (image_features @ text_features.T).softmax(dim=-1)
   top_k_values, top_k_indices = torch.topk(softmax_values, k, dim=-1)
-  print(f"top_k_values: {top_k_values}")
   return softmax_values, top_k_indices
 
 def get_text_labels(name='wordbank'):
@@ -433,8 +429,10 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
     model.eval()
     sparse_autoencoder.eval()
 
-    all_labels = get_text_labels('imagenet')
-    text_embeddings = get_text_embeddings(cfg.model_name, all_labels)
+    # all_labels = get_text_labels('imagenet')
+    # text_embeddings = get_text_embeddings(cfg.model_name, all_labels)
+
+    text_embeddings = get_text_embeddings(cfg.model_name, cfg.device)
 
     total_acts = None
     total_tokens = 0
@@ -452,7 +450,7 @@ def process_dataset(model, sparse_autoencoder, dataloader, cfg):
             _, cache = model.run_with_cache(batch_tokens, names_filter=sparse_autoencoder.cfg.hook_point)
             hook_point_activation = cache[sparse_autoencoder.cfg.hook_point].to(cfg.device)
             
-            sae_out, feature_acts, loss, mse_loss, l1_loss, _ = sparse_autoencoder(hook_point_activation)
+            sae_out, feature_acts, loss, mse_loss, l1_loss, _, _ = sparse_autoencoder(hook_point_activation)
     
 
             # Calculate feature probability
@@ -539,66 +537,66 @@ def get_intervals_for_sparsities(log_freq):
     condition_texts[-1] = condition_texts[-1].replace('inf', '∞')
     return intervals, conditions, condition_texts
 
-def highest_activating_tokens(
-    images,
-    model,
-    sparse_autoencoder,
-    W_enc,
-    b_enc,
-    feature_ids: List[int],
-):
-    '''
-    Returns the indices & values for the highest-activating tokens in the given batch of data.
-    '''
-    with torch.no_grad():
-        # Get the post activations from the clean run
-        _, cache = model.run_with_cache(images)
+# def highest_activating_tokens(
+#     images,
+#     model,
+#     sparse_autoencoder,
+#     W_enc,
+#     b_enc,
+#     feature_ids: List[int],
+# ):
+#     '''
+#     Returns the indices & values for the highest-activating tokens in the given batch of data.
+#     '''
+#     with torch.no_grad():
+#         # Get the post activations from the clean run
+#         _, cache = model.run_with_cache(images)
 
-    inp = cache[sparse_autoencoder.cfg.hook_point]
-    b, seq_len, _ = inp.shape
-    post_reshaped = einops.rearrange(inp, "batch seq d_mlp -> (batch seq) d_mlp")
+#     inp = cache[sparse_autoencoder.cfg.hook_point]
+#     b, seq_len, _ = inp.shape
+#     post_reshaped = einops.rearrange(inp, "batch seq d_mlp -> (batch seq) d_mlp")
     
-    # Compute activations
-    sae_in = post_reshaped - sparse_autoencoder.b_dec
-    acts = einops.einsum(
-        sae_in,
-        W_enc,
-        "... d_in, d_in n -> ... n",
-    )
-    acts = acts + b_enc
-    acts = torch.nn.functional.relu(acts)
+#     # Compute activations
+#     sae_in = post_reshaped - sparse_autoencoder.b_dec
+#     acts = einops.einsum(
+#         sae_in,
+#         W_enc,
+#         "... d_in, d_in n -> ... n",
+#     )
+#     acts = acts + b_enc
+#     acts = torch.nn.functional.relu(acts)
 
-    # Reshape acts to (batch, seq, n_features)
-    acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
-    temp_top_indices = {}
-    # # The matrix already only contains features due to the selective W_enc you passed in
-    # for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
-    #     # Get activations for this feature across all tokens and images
-    #     feature_acts = acts_reshaped[:, :, idx].flatten()
+#     # Reshape acts to (batch, seq, n_features)
+#     acts_reshaped = einops.rearrange(acts, "(batch seq) n_features -> batch seq n_features", batch=b, seq=seq_len)
+#     temp_top_indices = {}
+#     # # The matrix already only contains features due to the selective W_enc you passed in
+#     # for idx, fid in enumerate(feature_ids): # Iterate through every feature id, and store the corresponding top images/tokens
+#     #     # Get activations for this feature across all tokens and images
+#     #     feature_acts = acts_reshaped[:, :, idx].flatten()
         
-    #     # Get top k activating tokens
-    #     top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+#     #     # Get top k activating tokens
+#     #     top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
 
-    #     # Convert flat indices to (image_idx, token_idx) pairs
-    #     image_indices = top_acts_indices // seq_len
-    #     token_indices = top_acts_indices % seq_len
+#     #     # Convert flat indices to (image_idx, token_idx) pairs
+#     #     image_indices = top_acts_indices // seq_len
+#     #     token_indices = top_acts_indices % seq_len
 
-    #     temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
+#     #     temp_top_indices[fid] = (list(zip(image_indices.tolist(), token_indices.tolist())), top_acts_values.tolist())
 
-    temp_top_indices = {}
-    for idx, fid in enumerate(feature_ids):
-        feature_acts = acts_reshaped[:, :, idx].flatten()
-        top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
+#     temp_top_indices = {}
+#     for idx, fid in enumerate(feature_ids):
+#         feature_acts = acts_reshaped[:, :, idx].flatten()
+#         top_acts_values, top_acts_indices = torch.sort(feature_acts, descending=True)
         
-        image_indices = top_acts_indices // seq_len
-        token_indices = top_acts_indices % seq_len
+#         image_indices = top_acts_indices // seq_len
+#         token_indices = top_acts_indices % seq_len
 
-        temp_top_indices[fid] = {
-            'image_indices': image_indices.tolist(),
-            'token_indices': token_indices.tolist(),
-            'values': top_acts_values.tolist()
-        }
-    return temp_top_indices
+#         temp_top_indices[fid] = {
+#             'image_indices': image_indices.tolist(),
+#             'token_indices': token_indices.tolist(),
+#             'values': top_acts_values.tolist()
+#         }
+#     return temp_top_indices
 
 torch.no_grad()
 def get_heatmap(
@@ -767,12 +765,137 @@ def visualize_sparsities(cfg, log_freq_tokens, log_freq_images, conditions, cond
             )
 
 
+
+@torch.no_grad()
+def compute_feature_activations(
+    images: torch.Tensor,
+    model: torch.nn.Module,
+    sparse_autoencoder: torch.nn.Module,
+    encoder_weights: torch.Tensor,
+    encoder_biases: torch.Tensor,
+    feature_ids: List[int],
+    is_cls_list: List[bool],
+    top_k: int = 10,
+    sampling_type: str = 'avg'
+) -> Dict[int, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Compute the highest activating tokens for given features in a batch of images.
+    
+    Args:
+        images: Input images
+        model: The main model
+        sparse_autoencoder: The sparse autoencoder
+        encoder_weights: Encoder weights for selected features
+        encoder_biases: Encoder biases for selected features
+        feature_ids: List of feature IDs to analyze
+        feature_categories: Categories of the features
+        top_k: Number of top activations to return per feature
+
+    Returns:
+        Dictionary mapping feature IDs to tuples of (top_indices, top_values)
+    """
+    _, cache = model.run_with_cache(images, names_filter=[sparse_autoencoder.cfg.hook_point])
+    
+    layer_activations = cache[sparse_autoencoder.cfg.hook_point]
+    batch_size, seq_len, _ = layer_activations.shape
+
+    actual_top_k = min(top_k, batch_size) # Ensure top_k is not greater than batch size
+    flattened_activations = einops.rearrange(layer_activations, "batch seq d_mlp -> (batch seq) d_mlp")
+    
+    sae_input = flattened_activations - sparse_autoencoder.b_dec
+    feature_activations = einops.einsum(sae_input, encoder_weights, "... d_in, d_in n -> ... n") + encoder_biases
+    feature_activations = torch.nn.functional.relu(feature_activations)
+    
+    reshaped_activations = einops.rearrange(feature_activations, "(batch seq) d_in -> batch seq d_in", batch=batch_size, seq=seq_len)
+    cls_token_activations = reshaped_activations[:, 0, :]
+    if sampling_type == 'avg':
+        mean_image_activations = reshaped_activations.mean(1)
+    else:
+        raise ValueError(f"Invalid sampling type: {sampling_type}, or not implemented yet")
+
+    top_activations = {}
+    for i, (feature_id, is_cls) in enumerate(zip(feature_ids, is_cls_list)):
+        if is_cls:
+            top_values, top_indices = cls_token_activations[:, i].topk(actual_top_k)
+        else:
+            top_values, top_indices = mean_image_activations[:, i].topk(actual_top_k)
+        top_activations[feature_id] = (top_indices, top_values)
+    
+    return top_activations
+
+def find_top_activations(
+    val_dataloader: torch.utils.data.DataLoader,
+    model: torch.nn.Module,
+    sparse_autoencoder: torch.nn.Module,
+    interesting_features_indices: List[int],
+    is_cls_list: List[bool],
+    top_k: int = 16,
+    max_samples= 50_000,
+    batch_size = 54, 
+    sampling_type = 'avg'
+) -> Dict[int, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Find the top activations for interesting features across the validation dataset.
+
+    Args:
+        val_dataloader: Validation data loader
+        model: The main model
+        sparse_autoencoder: The sparse autoencoder
+        interesting_features_indices: Indices of interesting features
+        interesting_features_category: Categories of interesting features
+
+    Returns:
+        Dictionary mapping feature IDs to tuples of (top_values, top_indices)
+    """
+    device = next(model.parameters()).device
+    top_activations = {i: (None, None) for i in interesting_features_indices}
+    encoder_biases = sparse_autoencoder.b_enc[interesting_features_indices]
+    encoder_weights = sparse_autoencoder.W_enc[:, interesting_features_indices]
+
+    processed_samples = 0
+    for batch_images, _, batch_indices in tqdm(val_dataloader, total=max_samples // batch_size):
+        batch_images = batch_images.to(device)
+        batch_indices = batch_indices.to(device)
+        batch_size = batch_images.shape[0]
+
+        batch_activations = compute_feature_activations(
+            batch_images, model, sparse_autoencoder, encoder_weights, encoder_biases,
+            interesting_features_indices, is_cls_list, top_k,
+            sampling_type=sampling_type,
+        )
+
+        for feature_id in interesting_features_indices:
+            new_indices, new_values = batch_activations[feature_id]
+            new_indices = batch_indices[new_indices]
+            
+            if top_activations[feature_id][0] is None:
+                top_activations[feature_id] = (new_values, new_indices)
+            else:
+                combined_values = torch.cat((top_activations[feature_id][0], new_values))
+                combined_indices = torch.cat((top_activations[feature_id][1], new_indices))
+                _, top_k_indices = torch.topk(combined_values, top_k)
+                top_activations[feature_id] = (combined_values[top_k_indices], combined_indices[top_k_indices])
+
+        processed_samples += batch_size
+        if processed_samples >= max_samples:
+            break
+
+    return {i: (values.detach().cpu(), indices.detach().cpu()) 
+            for i, (values, indices) in top_activations.items()}
+
+
+
 def evaluate(cfg):
+
+
     setup_environment()
     model = load_model(cfg)
     sparse_autoencoder = load_sae(cfg)
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
-    val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
+    _, val_data = VisionSAETrainer.load_dataset(sparse_autoencoder.cfg)
+    val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
+    val_data_visualize = get_imagenet_val_dataset_visualize(cfg)
+
     print("Loaded model and data") if cfg.verbose else None
 
     print("Processing dataset...")
@@ -815,57 +938,60 @@ def evaluate(cfg):
     print(set(interesting_features_category))
     print("Running through dataset to get top images per feature...")
     this_max = cfg.eval_max
-    max_indices = {i:None for i in interesting_features_indices}
-    max_values =  {i:None for i in interesting_features_indices} 
-    b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
-    W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
 
-    for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
-        total_images = total_images.to(cfg.device)
-        total_indices = total_indices.to(cfg.device)
-        batch_size = total_images.shape[0]
+    # max_indices = {i:None for i in interesting_features_indices}
+    # max_values =  {i:None for i in interesting_features_indices} 
+    # b_enc = sparse_autoencoder.b_enc[interesting_features_indices]
+    # W_enc = sparse_autoencoder.W_enc[:, interesting_features_indices]
 
-        new_top_info = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices) # Return all
+    top_per_feature = find_top_activations(val_dataloader, model, sparse_autoencoder, interesting_features_indices, [False]*len(interesting_features_indices), cfg.max_images_per_feature, this_max, cfg.batch_size, cfg.sampling_type)
+
+    # for batch_idx, (total_images, total_labels, total_indices) in tqdm(enumerate(val_dataloader), total=this_max//cfg.batch_size): 
+        # total_images = total_images.to(cfg.device)
+        # total_indices = total_indices.to(cfg.device)
+        # batch_size = total_images.shape[0]
+
+        # new_top_info = highest_activating_tokens(total_images, model, sparse_autoencoder, W_enc, b_enc, interesting_features_indices) # Return all
         
-        for feature_id in interesting_features_indices:
-            feature_data = new_top_info[feature_id]
-            batch_image_indices = torch.tensor(feature_data['image_indices'])
-            token_indices = torch.tensor(feature_data['token_indices'])
-            token_activation_values = torch.tensor(feature_data['values'], device=cfg.device)
-            global_image_indices = total_indices[batch_image_indices]  # Get global indices 
+        # for feature_id in interesting_features_indices:
+        #     feature_data = new_top_info[feature_id]
+        #     batch_image_indices = torch.tensor(feature_data['image_indices'])
+        #     token_indices = torch.tensor(feature_data['token_indices'])
+        #     token_activation_values = torch.tensor(feature_data['values'], device=cfg.device)
+        #     global_image_indices = total_indices[batch_image_indices]  # Get global indices 
 
-            # get unique image_indices
-            # Get unique image indices and their highest activation values
-            unique_image_indices, unique_indices = torch.unique(global_image_indices, return_inverse=True)
-            unique_activation_values = torch.zeros_like(unique_image_indices, dtype=torch.float, device=cfg.device)
-            unique_activation_values.index_reduce_(0, unique_indices, token_activation_values, 'amax')
+        #     # get unique image_indices
+        #     # Get unique image indices and their highest activation values
+        #     unique_image_indices, unique_indices = torch.unique(global_image_indices, return_inverse=True)
+        #     unique_activation_values = torch.zeros_like(unique_image_indices, dtype=torch.float, device=cfg.device)
+        #     unique_activation_values.index_reduce_(0, unique_indices, token_activation_values, 'amax')
 
-            if max_indices[feature_id] is None: 
-                max_indices[feature_id] = unique_image_indices
-                max_values[feature_id] = unique_activation_values
-            else:
-                # Concatenate with existing data
-                all_indices = torch.cat((max_indices[feature_id], unique_image_indices))
-                all_values = torch.cat((max_values[feature_id], unique_activation_values))
+        #     if max_indices[feature_id] is None: 
+        #         max_indices[feature_id] = unique_image_indices
+        #         max_values[feature_id] = unique_activation_values
+        #     else:
+        #         # Concatenate with existing data
+        #         all_indices = torch.cat((max_indices[feature_id], unique_image_indices))
+        #         all_values = torch.cat((max_values[feature_id], unique_activation_values))
                 
-                # Get unique indices again (in case of overlap between batches)
-                unique_all_indices, unique_all_idx = torch.unique(all_indices, return_inverse=True)
-                unique_all_values = torch.zeros_like(unique_all_indices, dtype=torch.float)
-                unique_all_values.index_reduce_(0, unique_all_idx, all_values, 'amax')
+        #         # Get unique indices again (in case of overlap between batches)
+        #         unique_all_indices, unique_all_idx = torch.unique(all_indices, return_inverse=True)
+        #         unique_all_values = torch.zeros_like(unique_all_indices, dtype=torch.float)
+        #         unique_all_values.index_reduce_(0, unique_all_idx, all_values, 'amax')
                 
-                # Select top k
-                if len(unique_all_indices) > cfg.max_images_per_feature:
-                    _, top_k_idx = torch.topk(unique_all_values, k=cfg.max_images_per_feature)
-                    max_indices[feature_id] = unique_all_indices[top_k_idx]
-                    max_values[feature_id] = unique_all_values[top_k_idx]
-                else:
-                    max_indices[feature_id] = unique_all_indices
-                    max_values[feature_id] = unique_all_values
+        #         # Select top k
+        #         if len(unique_all_indices) > cfg.max_images_per_feature:
+        #             _, top_k_idx = torch.topk(unique_all_values, k=cfg.max_images_per_feature)
+        #             max_indices[feature_id] = unique_all_indices[top_k_idx]
+        #             max_values[feature_id] = unique_all_values[top_k_idx]
+        #         else:
+        #             max_indices[feature_id] = unique_all_indices
+        #             max_values[feature_id] = unique_all_values
 
-        if batch_idx*cfg.batch_size >= this_max:
-            break
+        # if batch_idx*cfg.batch_size >= this_max:
+        #     break
 
-    top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
+    # top_per_feature = {i:(max_values[i].detach().cpu(), max_indices[i].detach().cpu()) for i in interesting_features_indices}
     ind_to_name = get_imagenet_index_to_name()
 
     for feature_ids, cat, logfreq in tqdm(zip(top_per_feature.keys(), interesting_features_category, interesting_features_values), total=len(interesting_features_category)):
@@ -925,11 +1051,11 @@ if __name__ == '__main__':
 
     # The argument parser will overwrite the config
     parser = argparse.ArgumentParser(description="Evaluate sparse autoencoder")
-    parser.add_argument("--sae_path", type=str, 
-                        default='/network/scratch/s/sonia.joseph/sae_checkpoints/tinyclip_40M_mlp_out/62fc4940-wkcn-TinyCLIP-ViT-40M-32-Text-19M-LAION400M-expansion-32/n_images_520028.pt',
-                        help="Path to sparse autoencoder")
+    # parser.add_argument("--sae_path", type=str, 
+    #                     default='/network/scratch/s/sonia.joseph/models--Prisma-Multimodal--sparse-autoencoder-clip-b-32-sae-vanilla-x64-layer-9-hook_resid_post-l1-1e-05/snapshots/9ec4ff364c08d2413b59e8e87b55c07bd4f1096a/n_images_2600058.pt',
+    #                     help="Path to sparse autoencoder")
     parser.add_argument("--model_name", type=str, 
-                        default="wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+                        default="open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
                         help="Name of the model")
     parser.add_argument("--model_type", type=str, default="clip", help="Type of the model")
     parser.add_argument("--patch_size", type=int, default=32, help="Patch size")
@@ -944,11 +1070,115 @@ if __name__ == '__main__':
                         help="Path to the validation dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     parser.add_argument("--verbose", action="store_true", default=True, help="Verbose output")
-    parser.add_argument("--eval_max", type=int, default=50_000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--eval_max", type=int, default=50000, help="Maximum number of samples to evaluate")
+    parser.add_argument("--sampling_type", type=str, default="avg", help="Sampling type")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--samples_per_bin", type=int, default=10, help="Number of samples to collect per bin")
-    
+    parser.add_argument("--samples_per_bin", type=int, default=15, help="Number of samples to collect per bin")
+
+    total_sae_paths = [
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/a6ba5747-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ab363ace-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt", 
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/94e3805b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3a32d51a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_7800012.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/56d1ab26-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ab363ace-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bf63f410-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/db83f121-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d907025a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/af68edb8-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/28ec4b96-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/1a39f763-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/22dca4ec-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9ef7b8e8-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/114f4767-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/fda9e414-clip_b_mlp_out_sae_hyperparam_sweep/n_images_5200035.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5252bc6e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/6a138a20-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/59e1f177-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/83c140bb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d38623a4-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bd303dd0-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/223bf758-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/83c140bb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9c059a2a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ff7ab782-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/f514d05d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ff65f73a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/620eb161-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/1d7618a9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5e3210c6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/73ceebda-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3fab5610-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8a414224-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/56d59f69-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/13b6f055-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/63406ba2-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/708c90d9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/04e3ed1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/65eb3a6e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/66b0c8d7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d5ceb0cf-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/461cc8d6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4e03914d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/04e3ed1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4addbda6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/55b1e870-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8df4fa8f-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b9db1c7e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/071c1685-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/f02e630c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/eaf339d7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/60c3996a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/2413e6b3-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/8b55b20a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3bcfb64c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/479a7895-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/486a0773-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d93798b6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/dc6936e7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/3fe6b804-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5a049fac-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/abdf6c56-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/2f3ca24a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ebdc1bb3-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/38c9fccb-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/cc914f28-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0197e57d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/cc619a60-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0ba5f368-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/0b57d282-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/afb41428-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/47d37623-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/4cee1e18-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/98fb20f7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/abfba51c-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/98d43fdd-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/bed22fdf-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/d75890ba-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ea58200a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/eb1b4b72-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/78834fc6-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/77257359-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/5279f36d-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/a36a9d1b-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/90a626d9-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/ea58200a-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/9ea217c7-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b7182c0e-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/25e63bd0-clip_b_mlp_out_sae_hyperparam_sweep/n_images_2600058.pt",
+    "/network/scratch/s/sonia.joseph/checkpoints/clip-b/b16677fa-clip_b_mlp_out_sae_hyperparam_sweep/n_images_3900047.pt"
+]
+
     args = parser.parse_args()
-    cfg = create_eval_config(args)
-    evaluate(cfg)
+
+
+    for sae_path in total_sae_paths:
+        print("Running evaluation for", sae_path)
+        
+
+        args.sae_path = sae_path
+        cfg = create_eval_config(args)
+        evaluate(cfg)
     
+        
+

@@ -10,6 +10,7 @@ For more information on TransformerLens, visit: https://github.com/neelnanda-io/
 
 import logging
 from typing import Union, Dict, Tuple, Optional, Literal
+import os
 
 import einops
 import torch
@@ -17,9 +18,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fancy_einsum import einsum
 from jaxtyping import Float
+
 from transformers import ViTForImageClassification
+from transformers import ViTConfig
 
 from vit_prisma.configs import HookedViTConfig
+from vit_prisma.models.base_transformer import HookedTransformer
 from vit_prisma.models.layers.attention import Attention
 from vit_prisma.models.layers.head import Head
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
@@ -35,6 +39,13 @@ from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_m
     fill_missing_keys
 from vit_prisma.utils import devices
 from vit_prisma.utils.prisma_utils import transpose
+from vit_prisma.sae.sae_utils import get_deep_attr, set_deep_attr
+
+import logging
+from contextlib import contextmanager
+from typing import Any, Callable, List
+
+from vit_prisma.sae.sae import SparseAutoencoder as SAE
 
 DTYPE_FROM_STRING = {
     "float32": torch.float32,
@@ -45,7 +56,9 @@ DTYPE_FROM_STRING = {
     "bf16": torch.bfloat16,
 }
 
-class HookedViT(HookedRootModule):
+
+
+class HookedViT(HookedTransformer):
     """
     Base vision model.
     Based on 'An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale' https://arxiv.org/abs/2010.11929.
@@ -54,9 +67,8 @@ class HookedViT(HookedRootModule):
     """
 
     def __init__(
-            self,
-            cfg: HookedViTConfig,
-            move_to_device: bool = True,
+        self,
+        cfg: HookedViTConfig,
     ):
         """
         Model initialization
@@ -89,7 +101,7 @@ class HookedViT(HookedRootModule):
 
         self.hook_full_embed = HookPoint()
 
-        if self.cfg.layer_norm_pre: # Put layernorm after attn/mlp layers, not before
+        if self.cfg.layer_norm_pre:  # Put layernorm after attn/mlp layers, not before
             if self.cfg.normalization_type == "LN":
                 self.ln_pre = LayerNorm(self.cfg)
             elif self.cfg.normalization_type == "LNPre":
@@ -97,7 +109,9 @@ class HookedViT(HookedRootModule):
             elif self.cfg.normalization_type is None:
                 self.ln_pre = nn.Identity()
             else:
-                raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
+                raise ValueError(
+                    f"Invalid normalization type: {self.cfg.normalization_type}"
+                )
             self.hook_ln_pre = HookPoint()
         else:
             print("ln_pre not set")
@@ -107,12 +121,9 @@ class HookedViT(HookedRootModule):
             block = BertBlock
         else:
             block = TransformerBlock
-        
+
         self.blocks = nn.ModuleList(
-            [
-                block(self.cfg, block_index)
-                for block_index in range(self.cfg.n_layers)
-            ]
+            [block(self.cfg, block_index) for block_index in range(self.cfg.n_layers)]
         )
         # Final layer norm
         if self.cfg.normalization_type == "LN":
@@ -122,14 +133,15 @@ class HookedViT(HookedRootModule):
         elif self.cfg.normalization_type is None:
             self.ln_final = nn.Identity()
         else:
-            raise ValueError(f"Invalid normalization type: {self.cfg.normalization_type}")
-
+            raise ValueError(
+                f"Invalid normalization type: {self.cfg.normalization_type}"
+            )
 
         self.hook_ln_final = HookPoint()
 
         # Final classification head
         self.head = Head(self.cfg)
-        
+
         self.hook_post_head_pre_normalize = HookPoint()
 
         # Initialize weights
@@ -138,14 +150,11 @@ class HookedViT(HookedRootModule):
         # Set up HookPoints
         self.setup()
 
-    def forward(self,
-            input: Union[
-            Float[torch.Tensor, "batch height width channels"],
-
-            ],
-            stop_at_layer: Optional[int] = None,
-
-        ):
+    def forward(
+        self,
+        input: Union[Float[torch.Tensor, "batch height width channels"],],
+        stop_at_layer: Optional[int] = None,
+    ):
         """Forward Pass.
         Args:
             stop_at_layer Optional[int]: If not None, stop the forward pass at the specified layer.
@@ -161,9 +170,11 @@ class HookedViT(HookedRootModule):
         embed = self.hook_embed(self.embed(input))
 
         if self.cfg.use_cls_token:
-            cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # CLS token for each item in the batch
-            embed = torch.cat((cls_tokens, embed), dim=1) # Add to embedding
-                    
+            cls_tokens = self.cls_token.expand(
+                batch_size, -1, -1
+            )  # CLS token for each item in the batch
+            embed = torch.cat((cls_tokens, embed), dim=1)  # Add to embedding
+
         pos_embed = self.hook_pos_embed(self.pos_embed(input))
 
         residual = embed + pos_embed
@@ -182,19 +193,22 @@ class HookedViT(HookedRootModule):
         x = self.ln_final(residual)
         self.hook_ln_final(x)
 
-        if self.cfg.classification_type == 'gaap':  # GAAP
+        if self.cfg.classification_type == "gaap":  # GAAP
+
             x = x.mean(dim=1)
             print(self.cfg.return_type)
-        elif self.cfg.classification_type == 'cls':  # CLS token
+        elif self.cfg.classification_type == "cls":  # CLS token
             cls_token = x[:, 0]
-            if 'dino-vitb' in self.cfg.model_name:
+            if "dino-vitb" in self.cfg.model_name:
                 patches = x[:, 1:]
                 patches_pooled = patches.mean(dim=1)
-                x = torch.cat((cls_token.unsqueeze(-1), patches_pooled.unsqueeze(-1)), dim=-1)
+                x = torch.cat(
+                    (cls_token.unsqueeze(-1), patches_pooled.unsqueeze(-1)), dim=-1
+                )
             else:
                 x = cls_token
-        
-        x = x if self.cfg.return_type == 'pre_logits' else self.head(x)
+
+        x = x if self.cfg.return_type == "pre_logits" else self.head(x)
 
         self.hook_post_head_pre_normalize(x)
 
@@ -203,13 +217,12 @@ class HookedViT(HookedRootModule):
 
         return x
 
-
     def init_weights(self):
         if self.cfg.use_cls_token:
             nn.init.normal_(self.cls_token, std=self.cfg.cls_std)
-        # nn.init.trunc_normal_(self.position_embedding, std=self.cfg.pos_std)   
-        if self.cfg.weight_type == 'he':
-            for m in self.modules(): 
+        # nn.init.trunc_normal_(self.position_embedding, std=self.cfg.pos_std)
+        if self.cfg.weight_type == "he":
+            for m in self.modules():
                 if isinstance(m, PosEmbedding):
                     nn.init.normal_(m.W_pos, std=self.cfg.pos_std)
                 elif isinstance(m, Attention):
@@ -218,15 +231,15 @@ class HookedViT(HookedRootModule):
                     nn.init.xavier_uniform_(m.W_V)
                     nn.init.xavier_uniform_(m.W_O)
                 elif isinstance(m, MLP):
-                    nn.init.kaiming_normal_(m.W_in, nonlinearity='relu')
-                    nn.init.kaiming_normal_(m.W_out, nonlinearity='relu')
+                    nn.init.kaiming_normal_(m.W_in, nonlinearity="relu")
+                    nn.init.kaiming_normal_(m.W_out, nonlinearity="relu")
                     nn.init.zeros_(m.b_out)
                     nn.init.zeros_(m.b_in)
                 elif isinstance(m, Head):
-                    nn.init.kaiming_normal_(m.W_H, nonlinearity='relu')
+                    nn.init.kaiming_normal_(m.W_H, nonlinearity="relu")
                     nn.init.zeros_(m.b_H)
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                    nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+                    nn.init.kaiming_normal_(m.weight, nonlinearity="relu")
                     if m.bias is not None:
                         nn.init.constant_(m.bias, 0)
 
@@ -255,7 +268,7 @@ class HookedViT(HookedRootModule):
             return out, cache
         else:
             return out, cache_dict
-        
+
     def tokens_to_residual_directions(self, labels: torch.Tensor) -> torch.Tensor:
         """
         Computes the residual directions for given labels.
@@ -267,11 +280,11 @@ class HookedViT(HookedRootModule):
             torch.Tensor: The residual directions with shape (batch_size, d_model).
         """
 
-        answer_residual_directions = self.head.W_H[:,labels]  
+        answer_residual_directions = self.head.W_H[:, labels]
         answer_residual_directions = einops.rearrange(
-                        answer_residual_directions, "d_model ... -> ... d_model"
-                    )
-        
+            answer_residual_directions, "d_model ... -> ... d_model"
+        )
+
         return answer_residual_directions
 
     def fold_layer_norm(
@@ -442,11 +455,11 @@ class HookedViT(HookedRootModule):
             state_dict[f"head.W_H"] -= einops.reduce(
                 state_dict[f"head.W_H"], "d_model n_classes -> 1 n_classes", "mean"
             )
-                    
+
         print("LayerNorm folded.")
 
         return state_dict
-    
+
     def center_writing_weights(self, state_dict: Dict[str, torch.Tensor]):
         """Center Writing Weights.
 
@@ -479,7 +492,7 @@ class HookedViT(HookedRootModule):
                     state_dict[f"blocks.{l}.mlp.b_out"]
                     - state_dict[f"blocks.{l}.mlp.b_out"].mean()
                 )
-                
+
         print("Centered weights writing to residual stream")
         return state_dict
 
@@ -516,7 +529,6 @@ class HookedViT(HookedRootModule):
                 state_dict[f"blocks.{layer}.attn._b_V"] = torch.zeros_like(
                     state_dict[f"blocks.{layer}.attn._b_V"]
                 )
-                
 
         return state_dict
 
@@ -611,77 +623,6 @@ class HookedViT(HookedRootModule):
 
         return state_dict
 
-    def load_and_process_state_dict(
-        self,
-        state_dict: Dict[str, torch.Tensor],
-        fold_ln: Optional[bool] = True,
-        center_writing_weights: Optional[bool] = True,
-        fold_value_biases: Optional[bool] = True,
-        refactor_factored_attn_matrices: Optional[bool] = False,
-    ):
-        """Load & Process State Dict.
-
-        Load a state dict into the model, and to apply processing to simplify it. The state dict is
-        assumed to be in the HookedTransformer format.
-
-        See the relevant method (same name as the flag) for more details on the folding, centering
-        and processing flags.
-
-        Args:
-            state_dict (dict): The state dict of the model, in HookedTransformer format. fold_ln
-            fold_ln (bool, optional): Whether to fold in the LayerNorm weights to the
-                subsequent linear layer. This does not change the computation. Defaults to True.
-            center_writing_weights (bool, optional): Whether to center weights writing to the
-                residual stream (ie set mean to be zero). Due to LayerNorm this doesn't change the
-                computation. Defaults to True.
-            fold_value_biases (bool, optional): Whether to fold the value biases into the output
-                bias. Because attention patterns add up to 1, the value biases always have a
-                constant effect on a layer's output, and it doesn't matter which head a bias is
-                associated with. We can factor this all into a single output bias to the layer, and
-                make it easier to interpret the head's output.
-            refactor_factored_attn_matrices (bool, optional): Whether to convert the factored
-                matrices (W_Q & W_K, and W_O & W_V) to be "even". Defaults to False.
-            model_name (str, optional): checks the model name for special cases of state dict
-                loading. Only used for Redwood 2L model currently.
-        """
-        if self.cfg.dtype not in [torch.float32, torch.float64] and fold_ln:
-            logging.warning(
-                "With reduced precision, it is advised to use `from_pretrained_no_processing` instead of `from_pretrained`."
-            )
-
-        state_dict = fill_missing_keys(self, state_dict)
-        if fold_ln:
-            if self.cfg.normalization_type in ["LN", "LNPre"]:
-                state_dict = self.fold_layer_norm(state_dict)
-            elif self.cfg.normalization_type in ["RMS", "RMSPre"]:
-                state_dict = self.fold_layer_norm(
-                    state_dict, fold_biases=False, center_weights=False
-                )
-            else:
-                logging.warning(
-                    "You are not using LayerNorm or RMSNorm, so the layer norm weights can't be folded! Skipping"
-                )
-
-        if center_writing_weights:
-            if self.cfg.normalization_type not in ["LN", "LNPre"]:
-                logging.warning(
-                    "You are not using LayerNorm, so the writing weights can't be centered! Skipping"
-                )
-            elif self.cfg.final_rms:
-                logging.warning(
-                    "This model is using final RMS normalization, so the writing weights can't be centered! Skipping"
-                )
-            else:
-                state_dict = self.center_writing_weights(state_dict)
-
-        if fold_value_biases:
-            state_dict = self.fold_value_biases(state_dict)
-
-        if refactor_factored_attn_matrices:
-            state_dict = self.refactor_factored_attn_matrices(state_dict)
-
-        self.load_state_dict(state_dict, strict=False)
-
     def cuda(self):
         """Wrapper around cuda that also changes `self.cfg.device`."""
         return self.to("cuda")
@@ -695,6 +636,7 @@ class HookedViT(HookedRootModule):
         return self.to("mps")
 
     def move_model_modules_to_device(self):
+        self.embed.proj.to(device)
         self.embed.to(devices.get_device_for_block_index(0, self.cfg))
         self.hook_embed.to(devices.get_device_for_block_index(0, self.cfg))
         if self.cfg.positional_embedding_type != "rotary":
@@ -793,6 +735,23 @@ class HookedViT(HookedRootModule):
         print(f"Loaded pretrained model {model_name} into HookedTransformer")
 
         return model
+      
+    def from_local(cls, model_config: ViTConfig, checkpoint_path: str):
+        model = cls(model_config)
+        print(f"Loading the model locally from: {checkpoint_path}")
+        if os.path.exists(checkpoint_path):
+            checkpoint = torch.load(
+                checkpoint_path,
+                map_location=torch.device(model_config.device),
+                weights_only=False,
+            )
+            model.load_state_dict(checkpoint["model_state_dict"])
+            return model
+        else:
+            raise Exception(
+                "Attempting to load a Prisma ViT but no file was found at "
+                f"{checkpoint_path}"
+            )
 
     def set_use_attn_result(self, use_attn_result: bool):
         """Toggle whether to explicitly calculate and expose the result for each attention head.
@@ -845,7 +804,6 @@ class HookedViT(HookedRootModule):
                 self.cfg.use_attn_in
             ), f"Cannot add hook {hook_point_name} if use_attn_in is False"
 
-
     def accumulated_bias(
         self, layer: int, mlp_input: bool = False, include_mlp_biases=True
     ) -> Float[torch.Tensor, "layers_accumulated_over d_model"]:
@@ -880,7 +838,7 @@ class HookedViT(HookedRootModule):
             ), "Cannot include attn_bias from beyond the final layer"
             accumulated_bias += self.blocks[layer].attn.b_O
         return accumulated_bias
-    
+
     # Allow access to the weights via convenient properties
 
     @property
@@ -950,3 +908,265 @@ class HookedViT(HookedRootModule):
     @property
     def b_H(self) -> Float[torch.Tensor, "n_classes"]:
         return self.head.b_H
+
+
+class HookedSAEViT(HookedViT):
+
+    SingleLoss = Float[torch.Tensor, ""]
+    LossPerToken = Float[torch.Tensor, "batch pos-1"]
+    Loss = Union[SingleLoss, LossPerToken]
+
+    def __init__(
+        self,
+        *model_args: Any,
+        **model_kwargs: Any,
+    ):
+        """Model initialization. Just HookedViT init, but adds a dictionary to keep track of attached SAEs.
+
+        Note that if you want to load the model from pretrained weights, you should use
+        :meth:`from_pretrained` instead.
+
+        Args:
+            *model_args: Positional arguments for HookedViT initialization
+            **model_kwargs: Keyword arguments for HookedViT initialization
+        """
+        super().__init__(*model_args, **model_kwargs)
+        self.acts_to_saes: Dict[str, SAE] = {}  # type: ignore
+
+    def add_sae(self, sae: SAE, use_error_term: Optional[bool] = None):
+        """Attaches an SAE to the model
+
+        WARNING: This sae will be permanantly attached until you remove it with reset_saes. This function will also overwrite any existing SAE attached to the same hook point.
+
+        Args:
+            sae: SparseAutoencoderBase. The SAE to attach to the model
+            use_error_term: (Optional[bool]) If provided, will set the use_error_term attribute of the SAE to this value. Determines whether the SAE returns input or reconstruction. Defaults to None.
+        """
+        act_name = sae.cfg.hook_point
+        if (act_name not in self.acts_to_saes) and (act_name not in self.hook_dict):
+            logging.warning(
+                f"No hook found for {act_name}. Skipping. Check model.hook_dict for available hooks."
+            )
+            return
+
+        if use_error_term is not None:
+            if not hasattr(sae, "_original_use_error_term"):
+                sae._original_use_error_term = sae.use_error_term  # type: ignore
+            sae.use_error_term = use_error_term
+        sae.cfg.return_out_only = True
+        self.acts_to_saes[act_name] = sae
+        set_deep_attr(self, act_name, sae)
+        self.setup()
+
+    def _reset_sae(self, act_name: str, prev_sae: Optional[SAE] = None):
+        """Resets an SAE that was attached to the model
+
+        By default will remove the SAE from that hook_point.
+        If prev_sae is provided, will replace the current SAE with the provided one.
+        This is mainly used to restore previously attached SAEs after temporarily running with different SAEs (eg with run_with_saes)
+
+        Args:
+            act_name: str. The hook_name of the SAE to reset
+            prev_sae: Optional[HookedSAE]. The SAE to replace the current one with. If None, will just remove the SAE from this hook point. Defaults to None
+        """
+        if act_name not in self.acts_to_saes:
+            logging.warning(
+                f"No SAE is attached to {act_name}. There's nothing to reset."
+            )
+            return
+
+        current_sae = self.acts_to_saes[act_name]
+        if hasattr(current_sae, "_original_use_error_term"):
+            current_sae.use_error_term = current_sae._original_use_error_term  # type: ignore
+            delattr(current_sae, "_original_use_error_term")
+
+        if prev_sae:
+            set_deep_attr(self, act_name, prev_sae)
+            self.acts_to_saes[act_name] = prev_sae
+        else:
+            set_deep_attr(self, act_name, HookPoint())
+            del self.acts_to_saes[act_name]
+
+    def reset_saes(
+        self,
+        act_names: Optional[Union[str, List[str]]] = None,
+        prev_saes: Optional[List[Union[SAE, None]]] = None,
+    ):
+        """Reset the SAEs attached to the model
+
+        If act_names are provided will just reset SAEs attached to those hooks. Otherwise will reset all SAEs attached to the model.
+        Optionally can provide a list of prev_saes to reset to. This is mainly used to restore previously attached SAEs after temporarily running with different SAEs (eg with run_with_saes).
+
+        Args:
+            act_names (Optional[Union[str, List[str]]): The act_names of the SAEs to reset. If None, will reset all SAEs attached to the model. Defaults to None.
+            prev_saes (Optional[List[Union[HookedSAE, None]]]): List of SAEs to replace the current ones with. If None, will just remove the SAEs. Defaults to None.
+        """
+        if isinstance(act_names, str):
+            act_names = [act_names]
+        elif act_names is None:
+            act_names = list(self.acts_to_saes.keys())
+
+        if prev_saes:
+            if len(act_names) != len(prev_saes):
+                raise ValueError("act_names and prev_saes must have the same length")
+        else:
+            prev_saes = [None] * len(act_names)  # type: ignore
+
+        for act_name, prev_sae in zip(act_names, prev_saes):  # type: ignore
+            self._reset_sae(act_name, prev_sae)
+
+        self.setup()
+
+    def run_with_saes(
+        self,
+        *model_args: Any,
+        saes: Union[SAE, List[SAE]] = [],
+        reset_saes_end: bool = True,
+        use_error_term: Optional[bool] = None,
+        **model_kwargs: Any,
+    ) -> Union[
+        None,
+        Float[torch.Tensor, "batch pos d_vocab"],
+        Loss,
+        Tuple[Float[torch.Tensor, "batch pos d_vocab"], Loss],
+    ]:
+        """Wrapper around HookedViT forward pass.
+
+        Runs the model with the given SAEs attached for one forward pass, then removes them. By default, will reset all SAEs to original state after.
+
+        Args:
+            *model_args: Positional arguments for the model forward pass
+            saes: (Union[HookedSAE, List[HookedSAE]]) The SAEs to be attached for this forward pass
+            reset_saes_end (bool): If True, all SAEs added during this run are removed at the end, and previously attached SAEs are restored to their original state. Default is True.
+            use_error_term: (Optional[bool]) If provided, will set the use_error_term attribute of all SAEs attached during this run to this value. Defaults to None.
+            **model_kwargs: Keyword arguments for the model forward pass
+        """
+        with self.saes(
+            saes=saes, reset_saes_end=reset_saes_end, use_error_term=use_error_term
+        ):
+            return self(*model_args, **model_kwargs)
+
+    def run_with_cache_with_saes(
+        self,
+        *model_args: Any,
+        saes: Union[SAE, List[SAE]] = [],
+        reset_saes_end: bool = True,
+        use_error_term: Optional[bool] = None,
+        return_cache_object: bool = True,
+        remove_batch_dim: bool = False,
+        **kwargs: Any,
+    ) -> Tuple[
+        Union[
+            None,
+            Float[torch.Tensor, "batch pos d_vocab"],
+            Loss,
+            Tuple[Float[torch.Tensor, "batch pos d_vocab"], Loss],
+        ],
+        Union[ActivationCache, Dict[str, torch.Tensor]],
+    ]:
+        """Wrapper around 'run_with_cache' in HookedViT.
+
+        Attaches given SAEs before running the model with cache and then removes them.
+        By default, will reset all SAEs to original state after.
+
+        Args:
+            *model_args: Positional arguments for the model forward pass
+            saes: (Union[HookedSAE, List[HookedSAE]]) The SAEs to be attached for this forward pass
+            reset_saes_end: (bool) If True, all SAEs added during this run are removed at the end, and previously attached SAEs are restored to their original state. Default is True.
+            use_error_term: (Optional[bool]) If provided, will set the use_error_term attribute of all SAEs attached during this run to this value. Determines whether the SAE returns input or reconstruction. Defaults to None.
+            return_cache_object: (bool) if True, this will return an ActivationCache object, with a bunch of
+                useful HookedViT specific methods, otherwise it will return a dictionary of
+                activations as in HookedRootModule.
+            remove_batch_dim: (bool) Whether to remove the batch dimension (only works for batch_size==1). Defaults to False.
+            **kwargs: Keyword arguments for the model forward pass
+        """
+        with self.saes(
+            saes=saes, reset_saes_end=reset_saes_end, use_error_term=use_error_term
+        ):
+            return self.run_with_cache(  # type: ignore
+                *model_args,
+                return_cache_object=return_cache_object,  # type: ignore
+                remove_batch_dim=remove_batch_dim,
+                **kwargs,
+            )
+
+    def run_with_hooks_with_saes(
+        self,
+        *model_args: Any,
+        saes: Union[SAE, List[SAE]] = [],
+        reset_saes_end: bool = True,
+        fwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],  # type: ignore
+        bwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],  # type: ignore
+        reset_hooks_end: bool = True,
+        clear_contexts: bool = False,
+        **model_kwargs: Any,
+    ):
+        """Wrapper around 'run_with_hooks' in HookedViT.
+
+        Attaches the given SAEs to the model before running the model with hooks and then removes them.
+        By default, will reset all SAEs to original state after.
+
+        Args:
+            *model_args: Positional arguments for the model forward pass
+            act_names: (Union[HookedSAE, List[HookedSAE]]) The SAEs to be attached for this forward pass
+            reset_saes_end: (bool) If True, all SAEs added during this run are removed at the end, and previously attached SAEs are restored to their original state. (default: True)
+            fwd_hooks: (List[Tuple[Union[str, Callable], Callable]]) List of forward hooks to apply
+            bwd_hooks: (List[Tuple[Union[str, Callable], Callable]]) List of backward hooks to apply
+            reset_hooks_end: (bool) Whether to reset the hooks at the end of the forward pass (default: True)
+            clear_contexts: (bool) Whether to clear the contexts at the end of the forward pass (default: False)
+            **model_kwargs: Keyword arguments for the model forward pass
+        """
+        with self.saes(saes=saes, reset_saes_end=reset_saes_end):
+            return self.run_with_hooks(
+                *model_args,
+                fwd_hooks=fwd_hooks,
+                bwd_hooks=bwd_hooks,
+                reset_hooks_end=reset_hooks_end,
+                clear_contexts=clear_contexts,
+                **model_kwargs,
+            )
+
+    @contextmanager
+    def saes(
+        self,
+        saes: Union[SAE, List[SAE]] = [],
+        reset_saes_end: bool = True,
+        use_error_term: Optional[bool] = None,
+    ):
+        """
+        A context manager for adding temporary SAEs to the model.
+        See HookedViT.hooks for a similar context manager for hooks.
+        By default will keep track of previously attached SAEs, and restore them when the context manager exits.
+
+        Example:
+
+        .. code-block:: python
+
+            from transformer_lens import HookedSAETransformer, HookedSAE, HookedSAEConfig
+
+            model = HookedSAETransformer.from_pretrained('gpt2-small')
+            sae_cfg = HookedSAEConfig(...)
+            sae = HookedSAE(sae_cfg)
+            with model.saes(saes=[sae]):
+                spliced_logits = model(text)
+
+
+        Args:
+            saes (Union[HookedSAE, List[HookedSAE]]): SAEs to be attached.
+            reset_saes_end (bool): If True, removes all SAEs added by this context manager when the context manager exits, returning previously attached SAEs to their original state.
+            use_error_term (Optional[bool]): If provided, will set the use_error_term attribute of all SAEs attached during this run to this value. Defaults to None.
+        """
+        act_names_to_reset = []
+        prev_saes = []
+        if isinstance(saes, SAE):
+            saes = [saes]
+        try:
+            for sae in saes:
+                act_names_to_reset.append(sae.cfg.hook_name)
+                prev_sae = self.acts_to_saes.get(sae.cfg.hook_name, None)
+                prev_saes.append(prev_sae)
+                self.add_sae(sae, use_error_term=use_error_term)
+            yield self
+        finally:
+            if reset_saes_end:
+                self.reset_saes(act_names_to_reset, prev_saes)

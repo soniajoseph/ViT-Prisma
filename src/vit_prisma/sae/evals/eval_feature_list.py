@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
-from vit_prisma.sae.evals import highest_activating_tokens, get_heatmap, image_patch_heatmap, setup_environment, load_model, load_dataset, EvalConfig
+from vit_prisma.sae.evals import highest_activating_tokens, get_heatmap, image_patch_heatmap, setup_environment, load_model, EvalConfig
+from vit_prisma.sae.train_sae import VisionSAETrainer
 from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_index_to_name
 
 from vit_prisma.sae.sae import SparseAutoencoder
@@ -134,7 +135,7 @@ def main(feature_id_list):
 
     sparse_autoencoder = load_sae(cfg)
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
-    val_data, val_data_visualize, val_dataloader = load_dataset(cfg)
+    _, val_data = VisionSAETrainer.load_dataset(cfg)
     print("Loaded model and data") if cfg.verbose else None
     sample_features(feature_id_list, cfg, model, sparse_autoencoder, val_dataloader, val_data, val_data_visualize)
 

@@ -1,28 +1,23 @@
-import torch.nn as nn
-from vit_prisma.prisma_tools.hook_point import HookPoint
-from vit_prisma.configs.HookedViTConfig import HookedViTConfig
-
-from typing import Dict, Optional, Tuple, Union
-
-from jaxtyping import Float, Int
+from typing import Dict, Union
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-
-import numpy as np
-
-from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu, quick_gelu
-
-from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
-
 from fancy_einsum import einsum
+from jaxtyping import Float
+from vit_prisma.configs.HookedTextTransformerConfig import HookedTextTransformerConfig
+from vit_prisma.configs.HookedViTConfig import HookedViTConfig
+from vit_prisma.models.activation_fns import gelu_fast, gelu_new, solu, quick_gelu
+from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
+from vit_prisma.prisma_tools.hook_point import HookPoint
+
 
 class MLP(nn.Module):
 
     def __init__(self, cfg: Union[Dict, HookedViTConfig]):
         super().__init__()
         
-        if not isinstance(cfg, HookedViTConfig):
+        if not isinstance(cfg, (HookedViTConfig, HookedTextTransformerConfig)):
             cfg = HookedViTConfig.from_dict(cfg)
         
         self.cfg = cfg
