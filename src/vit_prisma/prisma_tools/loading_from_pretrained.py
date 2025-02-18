@@ -886,7 +886,7 @@ def convert_hf_vit_for_image_classification_weights(
 
     return new_state_dict
   
- def convert_open_clip_text_config(model_cfg: dict) -> HookedTextTransformerConfig:
+def convert_open_clip_text_config(model_cfg: dict) -> HookedTextTransformerConfig:
     """Convert OpenCLIP text model config to Prisma's text transformer config."""
     cfg = HookedTextTransformerConfig()
     
@@ -977,7 +977,7 @@ def convert_open_clip_vision_config(model_cfg: dict, model_name: str) -> HookedV
     return cfg
   
   
- def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: ModelType = ModelType.VISION):
+def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: ModelType = ModelType.VISION):
     """Convert OpenCLIP model config to Prisma's config format.
     Supports both vision and text models with detailed configuration options.
     """
