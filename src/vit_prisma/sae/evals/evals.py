@@ -2,21 +2,13 @@ import torch
 import torchvision
 
 import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-
 
 from tqdm import tqdm
 
 import einops
 from typing import List
 
-from vit_prisma.transforms.model_transforms import get_clip_val_transforms, get_model_transforms
-
-
 import argparse
-
-import random
 
 import numpy as np
 import os
@@ -29,13 +21,12 @@ import textwrap
 from dataclasses import dataclass
 from vit_prisma.sae.config import VisionModelSAERunnerConfig
 
-from vit_prisma.sae.training.activations_store import VisionActivationsStore
-# import dataloader
+from vit_prisma.sae.train_sae import VisionSAETrainer
 from torch.utils.data import DataLoader
 
 
 from vit_prisma.utils.data_utils.imagenet.imagenet_utils import setup_imagenet_paths
-from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_transforms_clip, ImageNetValidationDataset
+from vit_prisma.dataloaders.imagenet_dataset import ImageNetValidationDataset
 from vit_prisma.models.base_vit import HookedViT
 
 from vit_prisma.sae.sae import SparseAutoencoder
@@ -46,8 +37,6 @@ from vit_prisma.dataloaders.imagenet_dataset import get_imagenet_index_to_name
 import matplotlib.pyplot as plt
 
 from typing import Any, List, Tuple, Dict
-
-from scipy.stats import gaussian_kde
 
 import json
 
@@ -188,24 +177,6 @@ def save_stats(sae_path, stats):
     
     print(f"Stats saved to {stats_path}")
 
-
-def load_dataset(cfg, batch_size=4):
-    dataset_path = cfg.dataset_path
-    # dataset_train_path: str = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets/ILSVRC/Data/CLS-LOC/train"
-    dataset_val_path = cfg.dataset_val_path
-    
-    data_transforms = get_model_transforms(cfg.model_name)
-
-    imagenet_paths = setup_imagenet_paths(dataset_path)
-    val_data = ImageNetValidationDataset(dataset_val_path, 
-                                    imagenet_paths['label_strings'], 
-                                    imagenet_paths['val_labels'], 
-                                    data_transforms,
-                                    return_index=True,
-    )
-    # print(f"Train data length: {len(train_data)}") 
-    print(f"Validation data length: {len(val_data)}") 
-    return val_data
 
 def get_imagenet_val_dataset_visualize(cfg):
     imagenet_paths = setup_imagenet_paths(cfg.dataset_path)
@@ -921,7 +892,7 @@ def evaluate(cfg):
     model = load_model(cfg)
     sparse_autoencoder = load_sae(cfg)
     print("Loaded SAE config", sparse_autoencoder.cfg) if cfg.verbose else None
-    val_data = load_dataset(cfg)
+    _, val_data = VisionSAETrainer.load_dataset(sparse_autoencoder.cfg)
     val_dataloader = DataLoader(val_data, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
     val_data_visualize = get_imagenet_val_dataset_visualize(cfg)
 
