@@ -368,7 +368,7 @@ class HookedTransformer(HookedRootModule):
             model_name,
             is_timm=is_timm,
             is_clip=is_clip,
-            model_type=model_type,
+            # model_type=model_type,
         )
 
         state_dict = get_pretrained_state_dict(
@@ -382,7 +382,6 @@ class HookedTransformer(HookedRootModule):
             model_type=model_type,
             **from_pretrained_kwargs,
         )
-
         model = cls(cfg)
 
         # set false if openclip; not working properly

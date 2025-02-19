@@ -21,7 +21,9 @@ class PosEmbedding(nn.Module):
 
         num_patches = (self.cfg.image_size // self.cfg.patch_size)**2
         if self.cfg.is_video_transformer:
-            num_patches = num_patches*(self.cfg.video_num_frames//self.cfg.video_tubelet_depth)
+            # Use config values for temporal dimensions
+            temporal_positions = self.cfg.video_num_frames // self.cfg.video_tubelet_depth
+            num_patches = num_patches * temporal_positions
             
         token_length = num_patches + 1 if self.cfg.use_cls_token else num_patches
 
