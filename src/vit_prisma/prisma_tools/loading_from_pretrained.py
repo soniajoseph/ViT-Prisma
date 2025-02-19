@@ -1357,6 +1357,7 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
             "pos_embed_type": "learnable",
             "num_segments": 2,  # from config
             "num_views_per_segment": 3,  # from config
+            "uniform_power": True,
         }
         from transformers import ViTConfig
         hf_config = ViTConfig.from_dict(hf_config)
@@ -1397,6 +1398,8 @@ def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_cl
         ),
         "video_num_frames": hf_config.num_frames if hasattr(hf_config, "num_frames") else None,
         "video_tubelet_depth": hf_config.tubelet_size if hasattr(hf_config, "tubelet_size") else None,
+        "uniform_power": hf_config.uniform_power if hasattr(hf_config, "uniform_power") else None,
+                    
     }
 
     # Rectifying Huggingface bugs:

@@ -32,31 +32,56 @@ class PatchEmbedding(nn.Module):
         return x
     
 
-# Used for videos, 3 dimensional spacetime patches 
+# # Used for videos, 3 dimensional spacetime patches 
+# class TubeletEmbedding(nn.Module):
+
+#     def __init__(self, cfg:HookedViTConfig):
+#         super().__init__()
+#         self.cfg = cfg
+
+#         tubelet_size = [self.cfg.video_tubelet_depth, self.cfg.patch_size, self.cfg.patch_size]
+#         self.proj = nn.Conv3d(
+#             self.cfg.n_channels, 
+#             self.cfg.d_model, 
+#             kernel_size=tubelet_size, 
+#             stride=tubelet_size, 
+#             bias=True
+#         )
+
+#     def forward(self, x:Float[torch.Tensor, "batch num_frames channels height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
+        
+#         # Flip num_frames and channels
+#         # x = einops.rearrange(x, "b t c h w -> b c t h w")
+        
+#         x = self.proj(x)
+
+#         # Flatten the tokens
+#         x = einops.rearrange(x, "b c t h w -> b (t h w) c") 
+
+#         return x
+
+
+
 class TubeletEmbedding(nn.Module):
+    """
+    Image to Patch Embedding
+    """
 
-    def __init__(self, cfg:HookedViTConfig):
-        super().__init__()
+    def __init__(
+        self, cfg: HookedViTConfig
+    ):
         self.cfg = cfg
-
-        tubelet_size = [self.cfg.video_tubelet_depth, self.cfg.patch_size, self.cfg.patch_size]
+        super().__init__()
+        patch_size = self.cfg.patch_size
+        tubelet_size = self.cfg.video_tubelet_depth
         self.proj = nn.Conv3d(
-            self.cfg.n_channels, 
-            self.cfg.d_model, 
-            kernel_size=tubelet_size, 
-            stride=tubelet_size, 
-            bias=True
+            in_channels=self.cfg.n_channels,
+            out_channels=self.cfg.d_model,
+            kernel_size=(tubelet_size, patch_size, patch_size),
+            stride=(tubelet_size, patch_size, patch_size),
         )
 
-    def forward(self, x:Float[torch.Tensor, "batch num_frames channels height width"]) -> Float[torch.Tensor, "batch n_tokens d_model"]:
-        
-        # Flip num_frames and channels
-        # x = einops.rearrange(x, "b t c h w -> b c t h w")
-        
-        x = self.proj(x)
-
-        # Flatten the tokens
-        x = einops.rearrange(x, "b c t h w -> b (t h w) c") 
-
+    def forward(self, x, **kwargs):
+        B, C, T, H, W = x.shape
+        x = self.proj(x).flatten(2).transpose(1, 2)
         return x
-

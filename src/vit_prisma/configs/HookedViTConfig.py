@@ -117,6 +117,8 @@ class HookedViTConfig:
     is_video_transformer: bool = False
     video_tubelet_depth: int = 2
     video_num_frames: int = 32
+    uniform_power: bool = False # For 3D positional embeddings
+    use_sdpa: bool = False
 
 
     @classmethod

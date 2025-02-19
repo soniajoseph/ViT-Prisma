@@ -29,7 +29,7 @@ from vit_prisma.models.layers.head import Head
 from vit_prisma.models.layers.layer_norm import LayerNorm, LayerNormPre
 from vit_prisma.models.layers.mlp import MLP
 from vit_prisma.models.layers.patch_embedding import PatchEmbedding, TubeletEmbedding
-from vit_prisma.models.layers.position_embedding import PosEmbedding
+from vit_prisma.models.layers.position_embedding import PosEmbedding, get_3d_sincos_pos_embed, get_2d_sincos_pos_embed
 from vit_prisma.models.layers.transformer_block import TransformerBlock, BertBlock
 from vit_prisma.prisma_tools import FactoredMatrix
 from vit_prisma.prisma_tools.activation_cache import ActivationCache
@@ -146,9 +146,12 @@ class HookedViT(HookedTransformer):
 
         # Initialize weights
         self.init_weights()
+        if self.pos_embed is not None:
+            self._init_pos_emb()
 
         # Set up HookPoints
         self.setup()
+
 
     def forward(
         self,
@@ -216,6 +219,24 @@ class HookedViT(HookedTransformer):
             x = F.normalize(x, dim=-1)
 
         return x
+
+    def _init_pos_emb(self):
+        embed_dim = self.cfg.d_model
+        grid_size = self.cfg.image_size // self.cfg.patch_size  # TODO: update; initialization currently assumes square input
+        if self.cfg.is_video_transformer:
+            grid_depth = self.cfg.video_num_frames // self.cfg.video_tubelet_depth
+            sincos = get_3d_sincos_pos_embed(
+                self.cfg.d_model,
+                grid_size,
+                grid_depth,
+                cls_token=self.cfg.use_cls_token,
+                uniform_power=self.cfg.uniform_power,
+            )
+        # else:
+        #     sincos = get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False)
+            with torch.no_grad():
+                self.pos_embed.W_pos.copy_(torch.from_numpy(sincos).float())
+    
 
     def init_weights(self):
         if self.cfg.use_cls_token:

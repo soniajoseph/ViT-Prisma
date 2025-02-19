@@ -22,7 +22,7 @@ class VisionTransformer(nn.Module):
     """ Vision Transformer """
     def __init__(
         self,
-        input_size=(224, 224),
+        img_size=224,
         patch_size=16,
         num_frames=1,
         tubelet_size=2,
@@ -35,16 +35,10 @@ class VisionTransformer(nn.Module):
         qk_scale=None,
         drop_rate=0.0,
         attn_drop_rate=0.0,
-        drop_path_rate=0.0,
         norm_layer=nn.LayerNorm,
         init_std=0.02,
         out_layers=None,
         uniform_power=False,
-        use_SiLU=False,
-        wide_SiLU=True,
-        is_causal=False,
-        use_sdpa=True,
-        use_activation_checkpointing=False,
         **kwargs
     ):
         super().__init__()
@@ -52,22 +46,19 @@ class VisionTransformer(nn.Module):
         self.num_heads = num_heads
         self.out_layers = out_layers
 
-        if type(input_size) is int:
-            input_size = (input_size, input_size)
-        self.img_height, self.img_width = input_size
+        self.input_size = img_size
         self.patch_size = patch_size
+
         self.num_frames = num_frames
         self.tubelet_size = tubelet_size
         self.is_video = num_frames > 1
 
-        self.use_activation_checkpointing = use_activation_checkpointing
-
-        dpr = [
-            x.item() for x in torch.linspace(0, drop_path_rate, depth)
-        ]  # stochastic depth decay rule
+        grid_size = self.input_size // self.patch_size
+        grid_depth = self.num_frames // self.tubelet_size
 
         # Tokenize pixels with convolution
         if self.is_video:
+            print("Using 3D patch embedding")
             self.patch_embed = PatchEmbed3D(
                 patch_size=patch_size,
                 tubelet_size=tubelet_size,
@@ -75,21 +66,23 @@ class VisionTransformer(nn.Module):
                 embed_dim=embed_dim)
             self.num_patches = (
                 (num_frames // tubelet_size)
-                * (input_size[0] // patch_size)
-                * (input_size[1] // patch_size)
+                * (img_size // patch_size)
+                * (img_size // patch_size)
             )
         else:
+            print("Using 2D patch embedding")
             self.patch_embed = PatchEmbed(
                 patch_size=patch_size,
                 in_chans=in_chans,
                 embed_dim=embed_dim)
             self.num_patches = (
-                (input_size[0] // patch_size)
-                * (input_size[1] // patch_size)
+                (img_size // patch_size)
+                * (img_size // patch_size)
             )
 
         # Position embedding
         self.uniform_power = uniform_power
+        self.pos_embed = None
         self.pos_embed = nn.Parameter(
             torch.zeros(1, self.num_patches, embed_dim),
             requires_grad=False)
@@ -100,15 +93,13 @@ class VisionTransformer(nn.Module):
                 dim=embed_dim,
                 num_heads=num_heads,
                 mlp_ratio=mlp_ratio,
-                is_causal=is_causal,
-                use_sdpa=use_sdpa,
                 qkv_bias=qkv_bias,
                 qk_scale=qk_scale,
                 drop=drop_rate,
-                act_layer=nn.SiLU if use_SiLU else nn.GELU,
-                wide_SiLU=wide_SiLU,
+                act_layer=nn.GELU,
+                grid_size=grid_size,
+                grid_depth=grid_depth,
                 attn_drop=attn_drop_rate,
-                drop_path=dpr[i],
                 norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
@@ -122,7 +113,7 @@ class VisionTransformer(nn.Module):
 
     def _init_pos_embed(self, pos_embed):
         embed_dim = pos_embed.size(-1)
-        grid_size = self.img_height // self.patch_size  # TODO: update; initialization currently assumes square input
+        grid_size = self.input_size // self.patch_size
         if self.is_video:
             grid_depth = self.num_frames // self.tubelet_size
             sincos = get_3d_sincos_pos_embed(
@@ -172,6 +163,7 @@ class VisionTransformer(nn.Module):
         :param x: input image/video
         :param masks: indices of patch tokens to mask (remove)
         """
+
         if masks is not None and not isinstance(masks, list):
             masks = [masks]
 
@@ -192,10 +184,7 @@ class VisionTransformer(nn.Module):
         # Fwd prop
         outs = []
         for i, blk in enumerate(self.blocks):
-            if self.use_activation_checkpointing:
-                x = torch.utils.checkpoint.checkpoint(blk, x, False, masks, use_reentrant=False)
-            else:
-                x = blk(x, mask=masks)
+            x = blk(x, mask=masks)
             if self.out_layers is not None and i in self.out_layers:
                 outs.append(self.norm(x))
 
@@ -215,7 +204,7 @@ class VisionTransformer(nn.Module):
 
             # If pos_embed already corret size, just return
             _, _, T, H, W = x.shape
-            if H == self.img_height and W == self.img_width and T == self.num_frames:
+            if H == self.input_size and W == self.input_size and T == self.num_frames:
                 return pos_embed
 
             # Convert depth, height, width of input to be measured in patches
@@ -227,8 +216,7 @@ class VisionTransformer(nn.Module):
             # Compute the initialized shape of the positional embedding measured
             # in patches
             N_t = self.num_frames // self.tubelet_size
-            N_h = self.img_height // self.patch_size
-            N_w = self.img_width // self.patch_size
+            N_h = N_w = self.input_size // self.patch_size
             assert N_h * N_w * N_t == N, 'Positional embedding initialized incorrectly'
 
             # Compute scale factor for spatio-temporal interpolation
@@ -245,7 +233,7 @@ class VisionTransformer(nn.Module):
 
             # If pos_embed already corret size, just return
             _, _, H, W = x.shape
-            if H == self.img_height and W == self.img_width:
+            if H == self.input_size and W == self.input_size:
                 return pos_embed
 
             # Compute scale factor for spatial interpolation
@@ -258,14 +246,6 @@ class VisionTransformer(nn.Module):
                 mode='bicubic')
             pos_embed = pos_embed.permute(0, 2, 3, 1).view(1, -1, dim)
             return pos_embed
-
-
-def vit_synthetic(patch_size=16, **kwargs):
-    # For performance testing only
-    model = VisionTransformer(
-        patch_size=patch_size, embed_dim=1, depth=1, num_heads=1, mlp_ratio=4,
-        qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    return model
 
 
 def vit_tiny(patch_size=16, **kwargs):
@@ -319,7 +299,6 @@ def vit_gigantic(patch_size=14, **kwargs):
 
 
 VIT_EMBED_DIMS = {
-    'vit_synthetic': 1,
     'vit_tiny': 192,
     'vit_small': 384,
     'vit_base': 768,

@@ -21,7 +21,10 @@ def get_3d_sincos_pos_embed(
     returns:
         pos_embed: [grid_depth*grid_size*grid_size, embed_dim] (w/o cls_token)
                 or [1+grid_depth*grid_size*grid_size, embed_dim] (w/ cls_token)
+                
     """
+
+    print("Initializing 3D Positional Embeddings")
     grid_d = np.arange(grid_depth, dtype=float)
     grid_h = np.arange(grid_size, dtype=float)
     grid_w = np.arange(grid_size, dtype=float)

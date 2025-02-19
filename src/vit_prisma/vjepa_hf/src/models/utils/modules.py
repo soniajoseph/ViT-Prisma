@@ -1,29 +1,7 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-#
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from timm.models.layers import drop_path
-
-
-class DropPath(nn.Module):
-    """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks)."""
-    def __init__(self, drop_prob=None):
-        super(DropPath, self).__init__()
-        self.drop_prob = drop_prob
-
-    def forward(self, x):
-        return drop_path(x, self.drop_prob, self.training)
-
-    def extra_repr(self) -> str:
-        return "p={}".format(self.drop_prob)
 
 
 class MLP(nn.Module):
@@ -52,35 +30,6 @@ class MLP(nn.Module):
         return x
 
 
-class SwiGLUFFN(nn.Module):
-    def __init__(
-        self,
-        in_features,
-        hidden_features=None,
-        out_features=None,
-        act_layer=nn.SiLU,
-        drop=0.,
-        wide_SiLU=True
-    ):
-        super().__init__()
-        out_features = out_features or in_features
-        swiglu_hidden_features = hidden_features = hidden_features or in_features
-        if wide_SiLU:
-            swiglu_hidden_features = int(2 * hidden_features / 3)
-            align_as = 8
-            swiglu_hidden_features = (swiglu_hidden_features + align_as - 1) // align_as * align_as
-        self.fc1 = nn.Linear(in_features, swiglu_hidden_features)
-        self.fc2 = nn.Linear(in_features, swiglu_hidden_features)
-        self.act = act_layer()
-        self.fc3 = nn.Linear(swiglu_hidden_features, out_features)
-
-    def forward(self, x):
-        x1 = self.fc1(x)
-        x2 = self.fc2(x)
-        hidden = F.silu(x1) * x2
-        return self.fc3(hidden)
-
-
 class Attention(nn.Module):
     def __init__(
         self,
@@ -90,8 +39,7 @@ class Attention(nn.Module):
         qk_scale=None,
         attn_drop=0.,
         proj_drop=0.,
-        use_sdpa=True,
-        is_causal=False
+        use_sdpa=True
     ):
         super().__init__()
         self.num_heads = num_heads
@@ -103,7 +51,7 @@ class Attention(nn.Module):
         self.proj_drop_prob = proj_drop
         self.proj_drop = nn.Dropout(proj_drop)
         self.use_sdpa = use_sdpa
-        self.is_causal = is_causal
+
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
@@ -112,7 +60,7 @@ class Attention(nn.Module):
 
         if self.use_sdpa:
             with torch.backends.cuda.sdp_kernel():
-                x = F.scaled_dot_product_attention(q, k, v, dropout_p=self.proj_drop_prob, is_causal=self.is_causal)
+                x = F.scaled_dot_product_attention(q, k, v, dropout_p=self.proj_drop_prob)
                 attn = None
         else:
             attn = (q @ k.transpose(-2, -1)) * self.scale  # [B, num_heads, D, D]
@@ -135,12 +83,10 @@ class Block(nn.Module):
         qk_scale=None,
         drop=0.,
         attn_drop=0.,
-        drop_path=0.,
         act_layer=nn.GELU,
-        wide_SiLU=True,
         norm_layer=nn.LayerNorm,
-        is_causal=False,
-        use_sdpa=True,
+        grid_size=None,
+        grid_depth=None,
     ):
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -150,33 +96,22 @@ class Block(nn.Module):
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
             attn_drop=attn_drop,
-            is_causal=is_causal,
-            use_sdpa=use_sdpa,
             proj_drop=drop)
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        if act_layer is nn.SiLU:
-            self.mlp = SwiGLUFFN(
-                in_features=dim,
-                hidden_features=mlp_hidden_dim,
-                act_layer=act_layer,
-                wide_SiLU=wide_SiLU,
-                drop=drop)
-        else:
-            self.mlp = MLP(
-                in_features=dim,
-                hidden_features=mlp_hidden_dim,
-                act_layer=act_layer,
-                drop=drop)
+        self.mlp = MLP(
+            in_features=dim,
+            hidden_features=mlp_hidden_dim,
+            act_layer=act_layer,
+            drop=drop)
 
     def forward(self, x, return_attention=False, mask=None):
         y, attn = self.attn(self.norm1(x), mask=mask)
         if return_attention:
             return attn
-        x = x + self.drop_path(y)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        x = x + y
+        x = x + self.mlp(self.norm2(x))
         return x
 
 
@@ -193,8 +128,8 @@ class CrossAttention(nn.Module):
         head_dim = dim // num_heads
         self.scale = head_dim ** -0.5
         self.q = nn.Linear(dim, dim, bias=qkv_bias)
-        self.kv = nn.Linear(dim, int(dim * 2), bias=qkv_bias)
-        # self.proj = nn.Linear(dim, dim)
+        self.kv = nn.Linear(dim, int(dim*2), bias=qkv_bias)
+        self.proj = nn.Linear(dim, dim)
         self.use_sdpa = use_sdpa
 
     def forward(self, q, x):
@@ -214,6 +149,8 @@ class CrossAttention(nn.Module):
             q = (xattn @ v)
 
         q = q.transpose(1, 2).reshape(B, n, C)
+        q = self.proj(q)
+    
         return q
 
 
