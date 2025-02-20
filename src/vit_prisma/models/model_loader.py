@@ -46,7 +46,6 @@ ConfigType = Union[HookedViTConfig, HookedTextTransformerConfig]
 
 def load_model(
     model_name: str,
-    model_class: Type,
     model_type: ModelType = ModelType.VISION,
     device: str = 'cuda',
     dtype: torch.dtype = torch.float32,
@@ -81,6 +80,12 @@ def load_model(
     config = create_config_object(model_name, model_type)
     
     # Initialize model
+    if model_type == ModelType.VISION:
+        from vit_prisma.hooked_transformer import HookedViT
+        model_class = HookedViT
+    else:  # TEXT
+        from vit_prisma.hooked_transformer import HookedTextTransformer
+        model_class = HookedTextTransformer
     model = model_class(config)
     
     # Load weights if requested

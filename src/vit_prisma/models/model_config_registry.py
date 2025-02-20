@@ -18,7 +18,6 @@ class ModelCategory(Enum):
     DINO = "dino"
     VIVIT = "vivit"
     VJEPA = "vjepa"
-    KANDINSKY = "kandinsky"
 
 # ===============================
 # Vision Model Configurations
@@ -304,25 +303,6 @@ VJEPA_CONFIGS = {
     },
 }
 
-# Kandinsky model configurations
-KANDINSKY_CONFIGS = {
-    "kandinsky-community/kandinsky-2-1-prior": {
-        "d_model": 1024,
-        "n_heads": 16,
-        "n_layers": 24,
-        "d_mlp": 4096,
-        "d_head": 64,
-        "patch_size": 14,
-        "image_size": 224,
-        "n_classes": 768,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
-        "normalization_type": "LN",
-        "use_cls_token": True,
-        "eps": 1e-5,
-    },
-}
-
 # ===============================
 # Text Model Configurations
 # ===============================
@@ -365,7 +345,6 @@ MODEL_CATEGORIES = {
     **{name: ModelCategory.DINO for name in DINO_CONFIGS},
     **{name: ModelCategory.VIVIT for name in VIVIT_CONFIGS},
     **{name: ModelCategory.VJEPA for name in VJEPA_CONFIGS},
-    **{name: ModelCategory.KANDINSKY for name in KANDINSKY_CONFIGS},
 }
 
 # Combined configuration dictionary
@@ -379,7 +358,6 @@ MODEL_CONFIGS = {
         **DINO_CONFIGS,
         **VIVIT_CONFIGS,
         **VJEPA_CONFIGS,
-        **KANDINSKY_CONFIGS,
     },
     # Text configurations
     ModelType.TEXT: {
