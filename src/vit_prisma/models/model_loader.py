@@ -153,7 +153,7 @@ def load_hooked_model(
     """
     config = load_config(model_name, model_type, **kwargs)
 
-    print("hooked model config")
+    print("hooked model config", config)
     
     if model_class is None:
         if model_type == ModelType.VISION:
@@ -225,11 +225,34 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
     cfg.model_name = model_name
 
+    # Attention head number is not in open clip config, so we add it manually 
+    if "plus_clip" in model_name:
+        cfg.n_heads = 14
+    elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
+        cfg.n_heads = 8
+    elif any(s in model_name for s in ["ViT-B", "vit-base"]):
+        cfg.n_heads = 12
+    elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
+        cfg.n_heads = 16
+    elif any(s in model_name for s in ["huge_", "ViT-H"]):
+        cfg.n_heads = 20
+    elif any(s in model_name for s in ["ViT-g", "giant_"]):
+        cfg.n_heads = 22
+    elif any(s in model_name for s in ["gigantic_"]):
+        cfg.n_heads = 26
+    elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
+        cfg.n_heads = 16
+        cfg.return_type = "class_logits"
+    else:
+        cfg.n_heads = 12
+
     # Set MLP dimension
     if model_cfg['vision_cfg'].get("mlp_ratio"):
         cfg.d_mlp = int(cfg.d_model * model_cfg['vision_cfg'].get("mlp_ratio"))
     else:
         cfg.d_mlp = cfg.d_model * 4
+
+    cfg.d_head = cfg.d_model // cfg.n_heads
 
     # Common configurations
     cfg.normalization_type = "LN"

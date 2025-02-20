@@ -42,7 +42,7 @@ BASE_CLIP_CONFIG = {
     "d_head": 64,
     "layer_norm_pre": True,
     "return_type": "class_logits",
-    "layer_norm_eps": 1e-6,
+    "eps": 1e-5,
     "normalize_output": True,
 }
 
@@ -65,7 +65,7 @@ CLIP_CONFIGS = {
     "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
 
         "layer_norm_pre": True,
-        "layer_norm_eps": 1e-6,
+        "eps": 1e-6,
     },
 }
 
@@ -169,18 +169,15 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # DataComp models
     "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
+
     "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K": {
-        "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K": {
-        "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K": {
         "patch_size": 14,

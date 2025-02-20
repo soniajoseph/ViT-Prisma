@@ -10,6 +10,8 @@ from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
 from vit_prisma.models.base_vit import HookedViT
 from vit_prisma.utils.constants import DATA_DIR, MODEL_DIR, DEVICE
 
+from vit_prisma.models.model_loader import load_hooked_model
+
 
 #currently only vit_base_patch16_224 supported (config loading issue)
 def test_loading_open_clip():
@@ -52,7 +54,9 @@ def test_loading_open_clip():
     all_outputs, layer_names = get_all_layer_outputs(og_model, random_input)
     og_state_dict = og_model.state_dict()
 
-    
+
+    hooked_model = load_hooked_model('open-clip:' + og_model_name)
+
     # hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
     hooked_model.to(device)
     hooked_model.eval()
