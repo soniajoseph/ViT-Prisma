@@ -82,23 +82,28 @@ def load_model(
     
     # Get category
     category = MODEL_CATEGORIES[model_name]
-    
-    # 1. Get dynamic HuggingFace config
-    if category == ModelCategory.TIMM:
-        new_config = _get_timm_hf_config(model_name)
-        new_config = _create_config_from_hf(hf_config, model_name, model_type)
 
-    elif category in [ModelCategory.CLIP, ModelCategory.OPEN_CLIP, ModelCategory.KANDINSKY]:
-        new_config = _get_clip_hf_config(model_name, model_type)
-        new_config = _create_config_from_open_clip(new_config, model_name, model_type)
+    
+    # 1. Get dynamic config
+    if category == ModelCategory.TIMM:
+        old_config = _get_timm_hf_config(model_name)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
+
+    elif category == ModelCategory.OPEN_CLIP:
+        old_config = _get_open_clip_config(model_name, model_type)
+        new_config = _create_config_from_open_clip(old_config, model_name, model_type)
 
     elif category == ModelCategory.DINO:
-        new_config = _get_dino_hf_config(model_name)
-        new_config = _create_config_from_hf(hf_config, model_name, model_type)
+        old_config = _get_dino_hf_config(model_name)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
 
     elif category == ModelCategory.VIVIT:
-        new_config = _get_vivit_hf_config(model_name)
-        new_config = _create_config_from_hf(hf_config, model_name, model_type)
+        old_config = _get_vivit_hf_config(model_name)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
+
+    elif category == ModelCategory.CLIP:
+        old_config = _get_general_hf_config(model_name, model_type)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
 
     
     # # 2. Create base config from HF config if available, otherwise use static config
@@ -144,18 +149,26 @@ def load_model(
     
     return model
 
+def _get_general_hf_config(model_name: str, model_type: ModelType):
+    """Get HuggingFace config from TIMM model."""
+    from transformers import AutoConfig
+    if model_type == ModelType.VISION:
+        model_type = "vision_config"
+    elif model_type == ModelType.TEXT:
+        model_type = "text_config"
+    hf_config = AutoConfig.from_pretrained(model_name)
+    return hf_config
+
+
 def _get_timm_hf_config(model_name: str):
     """Get HuggingFace config from TIMM model."""
-    try:
-        import timm
-        model = timm.create_model(model_name)
-        from transformers import AutoConfig
-        hf_config = AutoConfig.from_pretrained(model.default_cfg["hf_hub_id"])
-        return hf_config
-    except:
-        return None
+    import timm
+    model = timm.create_model(model_name)
+    from transformers import AutoConfig
+    hf_config = AutoConfig.from_pretrained(model.default_cfg["hf_hub_id"])
+    return hf_config
 
-def _get_clip_hf_config(model_name: str, model_type: ModelType):
+def _get_open_clip_config(model_name: str, model_type: ModelType):
     import open_clip
     import json
     config_path = download_pretrained_from_hf(
@@ -174,7 +187,6 @@ def _get_clip_hf_config(model_name: str, model_type: ModelType):
 def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
     cfg = HookedViTConfig()
-
     if "eva02_enormous" in model_name:
         cfg.d_model = 1792
         cfg.n_layers = 40
@@ -252,14 +264,17 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
             config.patch_size = hf_config.tubelet_size[1]
             
         # Common attributes
-        config.d_model = hf_config.hidden_size
-        config.n_layers = hf_config.num_hidden_layers
-        config.n_heads = hf_config.num_attention_heads
-        config.d_head = hf_config.hidden_size // hf_config.num_attention_heads
-        config.d_mlp = hf_config.intermediate_size
+        config.d_model = hf_config.vision_config.hidden_size
+        config.n_layers = hf_config.vision_config.num_hidden_layers
+        config.n_heads = hf_config.vision_config.num_attention_heads
+        config.d_head = hf_config.vision_config.hidden_size // hf_config.vision_config.num_attention_heads
+        config.d_mlp = hf_config.vision_config.intermediate_size
         config.image_size = getattr(hf_config, "image_size", 224)
         config.n_channels = getattr(hf_config, "num_channels", 3)
-        config.eps = hf_config.layer_norm_eps
+        
+        if hasattr(hf_config, "layer_norm_eps"):
+            config.eps = hf_config.layer_norm_eps
+
         
         # Set output dimension appropriately      
         if hasattr(hf_config, "projection_dim"):
@@ -268,10 +283,10 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
         elif hasattr(hf_config, "num_classes"):
             config.n_classes = hf_config.num_classes
             config.return_type = "class_logits"
-            print("num_classes")
         else:
             config.n_classes = config.d_model
             config.return_type = "pre_logits"
+        
             
         # Video-specific settings
         if hasattr(hf_config, "tubelet_size"):

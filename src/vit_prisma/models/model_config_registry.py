@@ -20,7 +20,7 @@ class ModelCategory(Enum):
     KANDINSKY = "kandinsky"
 
 # ===============================
-# Vision Model Configurations (Overrides; otherwise automatically uses Huggingface Config Values)
+# Vision Model Configurations (Overrides; otherwise automatically uses Huggingface config Values)
 # ===============================
 
 # Base configurations that can be extended
@@ -95,15 +95,9 @@ CLIP_CONFIGS = {
         "return_type": "class_logits",
     },
     "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
-        "d_model": 512,
-        "n_heads": 8,
-        "n_layers": 8,
-        "d_mlp": 2048,
-        "d_head": 64,
         "patch_size": 16,
         "image_size": 224,
         "layer_norm_pre": True,
-        "return_type": "class_logits",
         "normalization_type": "LN",
         "use_cls_token": True,
         "eps": 1e-6,
