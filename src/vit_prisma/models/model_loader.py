@@ -1,8 +1,10 @@
 """
 Efficient Prisma Model Loading System
 ===================================
-A streamlined approach that only loads what's needed for a specific model,
-avoiding unnecessary registry population.
+
+Configs and weights load directly from Huggingface, with config and weight conversion scripts 
+to make them compatible with the Prisma library.
+
 """
 
 import logging
@@ -44,6 +46,81 @@ ConfigType = Union[HookedViTConfig, HookedTextTransformerConfig]
 # Core Model Loading Functions
 # ===============================
 
+def load_config(
+    model_name: str,
+    model_type: ModelType = ModelType.VISION,
+    **kwargs
+) -> ConfigType:
+    """
+    Load and create configuration for a model.
+    
+    Args:
+        model_name: Name of the model to load
+        model_type: Type of model (VISION or TEXT)
+        **kwargs: Additional arguments
+        
+    Returns:
+        Model configuration
+    """
+    if model_name not in MODEL_CATEGORIES:
+        raise ValueError(f"Model '{model_name}' is not registered in configurations")
+    
+    if model_type == ModelType.TEXT and model_name not in TEXT_SUPPORTED_MODELS:
+        raise ValueError(f"Model '{model_name}' does not support text modality")
+    
+    category = MODEL_CATEGORIES[model_name]
+    
+    # Get dynamic config from source
+    if category == ModelCategory.TIMM:
+        old_config = _get_timm_hf_config(model_name)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
+    elif category == ModelCategory.OPEN_CLIP:
+        old_config = _get_open_clip_config(model_name, model_type)
+        new_config = _create_config_from_open_clip(old_config, model_name, model_type)
+    elif category == ModelCategory.DINO:
+        old_config = _get_dino_hf_config(model_name)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
+    elif category in [ModelCategory.CLIP, ModelCategory.VIVIT]:
+        old_config = _get_general_hf_config(model_name, model_type)
+        new_config = _create_config_from_hf(old_config, model_name, model_type)
+    
+    # Apply registry overrides
+    registry_overrides = MODEL_CONFIGS[model_type].get(model_name, {})
+    for key, value in registry_overrides.items():
+        setattr(new_config, key, value)
+        
+    return new_config
+
+def load_weights(
+    model: nn.Module,
+    model_name: str,
+    model_type: ModelType,
+    dtype: torch.dtype,
+    **kwargs
+) -> None:
+    """
+    Load and apply weights to a model.
+    
+    Args:
+        model: Model to load weights into
+        model_name: Name of the model
+        model_type: Type of model (VISION or TEXT)
+        dtype: Data type for weights
+        **kwargs: Additional arguments
+    """
+    category = MODEL_CATEGORIES[model_name]
+    config = model.config
+    
+    # Load and convert weights
+    original_weights = load_weights(model_name, category, model_type, dtype, **kwargs)
+    converted_weights = convert_weights(original_weights, model_name, category, config, model_type)
+    
+    # Apply weights to model
+    complete_weights = fill_missing_keys(model, converted_weights)
+    model.load_state_dict(complete_weights)
+
+    return model
+
 def load_model(
     model_name: str,
     model_class: Type = None,
@@ -54,9 +131,9 @@ def load_model(
     fold_ln: bool = False,
     center_writing_weights: bool = False,
     **kwargs
-) -> Tuple[ConfigType, Any]:
+) -> Any:
     """
-    Load a model with dynamic HuggingFace config and registry overrides.
+    Load a model with configuration and weights.
     
     Args:
         model_name: Name of the model to load
@@ -70,79 +147,24 @@ def load_model(
         **kwargs: Additional arguments
         
     Returns:
-        Tuple of (config, model)
+        Loaded model
     """
-    # Verify model exists in configs
-    if model_name not in MODEL_CATEGORIES:
-        raise ValueError(f"Model '{model_name}' is not registered in configurations")
+    config = load_config(model_name, model_type, **kwargs)
     
-    # Check if model type is supported
-    if model_type == ModelType.TEXT and model_name not in TEXT_SUPPORTED_MODELS:
-        raise ValueError(f"Model '{model_name}' does not support text modality")
+    if model_class is None:
+        if model_type == ModelType.VISION:
+            from vit_prisma.models.base_vit import HookedViT
+            model_class = HookedViT
+        else:  # TEXT
+            from vit_prisma.models.base_text_transformer import HookedTextTransformer
+            model_class = HookedTextTransformer
     
-    # Get category
-    category = MODEL_CATEGORIES[model_name]
-
+    # Initialize model
+    model = model_class(config)
     
-    # 1. Get dynamic config
-    if category == ModelCategory.TIMM:
-        old_config = _get_timm_hf_config(model_name)
-        new_config = _create_config_from_hf(old_config, model_name, model_type)
-
-    elif category == ModelCategory.OPEN_CLIP:
-        old_config = _get_open_clip_config(model_name, model_type)
-        new_config = _create_config_from_open_clip(old_config, model_name, model_type)
-
-    elif category == ModelCategory.DINO:
-        old_config = _get_dino_hf_config(model_name)
-        new_config = _create_config_from_hf(old_config, model_name, model_type)
-
-    elif category == ModelCategory.VIVIT:
-        old_config = _get_vivit_hf_config(model_name)
-        new_config = _create_config_from_hf(old_config, model_name, model_type)
-
-    elif category == ModelCategory.CLIP:
-        old_config = _get_general_hf_config(model_name, model_type)
-        new_config = _create_config_from_hf(old_config, model_name, model_type)
-
-    
-    # # 2. Create base config from HF config if available, otherwise use static config
-    # if new_config is not None:
-    # else:
-    #     # Fallback to static config
-    #     config = create_config_object(model_name, model_type)
-    
-    # 3. Apply registry overrides on top of dynamic config
-    registry_overrides = MODEL_CONFIGS[model_type].get(model_name, {})
-    for key, value in registry_overrides.items():
-        setattr(new_config, key, value)
-    
-
-    if model_type == ModelType.VISION:
-        from vit_prisma.models.base_vit import HookedViT
-        model_class = HookedViT
-    else:  # TEXT
-        from vit_prisma.models.base_text_transormer import HookedTextTransformer
-        model_class = HookedTextTransformer
-
-    # Initialize model with all parameters including category
-    model = model_class(
-        new_config, 
-        # fold_ln=fold_ln, 
-        # center_writing_weights=center_writing_weights,
-        # category=category,  # Add category here
-        # **kwargs
-    )
-    
-    # Load weights if requested  
+    # Load weights if requested
     if pretrained:
-        # Load and convert weights
-        original_weights = load_weights(model_name, category, model_type, dtype, **kwargs)
-        converted_weights = convert_weights(original_weights, model_name, category, new_config, model_type)
-        
-        # Apply weights to model
-        complete_weights = fill_missing_keys(model, converted_weights)
-        model.load_state_dict(complete_weights)
+        model = load_weights(model, model_name, model_type, dtype, **kwargs)
     
     # Move model to device and dtype
     model.to(device=device, dtype=dtype)
