@@ -52,7 +52,8 @@ def test_loading_open_clip():
     all_outputs, layer_names = get_all_layer_outputs(og_model, random_input)
     og_state_dict = og_model.state_dict()
 
-    hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
+    
+    # hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False) # in future, do all models
     hooked_model.to(device)
     hooked_model.eval()
     hooked_state_dict = hooked_model.state_dict()

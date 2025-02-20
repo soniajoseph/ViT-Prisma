@@ -106,6 +106,25 @@ def test_loading_clip(model_name):
     else:
         test_hf_clip_model(model_name, input_image)
 
+def print_divergence_info(og_output, hooked_output, model_name):
+    """Print detailed divergence information between outputs."""
+    diff = torch.abs(hooked_output - og_output)
+    max_diff = torch.max(diff).item()  # Convert to Python scalar
+    mean_diff = torch.mean(diff).item()
+    median_diff = torch.median(diff).item()
+    
+    print(f"\nDivergence Analysis for {model_name}:")
+    print(f"Max difference:     {max_diff:.8f}")
+    print(f"Mean difference:    {mean_diff:.8f}")
+    print(f"Median difference:  {median_diff:.8f}")
+    
+    # Print location of max difference
+    if max_diff > 0:
+        max_loc = torch.where(diff == max_diff)
+        print(f"Location of max difference: {tuple(idx.tolist() for idx in max_loc)}")
+        print(f"Original value at max diff: {og_output[max_loc].item():.8f}")
+        print(f"Hooked value at max diff:   {hooked_output[max_loc].item():.8f}")
+
 
 def generate_random_input(batch_size, channels, height, width, device):
     """Generate a random tensor to simulate input images."""
@@ -135,6 +154,8 @@ def test_open_clip_model(model_name, input_image):
     with torch.no_grad():
         og_output, *_ = og_model(input_image)
         hooked_output = hooked_model(input_image)
+
+    print_divergence_info(og_output, hooked_output, model_name)
 
     assert torch.allclose(
         og_output, hooked_output, atol=TOLERANCE

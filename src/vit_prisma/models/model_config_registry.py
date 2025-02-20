@@ -42,7 +42,7 @@ BASE_CLIP_CONFIG = {
     "d_head": 64,
     "layer_norm_pre": True,
     "return_type": "class_logits",
-    "layer_norm_eps": 1e-5,
+    "layer_norm_eps": 1e-6,
     "normalize_output": True,
 }
 
