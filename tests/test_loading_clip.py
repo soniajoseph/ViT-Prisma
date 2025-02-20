@@ -4,6 +4,8 @@ from transformers import CLIPModel
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
+from vit_prisma.models.model_loader import load_model
+
 # Define a list of models to test
 MODEL_LIST = [
 
@@ -120,10 +122,12 @@ def test_open_clip_model(model_name, input_image):
     og_model.to(DEVICE)
     og_model.eval()
 
-    # Load HookedViT model
-    hooked_model = HookedViT.from_pretrained(
-        model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False
-    )
+    hooked_model = load_model(model_name)
+
+    # # Load HookedViT model
+    # hooked_model = HookedViT.from_pretrained(
+    #     model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False
+    # )
     hooked_model.to(DEVICE)
     hooked_model.eval()
 

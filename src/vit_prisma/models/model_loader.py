@@ -6,7 +6,7 @@ avoiding unnecessary registry population.
 """
 
 import logging
-from typing import Dict, Any, Callable, Optional, Union, Tuple, Type
+from typing import Dict, Any, Callable, Optional, Union, Tuple, Type, List
 import torch
 import functools
 
@@ -15,7 +15,7 @@ from vit_prisma.configs.HookedTextTransformerConfig import HookedTextTransformer
 from vit_prisma.utils.enums import ModelType
 
 # Import configuration dictionaries - these are just static data
-from vit_prisma.model_configs import (
+from vit_prisma.models.model_config_registry import (
     ModelCategory,
     MODEL_CATEGORIES,
     MODEL_CONFIGS,
@@ -23,7 +23,7 @@ from vit_prisma.model_configs import (
 )
 
 # Import conversion functions for reference only - will be loaded on demand
-from vit_prisma.model_loading import (
+from vit_prisma.prisma_tools.loading_from_pretrained import (
     convert_timm_weights,
     convert_clip_weights,
     convert_open_clip_weights,
@@ -46,23 +46,27 @@ ConfigType = Union[HookedViTConfig, HookedTextTransformerConfig]
 
 def load_model(
     model_name: str,
+    model_class: Type = None,
     model_type: ModelType = ModelType.VISION,
     device: str = 'cuda',
     dtype: torch.dtype = torch.float32,
     pretrained: bool = True,
+    fold_ln: bool = False,
+    center_writing_weights: bool = False,
     **kwargs
 ) -> Tuple[ConfigType, Any]:
     """
-    Load a specific model without populating an entire registry.
-    This function only processes what's needed for the requested model.
+    Load a model with dynamic HuggingFace config and registry overrides.
     
     Args:
         model_name: Name of the model to load
-        model_class: Class to instantiate
+        model_class: Class to instantiate (optional, will be inferred if None)
         model_type: Type of model (VISION or TEXT)
         device: Device to load model on
         dtype: Data type for model parameters
         pretrained: Whether to load pretrained weights
+        fold_ln: Whether to fold layer normalization into attention
+        center_writing_weights: Whether to center writing weights
         **kwargs: Additional arguments
         
     Returns:
@@ -76,26 +80,60 @@ def load_model(
     if model_type == ModelType.TEXT and model_name not in TEXT_SUPPORTED_MODELS:
         raise ValueError(f"Model '{model_name}' does not support text modality")
     
-    # Get model configuration
-    config = create_config_object(model_name, model_type)
+    # Get category
+    category = MODEL_CATEGORIES[model_name]
     
-    # Initialize model
+    # 1. Get dynamic HuggingFace config
+    if category == ModelCategory.TIMM:
+        new_config = _get_timm_hf_config(model_name)
+        new_config = _create_config_from_hf(hf_config, model_name, model_type)
+
+    elif category in [ModelCategory.CLIP, ModelCategory.OPEN_CLIP, ModelCategory.KANDINSKY]:
+        new_config = _get_clip_hf_config(model_name, model_type)
+        new_config = _create_config_from_open_clip(new_config, model_name, model_type)
+
+    elif category == ModelCategory.DINO:
+        new_config = _get_dino_hf_config(model_name)
+        new_config = _create_config_from_hf(hf_config, model_name, model_type)
+
+    elif category == ModelCategory.VIVIT:
+        new_config = _get_vivit_hf_config(model_name)
+        new_config = _create_config_from_hf(hf_config, model_name, model_type)
+
+    
+    # # 2. Create base config from HF config if available, otherwise use static config
+    # if new_config is not None:
+    # else:
+    #     # Fallback to static config
+    #     config = create_config_object(model_name, model_type)
+    
+    # 3. Apply registry overrides on top of dynamic config
+    registry_overrides = MODEL_CONFIGS[model_type].get(model_name, {})
+    for key, value in registry_overrides.items():
+        setattr(new_config, key, value)
+    
+
     if model_type == ModelType.VISION:
-        from vit_prisma.hooked_transformer import HookedViT
+        from vit_prisma.models.base_vit import HookedViT
         model_class = HookedViT
     else:  # TEXT
-        from vit_prisma.hooked_transformer import HookedTextTransformer
+        from vit_prisma.models.base_text_transormer import HookedTextTransformer
         model_class = HookedTextTransformer
-    model = model_class(config)
+
+    # Initialize model with all parameters including category
+    model = model_class(
+        new_config, 
+        # fold_ln=fold_ln, 
+        # center_writing_weights=center_writing_weights,
+        # category=category,  # Add category here
+        # **kwargs
+    )
     
-    # Load weights if requested
+    # Load weights if requested  
     if pretrained:
-        # Get category to determine appropriate loader and converter
-        category = MODEL_CATEGORIES[model_name]
-        
         # Load and convert weights
         original_weights = load_weights(model_name, category, model_type, dtype, **kwargs)
-        converted_weights = convert_weights(original_weights, model_name, category, config, model_type)
+        converted_weights = convert_weights(original_weights, model_name, category, new_config, model_type)
         
         # Apply weights to model
         complete_weights = fill_missing_keys(model, converted_weights)
@@ -104,7 +142,155 @@ def load_model(
     # Move model to device and dtype
     model.to(device=device, dtype=dtype)
     
-    return config, model
+    return model
+
+def _get_timm_hf_config(model_name: str):
+    """Get HuggingFace config from TIMM model."""
+    try:
+        import timm
+        model = timm.create_model(model_name)
+        from transformers import AutoConfig
+        hf_config = AutoConfig.from_pretrained(model.default_cfg["hf_hub_id"])
+        return hf_config
+    except:
+        return None
+
+def _get_clip_hf_config(model_name: str, model_type: ModelType):
+    import open_clip
+    import json
+    config_path = download_pretrained_from_hf(
+    remove_open_clip_prefix(model_name), filename="open_clip_config.json"
+)
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+        if config.get('model_cfg'):
+            model_config = config['model_cfg']
+        elif config.get('vision_cfg'):
+            model_config = config
+        else:
+            raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
+    return model_config
+
+def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
+
+    cfg = HookedViTConfig()
+
+    if "eva02_enormous" in model_name:
+        cfg.d_model = 1792
+        cfg.n_layers = 40
+        cfg.patch_size = 14
+        cfg.image_size = 224
+        cfg.n_classes = 1000
+    elif "eva02_large" in model_name:
+        cfg.d_model = model_cfg['vision_cfg']['width']
+        cfg.n_layers = 40
+        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+        cfg.image_size = model_cfg['vision_cfg']['image_size']
+        cfg.n_classes = model_cfg['embed_dim']
+    elif "eva02_base" in model_name:
+        cfg.d_model = 768
+        cfg.n_layers = 12
+        cfg.patch_size = 16
+        cfg.image_size = model_cfg['vision_cfg']['image_size']
+        cfg.n_classes = model_cfg['embed_dim']
+    else:
+        cfg.d_model = model_cfg['vision_cfg']['width']
+        cfg.n_layers = model_cfg['vision_cfg']['layers']
+        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+        cfg.image_size = model_cfg['vision_cfg']['image_size']
+        cfg.n_classes = model_cfg['embed_dim']
+
+    # Set number of heads based on model type
+    if "plus_clip" in model_name:
+        cfg.n_heads = 14
+    elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
+        cfg.n_heads = 8
+    elif any(s in model_name for s in ["ViT-B", "vit-base"]):
+        cfg.n_heads = 12
+    elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
+        cfg.n_heads = 16
+    elif any(s in model_name for s in ["huge_", "ViT-H"]):
+        cfg.n_heads = 20
+    elif any(s in model_name for s in ["ViT-g", "giant_"]):
+        cfg.n_heads = 22
+    elif any(s in model_name for s in ["gigantic_"]):
+        cfg.n_heads = 26
+    elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
+        cfg.n_heads = 16
+        cfg.return_type = "class_logits"
+    else:
+        cfg.n_heads = 12
+
+    # Set MLP dimension
+    if model_cfg['vision_cfg'].get("mlp_ratio"):
+        cfg.d_mlp = int(cfg.d_model * model_cfg['vision_cfg'].get("mlp_ratio"))
+    else:
+        cfg.d_mlp = cfg.d_model * 4
+
+    # Common configurations
+    cfg.use_cls_token = True
+    cfg.d_head = cfg.d_model // cfg.n_heads
+    cfg.return_type = getattr(cfg, 'return_type', 'class_logits')
+    cfg.layer_norm_pre = True
+    cfg.eps = 1e-5
+    cfg.normalization_type = "LN"
+    cfg.normalize_output = True
+
+        
+    return cfg
+
+
+def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
+    """Create Prisma config from HuggingFace config."""
+    if model_type == ModelType.VISION:
+        config = HookedViTConfig()
+        
+        # Extract patch size
+        if hasattr(hf_config, "patch_size"):
+            config.patch_size = hf_config.patch_size
+        elif hasattr(hf_config, "tubelet_size"):
+            config.patch_size = hf_config.tubelet_size[1]
+            
+        # Common attributes
+        config.d_model = hf_config.hidden_size
+        config.n_layers = hf_config.num_hidden_layers
+        config.n_heads = hf_config.num_attention_heads
+        config.d_head = hf_config.hidden_size // hf_config.num_attention_heads
+        config.d_mlp = hf_config.intermediate_size
+        config.image_size = getattr(hf_config, "image_size", 224)
+        config.n_channels = getattr(hf_config, "num_channels", 3)
+        config.eps = hf_config.layer_norm_eps
+        
+        # Set output dimension appropriately      
+        if hasattr(hf_config, "projection_dim"):
+            config.n_classes = hf_config.projection_dim
+            config.return_type = "class_logits"
+        elif hasattr(hf_config, "num_classes"):
+            config.n_classes = hf_config.num_classes
+            config.return_type = "class_logits"
+            print("num_classes")
+        else:
+            config.n_classes = config.d_model
+            config.return_type = "pre_logits"
+            
+        # Video-specific settings
+        if hasattr(hf_config, "tubelet_size"):
+            config.is_video_transformer = True
+            config.video_tubelet_depth = hf_config.tubelet_size[0]
+            config.video_num_frames = hf_config.video_size[0]
+            
+    else:  # TEXT
+        config = HookedTextTransformerConfig()
+        config.d_model = hf_config.hidden_size
+        config.n_layers = hf_config.num_hidden_layers
+        config.n_heads = hf_config.num_attention_heads
+        config.d_head = hf_config.hidden_size // hf_config.num_attention_heads
+        config.d_mlp = hf_config.intermediate_size
+        config.vocab_size = hf_config.vocab_size
+        config.context_length = getattr(hf_config, "max_position_embeddings", 77)
+        config.eps = hf_config.layer_norm_eps
+        
+    return config
 
 def create_config_object(model_name: str, model_type: ModelType) -> ConfigType:
     """
