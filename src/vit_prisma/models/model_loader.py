@@ -209,51 +209,12 @@ def _get_open_clip_config(model_name: str, model_type: ModelType):
 def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
     cfg = HookedViTConfig()
-    if "eva02_enormous" in model_name:
-        cfg.d_model = 1792
-        cfg.n_layers = 40
-        cfg.patch_size = 14
-        cfg.image_size = 224
-        cfg.n_classes = 1000
-    elif "eva02_large" in model_name:
-        cfg.d_model = model_cfg['vision_cfg']['width']
-        cfg.n_layers = 40
-        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
-    elif "eva02_base" in model_name:
-        cfg.d_model = 768
-        cfg.n_layers = 12
-        cfg.patch_size = 16
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
-    else:
-        cfg.d_model = model_cfg['vision_cfg']['width']
-        cfg.n_layers = model_cfg['vision_cfg']['layers']
-        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
-
-    # Set number of heads based on model type
-    if "plus_clip" in model_name:
-        cfg.n_heads = 14
-    elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
-        cfg.n_heads = 8
-    elif any(s in model_name for s in ["ViT-B", "vit-base"]):
-        cfg.n_heads = 12
-    elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
-        cfg.n_heads = 16
-    elif any(s in model_name for s in ["huge_", "ViT-H"]):
-        cfg.n_heads = 20
-    elif any(s in model_name for s in ["ViT-g", "giant_"]):
-        cfg.n_heads = 22
-    elif any(s in model_name for s in ["gigantic_"]):
-        cfg.n_heads = 26
-    elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
-        cfg.n_heads = 16
-        cfg.return_type = "class_logits"
-    else:
-        cfg.n_heads = 12
+    cfg.d_model = model_cfg['vision_cfg']['width']
+    cfg.n_layers = model_cfg['vision_cfg']['layers']
+    cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+    cfg.image_size = model_cfg['vision_cfg']['image_size']
+    cfg.n_classes = model_cfg['embed_dim']
+    cfg.n_heads = model_cfg['vision_cfg']['num_heads']
 
     # Set MLP dimension
     if model_cfg['vision_cfg'].get("mlp_ratio"):
@@ -262,15 +223,8 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
         cfg.d_mlp = cfg.d_model * 4
 
     # Common configurations
-    cfg.use_cls_token = True
     cfg.d_head = cfg.d_model // cfg.n_heads
-    cfg.return_type = getattr(cfg, 'return_type', 'class_logits')
-    cfg.layer_norm_pre = True
-    cfg.eps = 1e-5
     cfg.normalization_type = "LN"
-    cfg.normalize_output = True
-
-        
     return cfg
 
 
