@@ -1,7 +1,7 @@
 """
 Comprehensive Prisma Model Configurations
 ======================================
-Complete configuration definitions for all supported models.
+Configs load directly from Huggingface/OpenCLIP, sometimes with overrides to be compatible with Prisma.
 """
 
 from typing import Dict, Any
