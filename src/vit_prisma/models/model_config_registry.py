@@ -32,29 +32,40 @@ TIMM_CONFIGS = {
         "return_type": "class_logits",
     },
     "vit_large_patch16_224": {
-
         "return_type": "class_logits",
     },
 }
 
+# Define a base configuration for OpenCLIP vision models
+BASE_CLIP_CONFIG = {
+    "n_heads": 12,           # Number of attention heads
+    "d_head": 64,
+    "layer_norm_pre": True,
+    "return_type": "class_logits",
+    "layer_norm_eps": 1e-5,
+    "normalize_output": True,
+}
+
+
 # CLIP model configurations
 CLIP_CONFIGS = {
     "openai/clip-vit-base-patch16": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "openai/clip-vit-base-patch32": {
-        "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits", 
+        **BASE_CLIP_CONFIG,
     },
+
     "openai/clip-vit-large-patch14": {
-        "patch_size": 14,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
+
     "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
-        "use_cls_token": True,
+
+        "layer_norm_pre": True,
+        "layer_norm_eps": 1e-6,
     },
 }
 
@@ -62,102 +73,83 @@ CLIP_CONFIGS = {
 OPEN_CLIP_BASE_CONFIGS = {
     # ViT-B-16 models
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
 
     # ViT-B-32 models
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
 
     # ViT-L-14 models
@@ -198,8 +190,8 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # Other LAION models
     "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K": {
         "layer_norm_pre": True,
@@ -208,17 +200,16 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # TIMM versions
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16": {
-        "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31": {
         "patch_size": 14,
@@ -266,31 +257,30 @@ OPEN_CLIP_BASE_CONFIGS = {
 OPEN_CLIP_EXTENDED_CONFIGS = {
     # Additional models
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch16_clip_224.openai": {
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
+
     },
     "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b": {
         "patch_size": 32,
-        "layer_norm_pre": True,
-        "return_type": "class_logits",
+        **BASE_CLIP_CONFIG,
     },
     "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m": {
         "patch_size": 32,
@@ -319,13 +309,11 @@ OPEN_CLIP_EXTENDED_CONFIGS = {
         "return_type": "class_logits",
     },
     "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": {
-        **BASE_HUGE_VISION_CONFIG,
         "patch_size": 14,
         "layer_norm_pre": True,
         "return_type": "class_logits",
     },
     "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K": {
-        **BASE_HUGE_VISION_CONFIG,
         "patch_size": 14,
         "layer_norm_pre": True,
         "return_type": "class_logits",
@@ -549,12 +537,10 @@ EVA02_CONFIGS = {
 # DINO model configurations
 DINO_CONFIGS = {
     "facebook/dino-vitb16": {
-        **BASE_VISION_CONFIG,
         "return_type": "pre_logits",
         "n_classes": 768,
     },
     "facebook/dino-vitb8": {
-        **BASE_VISION_CONFIG,
         "patch_size": 8,
         "return_type": "pre_logits", 
         "n_classes": 768,

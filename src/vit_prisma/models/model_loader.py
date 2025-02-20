@@ -16,6 +16,8 @@ from vit_prisma.configs.HookedViTConfig import HookedViTConfig
 from vit_prisma.configs.HookedTextTransformerConfig import HookedTextTransformerConfig
 from vit_prisma.utils.enums import ModelType
 
+import torch.nn as nn
+
 # Import configuration dictionaries - these are just static data
 from vit_prisma.models.model_config_registry import (
     ModelCategory,
@@ -109,10 +111,10 @@ def load_weights(
         **kwargs: Additional arguments
     """
     category = MODEL_CATEGORIES[model_name]
-    config = model.config
+    config = model.cfg
     
     # Load and convert weights
-    original_weights = load_weights(model_name, category, model_type, dtype, **kwargs)
+    original_weights = load_original_weights(model_name, category, model_type, dtype, **kwargs)
     converted_weights = convert_weights(original_weights, model_name, category, config, model_type)
     
     # Apply weights to model
@@ -121,7 +123,7 @@ def load_weights(
 
     return model
 
-def load_model(
+def load_hooked_model(
     model_name: str,
     model_class: Type = None,
     model_type: ModelType = ModelType.VISION,
@@ -150,6 +152,8 @@ def load_model(
         Loaded model
     """
     config = load_config(model_name, model_type, **kwargs)
+
+    print("hooked model config")
     
     if model_class is None:
         if model_type == ModelType.VISION:
@@ -204,6 +208,8 @@ def _get_open_clip_config(model_name: str, model_type: ModelType):
             model_config = config
         else:
             raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
+
+    print("open clip config", model_config)
     return model_config
 
 def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
@@ -214,7 +220,10 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
     cfg.patch_size = model_cfg['vision_cfg']['patch_size']
     cfg.image_size = model_cfg['vision_cfg']['image_size']
     cfg.n_classes = model_cfg['embed_dim']
-    cfg.n_heads = model_cfg['vision_cfg']['num_heads']
+    # cfg.n_heads = model_cfg['vision_cfg']['num_attention_heads']
+
+
+    cfg.model_name = model_name
 
     # Set MLP dimension
     if model_cfg['vision_cfg'].get("mlp_ratio"):
@@ -223,7 +232,6 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
         cfg.d_mlp = cfg.d_model * 4
 
     # Common configurations
-    cfg.d_head = cfg.d_model // cfg.n_heads
     cfg.normalization_type = "LN"
     return cfg
 
@@ -248,6 +256,8 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
         config.image_size = getattr(hf_config, "image_size", 224)
         config.n_channels = getattr(hf_config, "num_channels", 3)
         config.patch_size = getattr(hf_config, "patch_size", 16)
+
+        config.model_name = model_name
         
         if hasattr(hf_config, "layer_norm_eps"):
             config.eps = hf_config.layer_norm_eps
@@ -307,7 +317,7 @@ def create_config_object(model_name: str, model_type: ModelType) -> ConfigType:
     else:
         return HookedTextTransformerConfig(**config_dict)
 
-def load_weights(
+def load_original_weights(
     model_name: str,
     category: ModelCategory,
     model_type: ModelType,

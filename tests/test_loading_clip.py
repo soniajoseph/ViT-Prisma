@@ -4,7 +4,7 @@ from transformers import CLIPModel
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
-from vit_prisma.models.model_loader import load_model
+from vit_prisma.models.model_loader import load_hooked_model
 
 # Define a list of models to test
 MODEL_LIST = [
@@ -99,6 +99,8 @@ def test_loading_clip(model_name):
     # Generate a random input image
     input_image = generate_random_input(batch_size=5, channels=3, height=224, width=224, device=DEVICE)
 
+    print(f"Testing model: {model_name}")
+
     if model_name.startswith("open-clip:"):
         test_open_clip_model(model_name, input_image)
     else:
@@ -122,14 +124,12 @@ def test_open_clip_model(model_name, input_image):
     og_model.to(DEVICE)
     og_model.eval()
 
-    hooked_model = load_model(model_name)
 
-    # # Load HookedViT model
-    # hooked_model = HookedViT.from_pretrained(
-    #     model_name, is_timm=False, is_clip=True, fold_ln=False, center_writing_weights=False
-    # )
+    hooked_model = load_hooked_model(model_name)
     hooked_model.to(DEVICE)
     hooked_model.eval()
+
+    print("Model config", hooked_model.cfg)
 
     # Compare outputs
     with torch.no_grad():
@@ -140,29 +140,67 @@ def test_open_clip_model(model_name, input_image):
         og_output, hooked_output, atol=TOLERANCE
     ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - og_output))}"
 
-
 def test_hf_clip_model(model_name, input_image):
     """Test models from Hugging Face's CLIP library."""
-    # Load full CLIP model and extract components
-    full = CLIPModel.from_pretrained(model_name)
-    tinyclip = full.vision_model
-    tinyclip_final_proj = full.visual_projection
-    tinyclip.to(DEVICE)
-    tinyclip_final_proj.to(DEVICE)
+    # Load the full Hugging Face CLIP model
+    hf_model = CLIPModel.from_pretrained(model_name)
+    hf_model.to(DEVICE)
+    hf_model.eval()
 
-    # Load HookedViT model
-    hooked_model = HookedViT.from_pretrained(
-        model_name, is_timm=False, is_clip=True, fold_ln=False
-    )
+    # Print the loaded model name
+    print(f"Loaded HuggingFace CLIP model: {model_name}")
+
+    print("HF config:", hf_model.config)
+
+    # Load the HookedViT model
+    hooked_model = load_hooked_model(model_name)
+
     hooked_model.to(DEVICE)
+    hooked_model.eval()
+
+    print("Hooked config:", hooked_model.cfg)
+    print(0)
+
+
+    # Print confirmation of HookedViT model
+    print(f"Loaded HookedViT model for: {model_name}")
 
     # Compare outputs
     with torch.no_grad():
-        tinyclip_output = tinyclip_final_proj(tinyclip(input_image)[1])
+        # Hugging Face CLIP vision model output
+        hf_output = hf_model.get_image_features(input_image)
+
+        # HookedViT model output
         hooked_output = hooked_model(input_image)
 
+    # Ensure outputs are close
     assert torch.allclose(
-        hooked_output, tinyclip_output, atol=TOLERANCE
-    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
+        hooked_output, hf_output, atol=TOLERANCE
+    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - hf_output))}"    
+
+
+# def test_hf_clip_model(model_name, input_image):
+#     """Test models from Hugging Face's CLIP library."""
+#     # Load full CLIP model and extract components
+#     full = CLIPModel.from_pretrained(model_name)
+#     tinyclip = full.vision_model
+#     tinyclip_final_proj = full.visual_projection
+#     tinyclip.to(DEVICE)
+#     tinyclip_final_proj.to(DEVICE)
+
+#     # Load HookedViT model
+#     hooked_model = HookedViT.from_pretrained(
+#         model_name, is_timm=False, is_clip=True, fold_ln=False
+#     )
+#     hooked_model.to(DEVICE)
+
+#     # Compare outputs
+#     with torch.no_grad():
+#         tinyclip_output = tinyclip_final_proj(tinyclip(input_image)[1])
+#         hooked_output = hooked_model(input_image)
+
+#     assert torch.allclose(
+#         hooked_output, tinyclip_output, atol=TOLERANCE
+#     ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - tinyclip_output))}"
 
     
