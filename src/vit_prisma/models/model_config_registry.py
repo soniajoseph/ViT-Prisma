@@ -17,7 +17,6 @@ class ModelCategory(Enum):
     DINO = "dino"
     VIVIT = "vivit"
     VJEPA = "vjepa"
-    KANDINSKY = "kandinsky"
 
 # ===============================
 # Vision Model Configurations (Overrides; otherwise automatically uses Huggingface config Values)
@@ -95,13 +94,13 @@ CLIP_CONFIGS = {
         "return_type": "class_logits",
     },
     "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
-        "patch_size": 16,
-        "image_size": 224,
-        "layer_norm_pre": True,
-        "normalization_type": "LN",
+        # "patch_size": 16,
+        # "image_size": 224,
+        # "layer_norm_pre": True,
+        # "normalization_type": "LN",
         "use_cls_token": True,
-        "eps": 1e-6,
-        "n_classes": 512,
+        # "eps": 1e-6,
+        # "n_classes": 512,
     },
 }
 

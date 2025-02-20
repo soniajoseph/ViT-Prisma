@@ -271,11 +271,12 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
         config.d_mlp = hf_config.vision_config.intermediate_size
         config.image_size = getattr(hf_config, "image_size", 224)
         config.n_channels = getattr(hf_config, "num_channels", 3)
+        config.patch_size = getattr(hf_config, "patch_size", 16)
         
         if hasattr(hf_config, "layer_norm_eps"):
             config.eps = hf_config.layer_norm_eps
 
-        
+
         # Set output dimension appropriately      
         if hasattr(hf_config, "projection_dim"):
             config.n_classes = hf_config.projection_dim
@@ -287,7 +288,7 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
             config.n_classes = config.d_model
             config.return_type = "pre_logits"
         
-            
+        
         # Video-specific settings
         if hasattr(hf_config, "tubelet_size"):
             config.is_video_transformer = True
