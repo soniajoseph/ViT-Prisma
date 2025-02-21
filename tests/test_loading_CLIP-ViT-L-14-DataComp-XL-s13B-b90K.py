@@ -115,6 +115,8 @@ def test_loading_open_clip():
 
     print("Final output shapes", final_output_hooked.shape, final_output_og.shape)
 
+    print("max diff", torch.max(torch.abs(final_output_hooked - final_output_og)))
+
     assert torch.allclose(final_output_hooked, final_output_og,
                           atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
     print("All tests passed!")

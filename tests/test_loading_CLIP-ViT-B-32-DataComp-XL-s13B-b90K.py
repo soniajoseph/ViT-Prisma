@@ -111,6 +111,8 @@ def test_loading_open_clip():
     final_output_hooked, cache = hooked_model.run_with_cache(random_input)
     final_output_og, *data = og_model(random_input)
 
+    print("Max divergence", torch.max(torch.abs(final_output_hooked - final_output_og)))
+
     print("Final output shapes", final_output_hooked.shape, final_output_og.shape)
 
     assert torch.allclose(final_output_hooked, final_output_og, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
