@@ -1,10 +1,12 @@
 import pytest
 import torch
-from transformers import CLIPModel
+from transformers import CLIPModel, ViTModel
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
 from vit_prisma.models.model_loader import load_hooked_model
+
+
 
 # Define a list of models to test
 MODEL_LIST = [
@@ -12,48 +14,39 @@ MODEL_LIST = [
     # MChecking
     
     # # MODELS THAT FAIL CURRENTLY
+    # # MODELS THAT FAIL CURRENTLY
+    # "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
+    # "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_base_patch16_clip_224.openai",
+    # "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
+    # "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
+    # "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_base_patch32_clip_224.openai",
+    # "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
+    # "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
+    # "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
+    # "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
+    # "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
+    # "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
+    # "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_large_patch14_clip_224.openai",
+    # "open-clip:timm/vit_large_patch14_clip_336.openai",
+    # "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
+    # "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
+    # "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
+    # "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b"
+    # "openai/clip-vit-base-patch32", # f16, f32 issues? 
 
-    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL-s13B-b90K",
-    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.clip-s13B-b90K",
-    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.laion-s13B-b90K",
-    "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
+    # MODELS THAT HAVE NOT BEEN TESTED
+    "facebook/dino-vitb16",
+    "facebook/dino-vitb8",
+    "facebook/dino-vits16",
+    "facebook/dino-vits8",
 
-    "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K",
-
-    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31",
-    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32",
-    "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
-
-    "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
-
-
-
-    "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
-    "open-clip:timm/vit_base_patch16_clip_224.openai",
-    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
-    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
-    "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
-    "open-clip:timm/vit_base_patch32_clip_224.openai",
-    "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
-    "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
-    "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
-    "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
-    "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
-    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
-    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
-    "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
-    "open-clip:timm/vit_large_patch14_clip_224.openai",
-    "open-clip:timm/vit_large_patch14_clip_336.openai",
-    "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
-    "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
-    "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
-    "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b",
-
-    "openai/clip-vit-base-patch32",
 
 
     # MODELS THAT PASS
@@ -64,10 +57,8 @@ MODEL_LIST = [
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K",
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K",
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K",
-
     "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K",
     "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K",
-
     "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K",
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K",
@@ -81,16 +72,26 @@ MODEL_LIST = [
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K",
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K",
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K",
-
     "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K",
     "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K",
     "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
-
     "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K",
-
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31",
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32",
     "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.clip-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.laion-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K",
+
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31",
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32",
+
+    "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
+    "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
+
     
 ]
 
@@ -108,6 +109,8 @@ def test_loading_clip(model_name):
 
     if model_name.startswith("open-clip:"):
         test_open_clip_model(model_name, input_image)
+    elif "dino" in model_name:
+        test_dino_model(model_name, input_image)
     else:
         test_hf_clip_model(model_name, input_image)
 
@@ -166,10 +169,38 @@ def test_open_clip_model(model_name, input_image):
         og_output, hooked_output, atol=TOLERANCE
     ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - og_output))}"
 
+
+def test_dino_model(model_name, input_image):
+    
+    hf_model = ViTModel.from_pretrained(model_name)
+    hf_model.to(DEVICE)
+    dino_output = hf_model(input_image)
+    cls_token = dino_output.last_hidden_state[:, 0]
+    patches = dino_output.last_hidden_state[:, 1:]
+    patches_pooled = patches.mean(dim=1)
+    dino_output = torch.cat((cls_token.unsqueeze(-1), patches_pooled.unsqueeze(-1)), dim=-1)
+
+
+    hooked_model = load_hooked_model(model_name)
+    hooked_model.to(DEVICE)
+    hooked_output = hooked_model(input_image)
+
+
+    print_divergence_info(dino_output, hooked_output, model_name)
+    
+
+    # Ensure outputs are close
+    assert torch.allclose(
+        hooked_output, dino_output, atol=TOLERANCE
+    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - hf_output))}"    
+
+
 def test_hf_clip_model(model_name, input_image):
     """Test models from Hugging Face's CLIP library."""
     # Load the full Hugging Face CLIP model
+
     hf_model = CLIPModel.from_pretrained(model_name)
+        
     hf_model.to(DEVICE)
     hf_model.eval()
 
@@ -195,6 +226,7 @@ def test_hf_clip_model(model_name, input_image):
     with torch.no_grad():
         # Hugging Face CLIP vision model output
         hf_output = hf_model.get_image_features(input_image)
+    
 
         # HookedViT model output
         hooked_output = hooked_model(input_image)
@@ -210,13 +242,4 @@ def test_hf_clip_model(model_name, input_image):
 
 if __name__ == "__main__":
     for model_name in MODEL_LIST:
-        print(f"Testing model: {model_name}")
-
-        # Generate a random input image
-        input_image = generate_random_input(batch_size=5, channels=3, height=224, width=224, device=DEVICE)
-
-        if model_name.startswith("open-clip:"):
-            test_open_clip_model(model_name, input_image)
-        else:
-            test_hf_clip_model(model_name, input_image)
-
+        test_loading_clip(model_name)

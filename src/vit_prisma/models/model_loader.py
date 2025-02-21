@@ -80,8 +80,8 @@ def load_config(
         old_config = _get_open_clip_config(model_name, model_type)
         new_config = _create_config_from_open_clip(old_config, model_name, model_type)
     elif category == ModelCategory.DINO:
-        old_config = _get_dino_hf_config(model_name)
-        new_config = _create_config_from_hf(old_config, model_name, model_type)
+        old_config = _get_general_hf_config(model_name, model_type = None)
+        new_config = _create_config_from_hf(old_config, model_name, model_type=None)
     elif category in [ModelCategory.CLIP, ModelCategory.VIVIT]:
         old_config = _get_general_hf_config(model_name, model_type)
         new_config = _create_config_from_hf(old_config, model_name, model_type)
@@ -175,14 +175,17 @@ def load_hooked_model(
     
     return model
 
-def _get_general_hf_config(model_name: str, model_type: ModelType):
+def _get_general_hf_config(model_name: str, model_type = None):
     """Get HuggingFace config from TIMM model."""
     from transformers import AutoConfig
-    if model_type == ModelType.VISION:
-        model_type = "vision_config"
-    elif model_type == ModelType.TEXT:
-        model_type = "text_config"
+    if model_type:
+        if model_type == ModelType.VISION:
+            model_type = "vision_config"
+        elif model_type == ModelType.TEXT:
+            model_type = "text_config"
     hf_config = AutoConfig.from_pretrained(model_name)
+    if model_type:
+        hf_config = getattr(hf_config, model_type)
     return hf_config
 
 
@@ -233,7 +236,6 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
         cfg.n_heads = 12
     elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
         cfg.n_heads = 16
-
     elif any(s in model_name for s in ["huge_", "ViT-H"]):
         cfg.n_heads = 20
     elif any(s in model_name for s in ["ViT-g", "giant_"]):
@@ -256,54 +258,31 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
     print("converting the config", cfg)
     return cfg
 
-
 def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
-    """Create Prisma config from HuggingFace config."""
-    if model_type == ModelType.VISION:
+    """Create a general config from HuggingFace config for any vision or text transformer."""
+    if model_type == ModelType.VISION or model_type == None:  # VISION
         config = HookedViTConfig()
         
-        # Extract patch size
-        if hasattr(hf_config, "patch_size"):
-            config.patch_size = hf_config.patch_size
-        elif hasattr(hf_config, "tubelet_size"):
-            config.patch_size = hf_config.tubelet_size[1]
-            
-        # Common attributes
-        config.d_model = hf_config.vision_config.hidden_size
-        config.n_layers = hf_config.vision_config.num_hidden_layers
-        config.n_heads = hf_config.vision_config.num_attention_heads
-        config.d_head = hf_config.vision_config.hidden_size // hf_config.vision_config.num_attention_heads
-        config.d_mlp = hf_config.vision_config.intermediate_size
+        # Core architecture parameters
+        config.d_model = hf_config.hidden_size
+        config.n_layers = hf_config.num_hidden_layers
+        config.n_heads = hf_config.num_attention_heads
+        config.d_head = hf_config.hidden_size // hf_config.num_attention_heads
+        config.d_mlp = hf_config.intermediate_size
+        
+        # Vision-specific parameters
         config.image_size = getattr(hf_config, "image_size", 224)
         config.n_channels = getattr(hf_config, "num_channels", 3)
         config.patch_size = getattr(hf_config, "patch_size", 16)
-        config.initializer_range = getattr(hf_config, "initializer_range", 0.02)
-
-        config.model_name = model_name
         
-        if hasattr(hf_config, "layer_norm_eps"):
-            config.eps = hf_config.layer_norm_eps
-
-
-        # Set output dimension appropriately      
-        if hasattr(hf_config, "projection_dim"):
-            config.n_classes = hf_config.projection_dim
-            config.return_type = "class_logits"
-        elif hasattr(hf_config, "num_classes"):
-            config.n_classes = hf_config.num_classes
-            config.return_type = "class_logits"
-        else:
-            config.n_classes = config.d_model
-            config.return_type = "pre_logits"
-        
-        
-        # Video-specific settings
+        # Handle different types of patch sizes
         if hasattr(hf_config, "tubelet_size"):
+            config.patch_size = hf_config.tubelet_size[1]
             config.is_video_transformer = True
             config.video_tubelet_depth = hf_config.tubelet_size[0]
             config.video_num_frames = hf_config.video_size[0]
             
-    else:  # TEXT
+    elif model_type == ModelType.TEXT:  # TEXT
         config = HookedTextTransformerConfig()
         config.d_model = hf_config.hidden_size
         config.n_layers = hf_config.num_hidden_layers
@@ -312,9 +291,84 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
         config.d_mlp = hf_config.intermediate_size
         config.vocab_size = hf_config.vocab_size
         config.context_length = getattr(hf_config, "max_position_embeddings", 77)
-        config.eps = hf_config.layer_norm_eps
-        
+    
+    # Common parameters
+    config.model_name = model_name
+    config.initializer_range = getattr(hf_config, "initializer_range", 0.02)
+    config.eps = getattr(hf_config, "layer_norm_eps", 1e-5)
+    
+    # Handle output dimension
+    if hasattr(hf_config, "projection_dim"):
+        config.n_classes = hf_config.projection_dim
+        config.return_type = "class_logits"
+    elif hasattr(hf_config, "num_classes"):
+        config.n_classes = hf_config.num_classes
+        config.return_type = "class_logits"
+    else:
+        config.n_classes = config.d_model
+        config.return_type = "pre_logits"
+    
     return config
+
+
+# def _create_clip_config_from_hf(hf_config, model_name: str, model_type: ModelType):
+#     """Create Prisma config from HuggingFace config."""
+#     if model_type == ModelType.VISION:
+#         config = HookedViTConfig()
+        
+#         # Extract patch size
+#         if hasattr(hf_config, "patch_size"):
+#             config.patch_size = hf_config.patch_size
+#         elif hasattr(hf_config, "tubelet_size"):
+#             config.patch_size = hf_config.tubelet_size[1]
+            
+#         # Common attributes
+#         config.d_model = hf_config.vision_config.hidden_size
+#         config.n_layers = hf_config.vision_config.num_hidden_layers
+#         config.n_heads = hf_config.vision_config.num_attention_heads
+#         config.d_head = hf_config.vision_config.hidden_size // hf_config.vision_config.num_attention_heads
+#         config.d_mlp = hf_config.vision_config.intermediate_size
+#         config.image_size = getattr(hf_config, "image_size", 224)
+#         config.n_channels = getattr(hf_config, "num_channels", 3)
+#         config.patch_size = getattr(hf_config, "patch_size", 16)
+#         config.initializer_range = getattr(hf_config, "initializer_range", 0.02)
+
+#         config.model_name = model_name
+        
+#         if hasattr(hf_config, "layer_norm_eps"):
+#             config.eps = hf_config.layer_norm_eps
+
+
+#         # Set output dimension appropriately      
+#         if hasattr(hf_config, "projection_dim"):
+#             config.n_classes = hf_config.projection_dim
+#             config.return_type = "class_logits"
+#         elif hasattr(hf_config, "num_classes"):
+#             config.n_classes = hf_config.num_classes
+#             config.return_type = "class_logits"
+#         else:
+#             config.n_classes = config.d_model
+#             config.return_type = "pre_logits"
+        
+        
+#         # Video-specific settings
+#         if hasattr(hf_config, "tubelet_size"):
+#             config.is_video_transformer = True
+#             config.video_tubelet_depth = hf_config.tubelet_size[0]
+#             config.video_num_frames = hf_config.video_size[0]
+            
+#     else:  # TEXT
+#         config = HookedTextTransformerConfig()
+#         config.d_model = hf_config.hidden_size
+#         config.n_layers = hf_config.num_hidden_layers
+#         config.n_heads = hf_config.num_attention_heads
+#         config.d_head = hf_config.hidden_size // hf_config.num_attention_heads
+#         config.d_mlp = hf_config.intermediate_size
+#         config.vocab_size = hf_config.vocab_size
+#         config.context_length = getattr(hf_config, "max_position_embeddings", 77)
+#         config.eps = hf_config.layer_norm_eps
+        
+#     return config
 
 def create_config_object(model_name: str, model_type: ModelType) -> ConfigType:
     """

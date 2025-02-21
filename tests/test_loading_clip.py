@@ -9,7 +9,7 @@ from vit_prisma.models.model_loader import load_hooked_model
 # Define a list of models to test
 MODEL_LIST = [
     
-    # MODELS THAT FAIL CURRENTLY
+    # # MODELS THAT FAIL CURRENTLY
     "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
@@ -36,9 +36,7 @@ MODEL_LIST = [
     "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b"
     "openai/clip-vit-base-patch32", # f16, f32 issues? 
 
-    # MODELS THAT HAVE NOT BEEN TESTED
-    "facebook/dino-vitb16",
-    "facebook/dino-vitb8",
+
     "facebook/dino-vits16",
     "facebook/dino-vits8",
 
@@ -87,6 +85,9 @@ MODEL_LIST = [
     "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
     "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
 
+    "facebook/dino-vitb16",
+    "facebook/dino-vitb8",
+
 
     
 ]
@@ -111,6 +112,8 @@ def test_loading_clip(model_name):
     try:
         if model_name.startswith("open-clip:"):
             test_open_clip_model(model_name, input_image)
+        elif 'dino' in model_name:
+            test_dino_model(model_name, input_image)
         else:
             test_hf_clip_model(model_name, input_image)
         print(f"\n✓ {model_name} PASSED")
@@ -129,6 +132,31 @@ def generate_random_input(batch_size, channels, height, width, device):
     with torch.random.fork_rng():
         torch.manual_seed(1)
         return torch.rand((batch_size, channels, height, width)).to(device)
+
+def test_dino_model(model_name, input_image):
+    
+    hf_model = ViTModel.from_pretrained(model_name)
+    hf_model.to(DEVICE)
+    dino_output = hf_model(input_image)
+    cls_token = dino_output.last_hidden_state[:, 0]
+    patches = dino_output.last_hidden_state[:, 1:]
+    patches_pooled = patches.mean(dim=1)
+    dino_output = torch.cat((cls_token.unsqueeze(-1), patches_pooled.unsqueeze(-1)), dim=-1)
+
+
+    hooked_model = load_hooked_model(model_name)
+    hooked_model.to(DEVICE)
+    hooked_output = hooked_model(input_image)
+
+
+    print_divergence_info(dino_output, hooked_output, model_name)
+    
+
+    # Ensure outputs are close
+    assert torch.allclose(
+        hooked_output, dino_output, atol=TOLERANCE
+    ), f"{model_name} output diverges! Max diff: {torch.max(torch.abs(hooked_output - hf_output))}"    
+
 
 
 def test_open_clip_model(model_name, input_image):

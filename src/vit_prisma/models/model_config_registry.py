@@ -575,27 +575,16 @@ EVA02_CONFIGS = {
 DINO_CONFIGS = {
     "facebook/dino-vitb16": {
         "return_type": "pre_logits",
-        "n_classes": 768,
     },
     "facebook/dino-vitb8": {
         "patch_size": 8,
         "return_type": "pre_logits", 
-        "n_classes": 768,
     },
     "facebook/dino-vits16": {
-        "d_model": 384,
         "n_heads": 6,
-        "n_layers": 12,
-        "d_mlp": 1536,
-        "d_head": 64,
-        "patch_size": 16,
-        "image_size": 224,
         "return_type": "pre_logits",
-        "n_classes": 384,
-        "normalization_type": "LN",
-        "use_cls_token": True,
-        "eps": 1e-6,
     },
+
     "facebook/dino-vits8": {
         "d_model": 384,
         "n_heads": 6,
