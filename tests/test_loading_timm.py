@@ -27,3 +27,6 @@ def test_loading_timm():
     hooked_output, timm_output = hooked_model(input_image), timm_model(input_image)
 
     assert torch.allclose(hooked_output, timm_output, atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(hooked_output - timm_output))}"
+
+
+test_loading_timm()

@@ -14,7 +14,6 @@ from typing import Dict, Optional, Tuple, Union, Callable, Sequence, List
 
 import torch.nn as nn
 from vit_prisma.prisma_tools.hook_point import HookPoint
-from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict
 
 
 NamesFilter = Optional[Union[Callable[[str], bool], Sequence[str]]]

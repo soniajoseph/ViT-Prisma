@@ -35,8 +35,7 @@ from vit_prisma.prisma_tools import FactoredMatrix
 from vit_prisma.prisma_tools.activation_cache import ActivationCache
 from vit_prisma.prisma_tools.hook_point import HookPoint
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-from vit_prisma.prisma_tools.loading_from_pretrained import convert_pretrained_model_config, get_pretrained_state_dict, \
-    fill_missing_keys
+
 from vit_prisma.utils import devices
 from vit_prisma.utils.prisma_utils import transpose
 from vit_prisma.sae.sae_utils import get_deep_attr, set_deep_attr
@@ -636,6 +635,7 @@ class HookedViT(HookedTransformer):
         return self.to("mps")
 
     def move_model_modules_to_device(self):
+        device = self.cfg.device
         self.embed.proj.to(device)
         self.embed.to(devices.get_device_for_block_index(0, self.cfg))
         self.hook_embed.to(devices.get_device_for_block_index(0, self.cfg))

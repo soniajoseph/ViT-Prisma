@@ -115,8 +115,8 @@ class HookedViTConfig:
 
     # Properties specific to video transformers
     is_video_transformer: bool = False
-    video_tubelet_depth: int = 2
-    video_num_frames: int = 32
+    video_tubelet_depth: Optional[int] = None  # Can be int or None
+    video_num_frames: Optional[int] = None  # Can be int or None
 
 
     @classmethod

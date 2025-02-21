@@ -8,6 +8,8 @@ import torch
 from vit_prisma.dataloaders.imagenet_dataset import load_imagenet
 from vit_prisma.model_eval.evaluate_imagenet import zero_shot_eval
 from vit_prisma.models.base_vit import HookedViT
+from vit_prisma.models.model_loader import load_hooked_model
+
 
 og_model_name = 'laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K'
 classifier_file_name = 'imagenet_classifier_hf_hub_laion_CLIP_ViT_L_14_DataComp.XL_s13B_b90k.npy'
@@ -115,6 +117,8 @@ def test_loading_open_clip():
 
     print("Final output shapes", final_output_hooked.shape, final_output_og.shape)
 
+    print("max diff", torch.max(torch.abs(final_output_hooked - final_output_og)))
+
     assert torch.allclose(final_output_hooked, final_output_og,
                           atol=TOLERANCE), f"Model output diverges! Max diff: {torch.max(torch.abs(final_output_hooked - final_output_og))}"
     print("All tests passed!")
@@ -147,18 +151,20 @@ def test_accuracy_baseline_hooked_model():
     classifier = np.load(os.path.join(parent_dir, classifier_file_name))
 
     # og_model_name = 'laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K'
-    hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False,
-                                             center_writing_weights=False)  # in future, do all models
+    hooked_model = load_hooked_model('open-clip:' + og_model_name)
+    # hooked_model = HookedViT.from_pretrained('open-clip:' + og_model_name, is_timm=False, is_clip=True, fold_ln=False,
+    #                                          center_writing_weights=False)  # in future, do all models
     hooked_model.to('cuda')
     hooked_model.eval()
 
-    print("Classifier and model loaded")
+    # print("Classifier and model loaded")
+    
+    # print("classifier shape", classifier.shape)
+    # for k in hooked_model.state_dict():
+    #     print(k, hooked_model.state_dict()[k].shape)
 
     model_name = 'hf-hub:' + og_model_name
-    og_model, _, preprocess = open_clip.create_model_and_transforms(model_name)  # just need preprocessor
-    del og_model
-
-    print(preprocess)
+    _, _, preprocess = open_clip.create_model_and_transforms(model_name)  # just need preprocessor
 
     data = {}
     dataset_path = "/network/scratch/s/sonia.joseph/datasets/kaggle_datasets"
@@ -168,3 +174,5 @@ def test_accuracy_baseline_hooked_model():
     results = zero_shot_eval(hooked_model, data, epoch, model_name=og_model_name, pretrained_classifier=classifier)
     print("Results", results)
     # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
+
+test_accuracy_baseline_hooked_model()

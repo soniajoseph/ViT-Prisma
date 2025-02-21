@@ -80,4 +80,3 @@ def test_accuracy_baseline_hooked_model():
     epoch = 1
     results = zero_shot_eval(hooked_model, data, epoch, model_name=og_model_name, pretrained_classifier=classifier)
     print("Results", results)
-    # I get 0.69178 on Hooked Model; benchmarked in ML Foundations OpenCLIP repo is 0.6917
