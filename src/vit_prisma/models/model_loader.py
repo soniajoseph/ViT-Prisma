@@ -44,9 +44,22 @@ from vit_prisma.models.weight_conversion import (
 # Type alias
 ConfigType = Union[HookedViTConfig, HookedTextTransformerConfig]
 
+
+DTYPE_FROM_STRING = {
+    "float32": torch.float32,
+    "fp32": torch.float32,
+    "float16": torch.float16,
+    "fp16": torch.float16,
+    "bfloat16": torch.bfloat16,
+    "bf16": torch.bfloat16,
+}
+
+
 # ===============================
 # Core Model Loading Functions
 # ===============================
+
+
 
 def load_config(
     model_name: str,
@@ -95,6 +108,18 @@ def load_config(
     print("2. new config", new_config)
     return new_config
 
+def check_model_name(model_name: str) -> str:
+    models_missing_config = {
+        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
+        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
+        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
+    }
+    if model_name in models_missing_config:
+        model_name = models_missing_config[model_name][0]
+    return model_name
+
 def load_weights(
     model: nn.Module,
     model_name: str,
@@ -120,10 +145,9 @@ def load_weights(
     converted_weights = convert_weights(original_weights, model_name, category, config, model_type)
     
     # Apply weights to model
-    complete_weights = fill_missing_keys(model, converted_weights)
-    model.load_state_dict(complete_weights)
+    full_state_dict = fill_missing_keys(model, converted_weights)
 
-    return model
+    return full_state_dict
 
 def load_hooked_model(
     model_name: str,
@@ -134,6 +158,12 @@ def load_hooked_model(
     pretrained: bool = True,
     fold_ln: bool = False,
     center_writing_weights: bool = False,
+    fold_value_biases: bool = True,
+    refactor_factored_attn_matrices: bool = False,
+    model_type: ModelType = ModelType.VISION,
+    move_to_device: bool = True,
+    **from_pretrained_kwargs,
+
     **kwargs
 ) -> Any:
     """
@@ -153,6 +183,30 @@ def load_hooked_model(
     Returns:
         Loaded model
     """
+    assert not (
+            from_pretrained_kwargs.get("load_in_8bit", False)
+            or from_pretrained_kwargs.get("load_in_4bit", False)
+        ), "Quantization not supported"
+
+    if isinstance(dtype, str):
+        # Convert from string to a torch dtype
+        dtype = DTYPE_FROM_STRING[dtype]
+
+    if "torch_dtype" in from_pretrained_kwargs:
+        # For backwards compatibility with the previous way to do low precision loading
+        # This should maybe check the user did not explicitly set dtype *and* torch_dtype
+        dtype = from_pretrained_kwargs["torch_dtype"]
+
+    if (
+        (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+        or dtype == torch.float16
+    ) and device in ["cpu", None]:
+        logging.warning(
+            "float16 models may not work on CPU. Consider using a GPU or bfloat16."
+        )
+
+    model_name = check_model_name(model_name)
+
     config = load_config(model_name, model_type, **kwargs)
     
     if model_class is None:
@@ -163,27 +217,35 @@ def load_hooked_model(
             from vit_prisma.models.base_text_transformer import HookedTextTransformer
             model_class = HookedTextTransformer
 
-    models_missing_config = {
-        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
-        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
-        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
-    }
-    if model_name in models_missing_config:
-        model_name = models_missing_config[model_name][0]
-    
     # Initialize model
     model = model_class(config)
     
     # Load weights if requested
     if pretrained:
-        model = load_weights(model, model_name, model_type, dtype, **kwargs)
-    
-    # Move model to device and dtype
+        state_dict = load_weights(model, model_name, model_type, dtype, **kwargs)
+
+    model.load_and_process_state_dict(
+                state_dict,
+                fold_ln=fold_ln,
+                center_writing_weights=center_writing_weights,
+                fold_value_biases=fold_value_biases,
+                refactor_factored_attn_matrices=refactor_factored_attn_matrices,
+            )      
+
+        
     model.to(device=device, dtype=dtype)
-    
-    return model
+    model.set_use_attn_result(use_attn_result)
+
+
+    if move_to_device:
+        model.move_model_modules_to_device()
+
+    logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
+    return model 
+
+
+
+
 
 def _get_general_hf_config(model_name: str, model_type = None):
     """Get HuggingFace config from TIMM model."""

@@ -319,6 +319,8 @@ class HookedTransformer(HookedRootModule):
             ), f"Cannot add hook {hook_point_name} if use_attn_in is False"
 
     @classmethod
+    # OLD function for backward compatability
+    # Latest function is /models/model_loader/load_hooked_model 
     def from_pretrained(
         cls,
         model_name: str,
@@ -341,72 +343,93 @@ class HookedTransformer(HookedRootModule):
         model_type: ModelType = ModelType.VISION,
         **from_pretrained_kwargs,
     ) -> "HookedViT":
-        assert not (
-            from_pretrained_kwargs.get("load_in_8bit", False)
-            or from_pretrained_kwargs.get("load_in_4bit", False)
-        ), "Quantization not supported"
 
-        if isinstance(dtype, str):
-            # Convert from string to a torch dtype
-            dtype = DTYPE_FROM_STRING[dtype]
+        # New function, this is for backward compatability
+        model = load_hooked_model(
+            model_name = model_name,
+            model_class = cls,
 
-        if "torch_dtype" in from_pretrained_kwargs:
-            # For backwards compatibility with the previous way to do low precision loading
-            # This should maybe check the user did not explicitly set dtype *and* torch_dtype
-            dtype = from_pretrained_kwargs["torch_dtype"]
+            device = device,
+            dtype = dtype,
+            pretrained = True,
 
-        if (
-            (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
-            or dtype == torch.float16
-        ) and device in ["cpu", None]:
-            logging.warning(
-                "float16 models may not work on CPU. Consider using a GPU or bfloat16."
-            )
+            fold_ln = fold_ln,
+            center_writing_weights = center_writing_weights,
+            fold_value_biases = fold_value_biases,
+            refactor_factored_attn_matrices = refactor_factored_attn_matrices,
 
-        # Set up other parts of transformer
-        cfg = convert_pretrained_model_config(
-            model_name,
-            is_timm=is_timm,
-            is_clip=is_clip,
-            model_type=model_type,
+            model_type = model_type,
+            move_to_device = move_to_device,
+
         )
+        return model 
 
-        state_dict = get_pretrained_state_dict(
-            model_name,
-            is_timm,
-            is_clip,
-            cfg,
-            hf_model,
-            dtype=dtype,
-            return_old_state_dict=True,
-            model_type=model_type,
-            **from_pretrained_kwargs,
-        )
+        # assert not (
+        #     from_pretrained_kwargs.get("load_in_8bit", False)
+        #     or from_pretrained_kwargs.get("load_in_4bit", False)
+        # ), "Quantization not supported"
 
-        model = cls(cfg)
+        # if isinstance(dtype, str):
+        #     # Convert from string to a torch dtype
+        #     dtype = DTYPE_FROM_STRING[dtype]
 
-        # set false if openclip; not working properly
-        if is_clip and model_name.startswith("open-clip"):
-            center_writing_weights = False
-            logging.info("Setting center_writing_weights to False for OpenCLIP")
-            fold_ln = False
-            logging.info("Setting fold_ln to False for OpenCLIP")
+        # if "torch_dtype" in from_pretrained_kwargs:
+        #     # For backwards compatibility with the previous way to do low precision loading
+        #     # This should maybe check the user did not explicitly set dtype *and* torch_dtype
+        #     dtype = from_pretrained_kwargs["torch_dtype"]
 
-        model.load_and_process_state_dict(
-            state_dict,
-            fold_ln=fold_ln,
-            center_writing_weights=center_writing_weights,
-            fold_value_biases=fold_value_biases,
-            refactor_factored_attn_matrices=refactor_factored_attn_matrices,
-        )
+        # if (
+        #     (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+        #     or dtype == torch.float16
+        # ) and device in ["cpu", None]:
+        #     logging.warning(
+        #         "float16 models may not work on CPU. Consider using a GPU or bfloat16."
+        #     )
 
-        # Set up other parameters
-        model.set_use_attn_result(use_attn_result)
+        # # Set up other parts of transformer
+        # cfg = convert_pretrained_model_config(
+        #     model_name,
+        #     is_timm=is_timm,
+        #     is_clip=is_clip,
+        #     model_type=model_type,
+        # )
+
+        # state_dict = get_pretrained_state_dict(
+        #     model_name,
+        #     is_timm,
+        #     is_clip,
+        #     cfg,
+        #     hf_model,
+        #     dtype=dtype,
+        #     return_old_state_dict=True,
+        #     model_type=model_type,
+        #     **from_pretrained_kwargs,
+        # )
+
+        # model = cls(cfg)
+
+        # # set false if openclip; not working properly
+        # if is_clip and model_name.startswith("open-clip"):
+        #     center_writing_weights = False
+        #     logging.info("Setting center_writing_weights to False for OpenCLIP")
+        #     fold_ln = False
+        #     logging.info("Setting fold_ln to False for OpenCLIP")
+
+        # model.load_and_process_state_dict(
+        #     state_dict,
+        #     fold_ln=fold_ln,
+        #     center_writing_weights=center_writing_weights,
+        #     fold_value_biases=fold_value_biases,
+        #     refactor_factored_attn_matrices=refactor_factored_attn_matrices,
+        # )
+
+        # # Set up other parameters
+        # model.set_use_attn_result(use_attn_result)
 
 
-        if move_to_device:
-            model.move_model_modules_to_device()
+        # if move_to_device:
+        #     model.move_model_modules_to_device()
 
-        logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
+        # logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
 
-        return model
+        # return model
