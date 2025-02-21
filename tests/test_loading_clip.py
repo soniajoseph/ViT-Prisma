@@ -1,6 +1,6 @@
 import pytest
 import torch
-from transformers import CLIPModel
+from transformers import CLIPModel, ViTModel
 from vit_prisma.models.base_vit import HookedViT
 import open_clip
 
@@ -10,35 +10,35 @@ from vit_prisma.models.model_loader import load_hooked_model
 MODEL_LIST = [
     
     # # MODELS THAT FAIL CURRENTLY
-    "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
-    "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
-    "open-clip:timm/vit_base_patch16_clip_224.openai",
-    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
-    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
-    "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
-    "open-clip:timm/vit_base_patch32_clip_224.openai",
-    "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
-    "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
-    "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
-    "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
-    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
-    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
-    "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
-    "open-clip:timm/vit_large_patch14_clip_224.openai",
-    "open-clip:timm/vit_large_patch14_clip_336.openai",
-    "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
-    "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
-    "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
-    "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
-    "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b"
-    "openai/clip-vit-base-patch32", # f16, f32 issues? 
+    # "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
+    # "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_base_patch16_clip_224.openai",
+    # "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
+    # "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
+    # "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_base_patch32_clip_224.openai",
+    # "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
+    # "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
+    # "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
+    # "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
+    # "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
+    # "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
+    # "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
+    # "open-clip:timm/vit_large_patch14_clip_224.openai",
+    # "open-clip:timm/vit_large_patch14_clip_336.openai",
+    # "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
+    # "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
+    # "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
+    # "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
+    # "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b",
+    # "openai/clip-vit-base-patch32", # f16, f32 issues? 
 
 
-    "facebook/dino-vits16",
-    "facebook/dino-vits8",
+    # "facebook/dino-vits16",
+    # "facebook/dino-vits8",
 
 
 

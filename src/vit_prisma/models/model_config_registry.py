@@ -253,7 +253,6 @@ OPEN_CLIP_BASE_CONFIGS = {
 
     "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32": {
         **BASE_OPEN_CLIP_CONFIGS['ViT-L'],
-        "normalize_output": False,
 
     },
 
