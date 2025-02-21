@@ -9,63 +9,25 @@ from vit_prisma.models.model_loader import load_hooked_model
 # Define a list of models to test
 MODEL_LIST = [
 
-    # MODELS THAT CURRENTLY PASS
-    "openai/clip-vit-base-patch16",
+    # MChecking
+    
+    # # MODELS THAT FAIL CURRENTLY
 
-    "openai/clip-vit-base-patch32",
-    "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
-
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K",
-
-    "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K",
-    "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K",
-
-    "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
-
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K",
     "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL-s13B-b90K",
     "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.clip-s13B-b90K",
     "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.laion-s13B-b90K",
-
-    "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K",
-    "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
     "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
 
-    "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K",
-
-    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31",
-    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32",
-    "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16",
-    
     "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K",
 
     "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31",
     "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32",
     "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
-    
+
     "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
 
 
 
-
-    # # MODELS THAT FAIL CURRENTLY
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
     "open-clip:timm/vit_base_patch16_clip_224.openai",
@@ -90,6 +52,46 @@ MODEL_LIST = [
     "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
     "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
     "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b",
+
+    "openai/clip-vit-base-patch32",
+
+
+    # MODELS THAT PASS
+    "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K",
+
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K",
+
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
+
+    "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K",
+
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31",
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32",
+    "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16",
+    
 ]
 
 TOLERANCE = 1e-4

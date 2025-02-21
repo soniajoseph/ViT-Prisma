@@ -90,7 +90,9 @@ def load_config(
     registry_overrides = MODEL_CONFIGS[model_type].get(model_name, {})
     for key, value in registry_overrides.items():
         setattr(new_config, key, value)
-        
+
+    new_config.d_head = new_config.d_model // new_config.n_heads # Calculate this after retrieving latest info
+    print("2. new config", new_config)
     return new_config
 
 def load_weights(
@@ -152,8 +154,6 @@ def load_hooked_model(
         Loaded model
     """
     config = load_config(model_name, model_type, **kwargs)
-
-    print("hooked model config", config)
     
     if model_class is None:
         if model_type == ModelType.VISION:
@@ -202,17 +202,16 @@ def _get_open_clip_config(model_name: str, model_type: ModelType):
 )
     with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
-        if config.get('model_cfg'):
-            model_config = config['model_cfg']
-        elif config.get('vision_cfg'):
-            model_config = config
-        else:
-            raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
-
-    print("open clip config", model_config)
+        model_config = config['model_cfg']
     return model_config
 
 def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
+
+    print()
+
+    print("in create config from open clip", model_cfg)
+    print("model name", model_name)
+    print()
 
     cfg = HookedViTConfig()
     cfg.d_model = model_cfg['vision_cfg']['width']
@@ -225,7 +224,6 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
     cfg.model_name = model_name
 
-    model_name = model_name.lower()
     # Attention head number is not in open clip config, so we add it manually 
     if "plus_clip" in model_name:
         cfg.n_heads = 14
@@ -235,15 +233,13 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
         cfg.n_heads = 12
     elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
         cfg.n_heads = 16
+
     elif any(s in model_name for s in ["huge_", "ViT-H"]):
         cfg.n_heads = 20
     elif any(s in model_name for s in ["ViT-g", "giant_"]):
         cfg.n_heads = 22
     elif any(s in model_name for s in ["gigantic_"]):
         cfg.n_heads = 26
-    elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
-        cfg.n_heads = 16
-        cfg.return_type = "class_logits"
     else:
         cfg.n_heads = 12
 
@@ -253,10 +249,11 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
     else:
         cfg.d_mlp = cfg.d_model * 4
 
-    cfg.d_head = cfg.d_model // cfg.n_heads
-
     # Common configurations
     cfg.normalization_type = "LN"
+    cfg.return_type = "class_logits"
+
+    print("converting the config", cfg)
     return cfg
 
 
