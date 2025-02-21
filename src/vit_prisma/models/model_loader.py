@@ -55,6 +55,94 @@ DTYPE_FROM_STRING = {
 }
 
 
+MODELS_MISSING_CONFIG = {
+        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
+        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
+        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
+    }
+
+# Models that pass and fail according to 'tests/test_loading_clip.py'. Please update list as models get fixed / break.
+PASSING_MODELS = {
+    "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K",
+    "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K",
+    "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K",
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31",
+    "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32",
+    "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.clip-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-CommonPool.XL.laion-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K",
+    "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K",
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31",
+    "open-clip:timm/vit_large_patch14_clip_224.laion400m_e32",
+    "open-clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
+    "open-clip:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",  
+
+    "facebook/dino-vitb16",
+    "facebook/dino-vitb8",
+
+}
+
+FAILING_MODELS = {
+    # # MODELS THAT FAIL CURRENTLY
+    "open-clip:timm/vit_medium_patch16_clip_224.tinyclip_yfcc15m",
+    "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m",
+    "open-clip:timm/vit_base_patch16_clip_224.openai",
+    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31",
+    "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32",
+    "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m",
+    "open-clip:timm/vit_base_patch32_clip_224.openai",
+    "open-clip:laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K",
+    "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k",
+    "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k",
+    "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k",
+    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e31",
+    "open-clip:timm/vit_base_patch16_plus_clip_240.laion400m_e32",
+    "open-clip:timm/vit_large_patch14_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_large_patch14_clip_224.metaclip_400m",
+    "open-clip:timm/vit_large_patch14_clip_224.openai",
+    "open-clip:timm/vit_large_patch14_clip_336.openai",
+    "open-clip:timm/vit_medium_patch32_clip_224.tinyclip_laion400m",
+    "open-clip:timm/vit_xsmall_patch16_clip_224.tinyclip_yfcc15m",
+    "open-clip:timm/vit_betwixt_patch32_clip_224.tinyclip_laion400m",
+    "open-clip:timm/vit_gigantic_patch14_clip_224.metaclip_2pt5b",
+    "open-clip:timm/vit_huge_patch14_clip_224.metaclip_2pt5b",
+    "openai/clip-vit-base-patch32", # f16, f32 issues? 
+
+    "facebook/dino-vits16",
+    "facebook/dino-vits8",
+}
+
+
+
 # ===============================
 # Core Model Loading Functions
 # ===============================
@@ -105,19 +193,18 @@ def load_config(
         setattr(new_config, key, value)
 
     new_config.d_head = new_config.d_model // new_config.n_heads # Calculate this after retrieving latest info
-    print("2. new config", new_config)
     return new_config
 
 def check_model_name(model_name: str) -> str:
-    models_missing_config = {
-        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
-        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
-        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
-    }
-    if model_name in models_missing_config:
-        model_name = models_missing_config[model_name][0]
+    if model_name in MODELS_MISSING_CONFIG:
+        model_name = MODELS_MISSING_CONFIG[model_name][0]
+        logging.warning(f"Model '{model_name}' is missing a configuration in the registry. Using '{model_name}' instead.")
+    if model_name in FAILING_MODELS:
+        raise ValueError(f"Model '{model_name}' is not supported, currently in list of models failing tests.")
+    elif model_name in PASSING_MODELS:
+        logging.info(f"Model '{model_name}' is supported and passes tests.")
+    else:
+        logging.warning(f"Model '{model_name}' is not in the lists of models passing or failing tests. Unclear status. You may want to check that the HookedViT matches the original model under tests/test_loading_clip.py.")
     return model_name
 
 def load_weights(
@@ -160,10 +247,8 @@ def load_hooked_model(
     center_writing_weights: bool = False,
     fold_value_biases: bool = True,
     refactor_factored_attn_matrices: bool = False,
-    model_type: ModelType = ModelType.VISION,
     move_to_device: bool = True,
-    **from_pretrained_kwargs,
-
+    use_attn_result: bool = False,
     **kwargs
 ) -> Any:
     """
@@ -184,21 +269,21 @@ def load_hooked_model(
         Loaded model
     """
     assert not (
-            from_pretrained_kwargs.get("load_in_8bit", False)
-            or from_pretrained_kwargs.get("load_in_4bit", False)
+            kwargs.get("load_in_8bit", False)
+            or kwargs.get("load_in_4bit", False)
         ), "Quantization not supported"
 
     if isinstance(dtype, str):
         # Convert from string to a torch dtype
         dtype = DTYPE_FROM_STRING[dtype]
 
-    if "torch_dtype" in from_pretrained_kwargs:
+    if "torch_dtype" in kwargs:
         # For backwards compatibility with the previous way to do low precision loading
         # This should maybe check the user did not explicitly set dtype *and* torch_dtype
-        dtype = from_pretrained_kwargs["torch_dtype"]
+        dtype = kwargs["torch_dtype"]
 
     if (
-        (from_pretrained_kwargs.get("torch_dtype", None) == torch.float16)
+        (kwargs.get("torch_dtype", None) == torch.float16)
         or dtype == torch.float16
     ) and device in ["cpu", None]:
         logging.warning(
@@ -243,10 +328,6 @@ def load_hooked_model(
     logging.info(f"Loaded pretrained model {model_name} into HookedTransformer")
     return model 
 
-
-
-
-
 def _get_general_hf_config(model_name: str, model_type = None):
     """Get HuggingFace config from TIMM model."""
     from transformers import AutoConfig
@@ -282,11 +363,6 @@ def _get_open_clip_config(model_name: str, model_type: ModelType):
 
 def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
-    print()
-
-    print("in create config from open clip", model_cfg)
-    print("model name", model_name)
-    print()
 
     cfg = HookedViTConfig()
     cfg.d_model = model_cfg['vision_cfg']['width']
@@ -327,7 +403,6 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
     cfg.normalization_type = "LN"
     cfg.return_type = "class_logits"
 
-    print("converting the config", cfg)
     return cfg
 
 def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):

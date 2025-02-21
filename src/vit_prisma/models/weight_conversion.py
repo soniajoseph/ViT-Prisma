@@ -1169,10 +1169,22 @@ def fill_missing_keys(model, state_dict):
     return state_dict
 
 
-# def remove_open_clip_prefix(text, prefix="open-clip:"):
-#     if text.startswith(prefix):
-#         return text[len(prefix) :]
-#     return text
+def remove_open_clip_prefix(text, prefix="open-clip:"):
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+def load_state_dict(checkpoint_path: str, map_location="cpu"):
+    checkpoint = torch.load(
+        checkpoint_path, map_location=map_location, weights_only=False
+    )
+    if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+        state_dict = checkpoint["state_dict"]
+    else:
+        state_dict = checkpoint
+    if next(iter(state_dict.items()))[0].startswith("module"):
+        state_dict = {k[7:]: v for k, v in state_dict.items()}
+    return state_dict
 
 
 # def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:

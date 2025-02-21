@@ -10,13 +10,12 @@ from transformers import ViTForImageClassification
 
 from vit_prisma.prisma_tools import FactoredMatrix
 from vit_prisma.prisma_tools.hooked_root_module import HookedRootModule
-from vit_prisma.prisma_tools.loading_from_pretrained import (
-    convert_pretrained_model_config,
-    get_pretrained_state_dict,
-)
-from vit_prisma.prisma_tools.loading_from_pretrained import fill_missing_keys
+
+from vit_prisma.models.weight_conversion import fill_missing_keys
 from vit_prisma.utils.enums import ModelType
 from vit_prisma.utils.prisma_utils import transpose
+
+from vit_prisma.models.model_loader import load_hooked_model
 
 DTYPE_FROM_STRING = {
     "float32": torch.float32,
