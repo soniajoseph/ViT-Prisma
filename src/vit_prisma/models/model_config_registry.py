@@ -36,8 +36,10 @@ TIMM_CONFIGS = {
     },
 }
 
+
+
 # Define a base configuration for OpenCLIP vision models
-BASE_CLIP_CONFIG = {
+BASE_OPEN_CLIP_CONFIG = {
     "n_heads": 12,           # Number of attention heads
     "d_head": 64,
     "layer_norm_pre": True,
@@ -50,22 +52,35 @@ BASE_CLIP_CONFIG = {
 # CLIP model configurations
 CLIP_CONFIGS = {
     "openai/clip-vit-base-patch16": {
-        **BASE_CLIP_CONFIG,
+        "layer_norm_pre": True,
+        "patch_size": 16,
+        "eps": 1e-6,
 
     },
+
     "openai/clip-vit-base-patch32": {
-        **BASE_CLIP_CONFIG,
+        "layer_norm_pre": True,
+        "patch_size": 32,
+        "eps": 1e-6,
+        "return_type": "class_logits",
+        "n_heads": 12,
+        "normalize_output": False,
+        "normalization_type": "LN",
+        "architecture": "vit_clip_vision_encoder"
+
     },
 
     "openai/clip-vit-large-patch14": {
-        **BASE_CLIP_CONFIG,
+        "layer_norm_pre": True,
+        "patch_size": 14,
 
     },
 
     "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
-
+        "n_heads": 4,
         "layer_norm_pre": True,
-        "eps": 1e-6,
+        "eps": 1e-5,
+        "patch_size": 16,
     },
 }
 
@@ -73,83 +88,83 @@ CLIP_CONFIGS = {
 OPEN_CLIP_BASE_CONFIGS = {
     # ViT-B-16 models
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.basic-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.clip-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.image-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.laion-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-CommonPool.L.text-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-DataComp.L-s1B-b8K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-16-laion2B-s34B-b88K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
 
     # ViT-B-32 models
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.basic-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.clip-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.image-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.laion-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.M.text-s128M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.basic-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.clip-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.image-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.laion-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-B-32-CommonPool.S.text-s13M-b4K": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
 
     # ViT-L-14 models
@@ -169,15 +184,15 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # DataComp models
     "open-clip:laion/CLIP-ViT-B-32-DataComp.M-s128M-b4K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
 
     "open-clip:laion/CLIP-ViT-B-32-DataComp.S-s13M-b4K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K": {
         "patch_size": 14,
@@ -187,7 +202,7 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # Other LAION models
     "open-clip:laion/CLIP-ViT-B-32-laion2B-s34B-b79K": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:laion/CLIP-ViT-L-14-laion2B-s32B-b82K": {
@@ -197,15 +212,15 @@ OPEN_CLIP_BASE_CONFIGS = {
     
     # TIMM versions
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e31": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch16_clip_224.laion400m_e32": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion2b_e16": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_large_patch14_clip_224.laion400m_e31": {
@@ -254,30 +269,30 @@ OPEN_CLIP_BASE_CONFIGS = {
 OPEN_CLIP_EXTENDED_CONFIGS = {
     # Additional models
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_2pt5b": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch16_clip_224.metaclip_400m": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch16_clip_224.openai": {
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion400m_e31": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch32_clip_224.laion400m_e32": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
 
     },
     "open-clip:timm/vit_base_patch32_clip_224.metaclip_2pt5b": {
         "patch_size": 32,
-        **BASE_CLIP_CONFIG,
+        **BASE_OPEN_CLIP_CONFIG,
     },
     "open-clip:timm/vit_base_patch32_clip_224.metaclip_400m": {
         "patch_size": 32,

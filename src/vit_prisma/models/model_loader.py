@@ -225,10 +225,11 @@ def _create_config_from_open_clip(model_cfg, model_name, model_type: ModelType):
 
     cfg.model_name = model_name
 
+    model_name = model_name.lower()
     # Attention head number is not in open clip config, so we add it manually 
     if "plus_clip" in model_name:
         cfg.n_heads = 14
-    elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
+    elif any(s in model_name for s in ["vit_xsmall"]):
         cfg.n_heads = 8
     elif any(s in model_name for s in ["ViT-B", "vit-base"]):
         cfg.n_heads = 12
@@ -279,6 +280,7 @@ def _create_config_from_hf(hf_config, model_name: str, model_type: ModelType):
         config.image_size = getattr(hf_config, "image_size", 224)
         config.n_channels = getattr(hf_config, "num_channels", 3)
         config.patch_size = getattr(hf_config, "patch_size", 16)
+        config.initializer_range = getattr(hf_config, "initializer_range", 0.02)
 
         config.model_name = model_name
         
