@@ -27,7 +27,7 @@ from vit_prisma.models.model_config_registry import (
 )
 
 # Import conversion functions for reference only - will be loaded on demand
-from vit_prisma.prisma_tools.loading_from_pretrained import (
+from vit_prisma.models.weight_conversion import (
     convert_timm_weights,
     convert_clip_weights,
     convert_open_clip_weights,
@@ -162,6 +162,16 @@ def load_hooked_model(
         else:  # TEXT
             from vit_prisma.models.base_text_transformer import HookedTextTransformer
             model_class = HookedTextTransformer
+
+    models_missing_config = {
+        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
+        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
+        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
+        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
+    }
+    if model_name in models_missing_config:
+        model_name = models_missing_config[model_name][0]
     
     # Initialize model
     model = model_class(config)

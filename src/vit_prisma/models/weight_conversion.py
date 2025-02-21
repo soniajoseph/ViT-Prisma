@@ -43,11 +43,6 @@ except ImportError:
 
 import json
 
-# <<<<<<< edward-model-loading
-# def convert_open_clip_weights(
-#     old_state_dict,
-#     cfg: HookedViTConfig,
-#     device = 'cuda',
 
 def convert_vjepa_weights(
         old_state_dict,
@@ -1174,212 +1169,212 @@ def fill_missing_keys(model, state_dict):
     return state_dict
 
 
-def remove_open_clip_prefix(text, prefix="open-clip:"):
-    if text.startswith(prefix):
-        return text[len(prefix) :]
-    return text
+# def remove_open_clip_prefix(text, prefix="open-clip:"):
+#     if text.startswith(prefix):
+#         return text[len(prefix) :]
+#     return text
 
 
-def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
+# def convert_pretrained_model_config(model_name: str, is_timm: bool = True, is_clip: bool = False) -> HookedViTConfig:
 
-    if 'dino' in model_name:
-        is_timm = False
+#     if 'dino' in model_name:
+#         is_timm = False
 
-    models_missing_config = {
-        "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
-        "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
-        "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
-        "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
-    }
-    if model_name in list(models_missing_config.keys()):
-        hf_config = get_model_config(models_missing_config[model_name][0])
-        hf_config = convert_open_clip_config(hf_config, model_name)
-        return hf_config
+#     models_missing_config = {
+#         "open-clip:laion/CLIP-ViT-B-32-xlm-roberta-base-laion5B-s13B-b90k": ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
+#         "open-clip:laion/CLIP-ViT-B-32-roberta-base-laion2B-s12B-b32k": ("roberta-ViT-B-32", "laion2b_s12b_b32k"),
+#         "open-clip:laion/CLIP-ViT-H-14-frozen-xlm-roberta-large-laion5B-s13B-b90k": ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
+#         "open-clip:laion/CoCa-ViT-B-32-laion2B-s13B-b90k": ("coca_ViT-B-32", "laion2b_s13b_b90k"),
+#         "open-clip:laion/CoCa-ViT-L-14-laion2B-s13B-b90k": ("coca_ViT-L-14", "laion2b_s13b_b90k"),
+#     }
+#     if model_name in list(models_missing_config.keys()):
+#         hf_config = get_model_config(models_missing_config[model_name][0])
+#         hf_config = convert_open_clip_config(hf_config, model_name)
+#         return hf_config
 
-    if is_timm:
-        model = timm.create_model(model_name)
-        hf_config = AutoConfig.from_pretrained(model.default_cfg["hf_hub_id"])
-    elif is_clip and model_name.startswith("open-clip"):  # OpenCLIP models
-        config_path = download_pretrained_from_hf(
-            remove_open_clip_prefix(model_name), filename="open_clip_config.json"
-        )
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = json.load(f)
-            if config.get('model_cfg'):
-                model_config = config['model_cfg']
-            elif config.get('vision_cfg'):
-                model_config = config
-            else:
-                raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
+#     if is_timm:
+#         model = timm.create_model(model_name)
+#         hf_config = AutoConfig.from_pretrained(model.default_cfg["hf_hub_id"])
+#     elif is_clip and model_name.startswith("open-clip"):  # OpenCLIP models
+#         config_path = download_pretrained_from_hf(
+#             remove_open_clip_prefix(model_name), filename="open_clip_config.json"
+#         )
+#         with open(config_path, "r", encoding="utf-8") as f:
+#             config = json.load(f)
+#             if config.get('model_cfg'):
+#                 model_config = config['model_cfg']
+#             elif config.get('vision_cfg'):
+#                 model_config = config
+#             else:
+#                 raise ValueError(f"Invalid OpenCLIP config format for {model_name}")
         
-        cfg = convert_open_clip_vision_config(model_config, model_name)
-        cfg.layer_norm_pre = getattr(cfg, "layer_norm_pre", True)  # Default to True if not present
-        cfg.return_type = "class_logits"
-        return cfg
+#         cfg = convert_open_clip_vision_config(model_config, model_name)
+#         cfg.layer_norm_pre = getattr(cfg, "layer_norm_pre", True)  # Default to True if not present
+#         cfg.return_type = "class_logits"
+#         return cfg
         
-    elif is_clip and model_name.startswith("kandinsky"):
-        from types import SimpleNamespace
+#     elif is_clip and model_name.startswith("kandinsky"):
+#         from types import SimpleNamespace
 
-        hf_config = {
-            "_name_or_path": "kandinsky-community/kandinsky-2-1-prior",
-            "architectures": ["CLIPVisionModelWithProjection"],
-            "attention_dropout": 0.0,
-            "dropout": 0.0,
-            "hidden_act": "quick_gelu",
-            "hidden_size": 1024,
-            "image_size": 224,
-            "initializer_factor": 1.0,
-            "initializer_range": 0.02,
-            "intermediate_size": 4096,
-            "layer_norm_eps": 1e-05,
-            "model_type": "clip_vision_model",
-            "num_attention_heads": 16,
-            "num_channels": 3,
-            "num_hidden_layers": 24,
-            "patch_size": 14,
-            "projection_dim": 768,
-            "transformers_version": "4.39.3",
-        }
-        hf_config = SimpleNamespace(**hf_config)
-        logging.info("HF config:", hf_config)
-    elif is_clip:  # Extract vision encoder from dual-encoder CLIP model. HF models
-        hf_config = AutoConfig.from_pretrained(model_name).vision_config
-        hf_config.architecture = "vit_clip_vision_encoder"
-        hf_config.num_classes = (
-            hf_config.projection_dim
-        )  # final output dimension instead of classes
-    elif "vjepa" in model_name:
-        from vit_prisma.vjepa_hf.configs import CONFIGS
-        if model_name == "vjepa_v1_vit_huge":
-            hf_config = CONFIGS["v1"]["vit_h"]
-            hf_config.update({
-                "intermediate_size": 4.0,
-                "num_channels": hf_config.in_chans
-            })
+#         hf_config = {
+#             "_name_or_path": "kandinsky-community/kandinsky-2-1-prior",
+#             "architectures": ["CLIPVisionModelWithProjection"],
+#             "attention_dropout": 0.0,
+#             "dropout": 0.0,
+#             "hidden_act": "quick_gelu",
+#             "hidden_size": 1024,
+#             "image_size": 224,
+#             "initializer_factor": 1.0,
+#             "initializer_range": 0.02,
+#             "intermediate_size": 4096,
+#             "layer_norm_eps": 1e-05,
+#             "model_type": "clip_vision_model",
+#             "num_attention_heads": 16,
+#             "num_channels": 3,
+#             "num_hidden_layers": 24,
+#             "patch_size": 14,
+#             "projection_dim": 768,
+#             "transformers_version": "4.39.3",
+#         }
+#         hf_config = SimpleNamespace(**hf_config)
+#         logging.info("HF config:", hf_config)
+#     elif is_clip:  # Extract vision encoder from dual-encoder CLIP model. HF models
+#         hf_config = AutoConfig.from_pretrained(model_name).vision_config
+#         hf_config.architecture = "vit_clip_vision_encoder"
+#         hf_config.num_classes = (
+#             hf_config.projection_dim
+#         )  # final output dimension instead of classes
+#     elif "vjepa" in model_name:
+#         from vit_prisma.vjepa_hf.configs import CONFIGS
+#         if model_name == "vjepa_v1_vit_huge":
+#             hf_config = CONFIGS["v1"]["vit_h"]
+#             hf_config.update({
+#                 "intermediate_size": 4.0,
+#                 "num_channels": hf_config.in_chans
+#             })
 
          
-    else:
-        hf_config = AutoConfig.from_pretrained(model_name)
+#     else:
+#         hf_config = AutoConfig.from_pretrained(model_name)
 
-    if hasattr(hf_config, "patch_size"):
-        ps = hf_config.patch_size
-    elif hasattr(hf_config, "tubelet_size"):
-        ps = hf_config.tubelet_size[1]
+#     if hasattr(hf_config, "patch_size"):
+#         ps = hf_config.patch_size
+#     elif hasattr(hf_config, "tubelet_size"):
+#         ps = hf_config.tubelet_size[1]
 
 
-    pretrained_config = {
-        "n_layers": hf_config.num_hidden_layers,
-        "d_model": hf_config.hidden_size,
-        "d_head": hf_config.hidden_size // hf_config.num_attention_heads,
-        "model_name": hf_config._name_or_path,
-        "n_heads": hf_config.num_attention_heads,
-        "d_mlp": hf_config.intermediate_size,
-        "activation_name": hf_config.hidden_act,
-        "eps": hf_config.layer_norm_eps,
-        "original_architecture": getattr(
-            hf_config, "architecture", getattr(hf_config, "architectures", None)
-        ),
-        "initializer_range": hf_config.initializer_range,
-        "n_channels": hf_config.num_channels,
-        "patch_size": ps,
-        "image_size": hf_config.image_size,
-        "n_classes": getattr(
-            hf_config, "num_classes", getattr(hf_config, "projection_dim", None)
-        ),
-        "n_params": (
-            sum(p.numel() for p in model.parameters() if p.requires_grad)
-            if is_timm
-            else None
-        ),
-    }
+#     pretrained_config = {
+#         "n_layers": hf_config.num_hidden_layers,
+#         "d_model": hf_config.hidden_size,
+#         "d_head": hf_config.hidden_size // hf_config.num_attention_heads,
+#         "model_name": hf_config._name_or_path,
+#         "n_heads": hf_config.num_attention_heads,
+#         "d_mlp": hf_config.intermediate_size,
+#         "activation_name": hf_config.hidden_act,
+#         "eps": hf_config.layer_norm_eps,
+#         "original_architecture": getattr(
+#             hf_config, "architecture", getattr(hf_config, "architectures", None)
+#         ),
+#         "initializer_range": hf_config.initializer_range,
+#         "n_channels": hf_config.num_channels,
+#         "patch_size": ps,
+#         "image_size": hf_config.image_size,
+#         "n_classes": getattr(
+#             hf_config, "num_classes", getattr(hf_config, "projection_dim", None)
+#         ),
+#         "n_params": (
+#             sum(p.numel() for p in model.parameters() if p.requires_grad)
+#             if is_timm
+#             else None
+#         ),
+#     }
 
-    # Rectifying Huggingface bugs:
-    # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
-    if is_timm and model_name == "vit_base_patch16_224":
-        pretrained_config.update(
-            {
-                "eps": 1e-6,
-                "return_type": "class_logits",
-            }
-        )
+#     # Rectifying Huggingface bugs:
+#     # Currently a bug getting configs, only this model confirmed to work and even it requires modification of eps
+#     if is_timm and model_name == "vit_base_patch16_224":
+#         pretrained_config.update(
+#             {
+#                 "eps": 1e-6,
+#                 "return_type": "class_logits",
+#             }
+#         )
 
-    # Config for 32 is incorrect, fix manually
-    if is_timm and model_name == "vit_base_patch32_224":
-        pretrained_config.update(
-            {"patch_size": 32, "eps": 1e-6, "return_type": "class_logits"}
-        )
+#     # Config for 32 is incorrect, fix manually
+#     if is_timm and model_name == "vit_base_patch32_224":
+#         pretrained_config.update(
+#             {"patch_size": 32, "eps": 1e-6, "return_type": "class_logits"}
+#         )
 
-    logging.info("Model name is ", model_name)
+#     logging.info("Model name is ", model_name)
 
-    if "dino" in model_name:
-        pretrained_config.update(
-            {
-                "return_type": "pre_logits",
-                "n_classes": 768,
-            }
-        )
+#     if "dino" in model_name:
+#         pretrained_config.update(
+#             {
+#                 "return_type": "pre_logits",
+#                 "n_classes": 768,
+#             }
+#         )
 
-    # Config is for ViVet, need to add more properties
-    if hasattr(hf_config, "tubelet_size"):
-        pretrained_config.update(
-            {
-                "is_video_transformer": True,
-                "video_tubelet_depth": hf_config.tubelet_size[0],
-                "video_num_frames": hf_config.video_size[0],
-                "n_classes": 400 if "kinetics400" in model_name else None,
-                "return_type": (
-                    "class_logits" if "kinetics400" in model_name else "pre_logits"
-                ),
-            }
-        )
+#     # Config is for ViVet, need to add more properties
+#     if hasattr(hf_config, "tubelet_size"):
+#         pretrained_config.update(
+#             {
+#                 "is_video_transformer": True,
+#                 "video_tubelet_depth": hf_config.tubelet_size[0],
+#                 "video_num_frames": hf_config.video_size[0],
+#                 "n_classes": 400 if "kinetics400" in model_name else None,
+#                 "return_type": (
+#                     "class_logits" if "kinetics400" in model_name else "pre_logits"
+#                 ),
+#             }
+#         )
 
-    if pretrained_config["n_classes"] is None:
-        id2label = getattr(hf_config, "id2label", None)
-        if id2label is not None:
-            pretrained_config.update(
-                {"n_classes": len(id2label), "return_type": "class_logits"}
-            )
+#     if pretrained_config["n_classes"] is None:
+#         id2label = getattr(hf_config, "id2label", None)
+#         if id2label is not None:
+#             pretrained_config.update(
+#                 {"n_classes": len(id2label), "return_type": "class_logits"}
+#             )
     
 
-    if is_clip:
-        pretrained_config.update(
-            {
-                "layer_norm_pre": (
-                    hf_config.layer_norm_pre
-                    if hasattr(hf_config, "layer_norm_pre")
-                    else True
-                ),
-                "return_type": "class_logits",
-            }
-        )
+#     if is_clip:
+#         pretrained_config.update(
+#             {
+#                 "layer_norm_pre": (
+#                     hf_config.layer_norm_pre
+#                     if hasattr(hf_config, "layer_norm_pre")
+#                     else True
+#                 ),
+#                 "return_type": "class_logits",
+#             }
+#         )
 
 
-    if "vjepa" in model_name:
-        print("removing CLS token...")
-        pretrained_config.update({
-            "use_cls_token": False,
-            "layer_norm_pre": False,
-            "n_classes": pretrained_config["d_model"],
-            "return_type": "pre_logits",
-            "classification_type": "last_hidden",
-        })
+#     if "vjepa" in model_name:
+#         print("removing CLS token...")
+#         pretrained_config.update({
+#             "use_cls_token": False,
+#             "layer_norm_pre": False,
+#             "n_classes": pretrained_config["d_model"],
+#             "return_type": "pre_logits",
+#             "classification_type": "last_hidden",
+#         })
 
-    # if pretrained_config['n_classes'] is None:
-    #     id2label = getattr(hf_config, "id2label", None)
-    #     print(id2label)
-    #     if id2label is not None:
-    #         pretrained_config.update({
-    #             "n_classes": len(id2label),
-    #             "return_type": "class_logits"
-    #         })
-    #     else:
-    #         pretrained_config.update({
-    #             "n_classes": pretrained_config.d_model,
-    #             "return_type": "pre_logits"
-    #         })
-    config = HookedViTConfig.from_dict(pretrained_config)
-    return config
+#     # if pretrained_config['n_classes'] is None:
+#     #     id2label = getattr(hf_config, "id2label", None)
+#     #     print(id2label)
+#     #     if id2label is not None:
+#     #         pretrained_config.update({
+#     #             "n_classes": len(id2label),
+#     #             "return_type": "class_logits"
+#     #         })
+#     #     else:
+#     #         pretrained_config.update({
+#     #             "n_classes": pretrained_config.d_model,
+#     #             "return_type": "pre_logits"
+#     #         })
+#     config = HookedViTConfig.from_dict(pretrained_config)
+#     return config
 
 
 def has_hf_hub(necessary=False):
@@ -1404,41 +1399,3 @@ def download_pretrained_from_hf(
     )
     return cached_file
 
-
-def load_state_dict(checkpoint_path: str, map_location="cpu"):
-    checkpoint = torch.load(
-        checkpoint_path, map_location=map_location, weights_only=False
-    )
-    if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
-        state_dict = checkpoint["state_dict"]
-    else:
-        state_dict = checkpoint
-    if next(iter(state_dict.items()))[0].startswith("module"):
-        state_dict = {k[7:]: v for k, v in state_dict.items()}
-    return state_dict
-
-
-# checkpoint_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_pytorch_model.bin')
-# config_path = download_pretrained_from_hf('laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K', filename='open_clip_config.json')
-
-# with open(config_path, 'r', encoding='utf-8') as f:
-#     config = json.load(f)
-#     pretrained_cfg = config['preprocess_cfg']
-#     model_cfg = config['model_cfg']
-
-#     logging.info(pretrained_cfg)
-#     logging.info(model_cfg)
-
-# state_dict = load_state_dict(checkpoint_path)
-
-# logging.info("old state dictionary")
-# for key in state_dict:
-#     logging.info(key, state_dict[key].shape)
-
-# new_cfg = convert_open_clip_config(model_cfg)
-# new_state_dict = convert_open_clip_weights(state_dict, new_cfg)
-
-# logging.info()
-# logging.info("new state dictionary")
-# for key in new_state_dict:
-#     logging.info(key, new_state_dict[key].shape)
