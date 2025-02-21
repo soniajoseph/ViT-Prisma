@@ -881,262 +881,262 @@ def convert_hf_vit_for_image_classification_weights(
 
     return new_state_dict
   
-def convert_open_clip_text_config(model_cfg: dict) -> HookedTextTransformerConfig:
-    """Convert OpenCLIP text model config to Prisma's text transformer config."""
-    cfg = HookedTextTransformerConfig()
+# def convert_open_clip_text_config(model_cfg: dict) -> HookedTextTransformerConfig:
+#     """Convert OpenCLIP text model config to Prisma's text transformer config."""
+#     cfg = HookedTextTransformerConfig()
     
-    # Text-specific configurations
-    cfg.d_model = model_cfg["text_cfg"]["width"]
-    cfg.n_layers = model_cfg["text_cfg"]["layers"]
-    cfg.context_length = model_cfg["text_cfg"]["context_length"]
-    cfg.vocab_size = model_cfg["text_cfg"]["vocab_size"]
-    cfg.n_heads = model_cfg["text_cfg"]["heads"]
-    cfg.use_cls_token = False
+#     # Text-specific configurations
+#     cfg.d_model = model_cfg["text_cfg"]["width"]
+#     cfg.n_layers = model_cfg["text_cfg"]["layers"]
+#     cfg.context_length = model_cfg["text_cfg"]["context_length"]
+#     cfg.vocab_size = model_cfg["text_cfg"]["vocab_size"]
+#     cfg.n_heads = model_cfg["text_cfg"]["heads"]
+#     cfg.use_cls_token = False
     
-    # Common configurations
-    cfg.d_mlp = cfg.d_model * 4
-    cfg.d_head = cfg.d_model // cfg.n_heads
-    cfg.return_type = None
-    cfg.layer_norm_pre = True
-    cfg.eps = 1e-5
-    cfg.normalization_type = "LN"
-    cfg.normalize_output = True
-    return cfg
+#     # Common configurations
+#     cfg.d_mlp = cfg.d_model * 4
+#     cfg.d_head = cfg.d_model // cfg.n_heads
+#     cfg.return_type = None
+#     cfg.layer_norm_pre = True
+#     cfg.eps = 1e-5
+#     cfg.normalization_type = "LN"
+#     cfg.normalize_output = True
+#     return cfg
 
-def convert_open_clip_vision_config(model_cfg: dict, model_name: str) -> HookedViTConfig:
-    """Convert OpenCLIP vision model config to Prisma's ViT config."""
-    cfg = HookedViTConfig()
+# def convert_open_clip_vision_config(model_cfg: dict, model_name: str) -> HookedViTConfig:
+#     """Convert OpenCLIP vision model config to Prisma's ViT config."""
+#     cfg = HookedViTConfig()
     
-    # Handle special EVA-02 cases
-    if "eva02_enormous" in model_name:
-        cfg.d_model = 1792
-        cfg.n_layers = 40
-        cfg.patch_size = 14
-        cfg.image_size = 224
-        cfg.n_classes = 1000
-    elif "eva02_large" in model_name:
-        cfg.d_model = model_cfg['vision_cfg']['width']
-        cfg.n_layers = 40
-        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
-    elif "eva02_base" in model_name:
-        cfg.d_model = 768
-        cfg.n_layers = 12
-        cfg.patch_size = 16
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
-    else:
-        cfg.d_model = model_cfg['vision_cfg']['width']
-        cfg.n_layers = model_cfg['vision_cfg']['layers']
-        cfg.patch_size = model_cfg['vision_cfg']['patch_size']
-        cfg.image_size = model_cfg['vision_cfg']['image_size']
-        cfg.n_classes = model_cfg['embed_dim']
+#     # Handle special EVA-02 cases
+#     if "eva02_enormous" in model_name:
+#         cfg.d_model = 1792
+#         cfg.n_layers = 40
+#         cfg.patch_size = 14
+#         cfg.image_size = 224
+#         cfg.n_classes = 1000
+#     elif "eva02_large" in model_name:
+#         cfg.d_model = model_cfg['vision_cfg']['width']
+#         cfg.n_layers = 40
+#         cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+#         cfg.image_size = model_cfg['vision_cfg']['image_size']
+#         cfg.n_classes = model_cfg['embed_dim']
+#     elif "eva02_base" in model_name:
+#         cfg.d_model = 768
+#         cfg.n_layers = 12
+#         cfg.patch_size = 16
+#         cfg.image_size = model_cfg['vision_cfg']['image_size']
+#         cfg.n_classes = model_cfg['embed_dim']
+#     else:
+#         cfg.d_model = model_cfg['vision_cfg']['width']
+#         cfg.n_layers = model_cfg['vision_cfg']['layers']
+#         cfg.patch_size = model_cfg['vision_cfg']['patch_size']
+#         cfg.image_size = model_cfg['vision_cfg']['image_size']
+#         cfg.n_classes = model_cfg['embed_dim']
 
-    # Set number of heads based on model type
-    if "plus_clip" in model_name:
-        cfg.n_heads = 14
-    elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
-        cfg.n_heads = 8
-    elif any(s in model_name for s in ["ViT-B", "vit-base"]):
-        cfg.n_heads = 12
-    elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
-        cfg.n_heads = 16
-    elif any(s in model_name for s in ["huge_", "ViT-H"]):
-        cfg.n_heads = 20
-    elif any(s in model_name for s in ["ViT-g", "giant_"]):
-        cfg.n_heads = 22
-    elif any(s in model_name for s in ["gigantic_"]):
-        cfg.n_heads = 26
-    elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
-        cfg.n_heads = 16
-        cfg.return_type = "class_logits"
-    else:
-        cfg.n_heads = 12
+#     # Set number of heads based on model type
+#     if "plus_clip" in model_name:
+#         cfg.n_heads = 14
+#     elif any(s in model_name for s in ["vit_xsmall", "tinyclip"]):
+#         cfg.n_heads = 8
+#     elif any(s in model_name for s in ["ViT-B", "vit-base"]):
+#         cfg.n_heads = 12
+#     elif any(s in model_name for s in ["ViT-L", "vit_large", "vit_medium", "bigG"]):
+#         cfg.n_heads = 16
+#     elif any(s in model_name for s in ["huge_", "ViT-H"]):
+#         cfg.n_heads = 20
+#     elif any(s in model_name for s in ["ViT-g", "giant_"]):
+#         cfg.n_heads = 22
+#     elif any(s in model_name for s in ["gigantic_"]):
+#         cfg.n_heads = 26
+#     elif model_name == 'open-clip:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K':
+#         cfg.n_heads = 16
+#         cfg.return_type = "class_logits"
+#     else:
+#         cfg.n_heads = 12
 
-    # Set MLP dimension
-    if model_cfg['vision_cfg'].get("mlp_ratio"):
-        cfg.d_mlp = int(cfg.d_model * model_cfg['vision_cfg'].get("mlp_ratio"))
-    else:
-        cfg.d_mlp = cfg.d_model * 4
+#     # Set MLP dimension
+#     if model_cfg['vision_cfg'].get("mlp_ratio"):
+#         cfg.d_mlp = int(cfg.d_model * model_cfg['vision_cfg'].get("mlp_ratio"))
+#     else:
+#         cfg.d_mlp = cfg.d_model * 4
 
-    # Common configurations
-    cfg.use_cls_token = True
-    cfg.d_head = cfg.d_model // cfg.n_heads
-    cfg.return_type = getattr(cfg, 'return_type', 'class_logits')
-    cfg.layer_norm_pre = True
-    cfg.eps = 1e-5
-    cfg.normalization_type = "LN"
-    cfg.normalize_output = True
+#     # Common configurations
+#     cfg.use_cls_token = True
+#     cfg.d_head = cfg.d_model // cfg.n_heads
+#     cfg.return_type = getattr(cfg, 'return_type', 'class_logits')
+#     cfg.layer_norm_pre = True
+#     cfg.eps = 1e-5
+#     cfg.normalization_type = "LN"
+#     cfg.normalize_output = True
 
     
-    return cfg
+#     return cfg
   
   
-def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: ModelType = ModelType.VISION):
-    """Convert OpenCLIP model config to Prisma's config format.
-    Supports both vision and text models with detailed configuration options.
-    """
-    if model_type == ModelType.TEXT:
-        cfg = convert_open_clip_text_config(model_cfg, model_name)
-    else:
-        cfg = convert_open_clip_vision_config(model_cfg, model_name)
-    return cfg
+# def convert_open_clip_config(model_cfg: dict, model_name: str, model_type: ModelType = ModelType.VISION):
+#     """Convert OpenCLIP model config to Prisma's config format.
+#     Supports both vision and text models with detailed configuration options.
+#     """
+#     if model_type == ModelType.TEXT:
+#         cfg = convert_open_clip_text_config(model_cfg, model_name)
+#     else:
+#         cfg = convert_open_clip_vision_config(model_cfg, model_name)
+#     return cfg
 
-def get_pretrained_state_dict(
-    official_model_name: str,
-    is_timm: bool,
-    is_clip: bool,
-    cfg: HookedViTConfig,
-    hf_model=None,
-    dtype: torch.dtype = torch.float32,
-    return_old_state_dict=False,
-    model_type=ModelType.VISION,
-    **kwargs,
-) -> Dict[str, torch.Tensor]:
-    """
-    Loads in the model weights for a pretrained model, and processes them to
-    have the HookedTransformer parameter names and shapes. Supports checkpointed
-    models (and expects the checkpoint info to be stored in the config object)
+# def get_pretrained_state_dict(
+#     official_model_name: str,
+#     is_timm: bool,
+#     is_clip: bool,
+#     cfg: HookedViTConfig,
+#     hf_model=None,
+#     dtype: torch.dtype = torch.float32,
+#     return_old_state_dict=False,
+#     model_type=ModelType.VISION,
+#     **kwargs,
+# ) -> Dict[str, torch.Tensor]:
+#     """
+#     Loads in the model weights for a pretrained model, and processes them to
+#     have the HookedTransformer parameter names and shapes. Supports checkpointed
+#     models (and expects the checkpoint info to be stored in the config object)
 
-    hf_model: Optionally, a HuggingFace model object. If provided, we will use
-        these weights rather than reloading the model.
-    dtype: The dtype to load the HuggingFace model in.
-    kwargs: Other optional arguments passed to HuggingFace's from_pretrained.
-        Also given to other HuggingFace functions when compatible.
-    """
-    if "torch_dtype" in kwargs:
-        dtype = kwargs["torch_dtype"]
-        del kwargs["torch_dtype"]
-    # official_model_name = get_official_model_name(official_model_name)
-    # if official_model_name.startswith(NEED_REMOTE_CODE_MODELS) and not kwargs.get(
-    #     "trust_remote_code", False
-    # ):
-    #     logging.warning(
-    #         f"Loading model {official_model_name} state dict requires setting trust_remote_code=True"
-    #     )
-    #     kwargs["trust_remote_code"] = True
-    if "dino" in official_model_name:
-        is_timm = False
+#     hf_model: Optionally, a HuggingFace model object. If provided, we will use
+#         these weights rather than reloading the model.
+#     dtype: The dtype to load the HuggingFace model in.
+#     kwargs: Other optional arguments passed to HuggingFace's from_pretrained.
+#         Also given to other HuggingFace functions when compatible.
+#     """
+#     if "torch_dtype" in kwargs:
+#         dtype = kwargs["torch_dtype"]
+#         del kwargs["torch_dtype"]
+#     # official_model_name = get_official_model_name(official_model_name)
+#     # if official_model_name.startswith(NEED_REMOTE_CODE_MODELS) and not kwargs.get(
+#     #     "trust_remote_code", False
+#     # ):
+#     #     logging.warning(
+#     #         f"Loading model {official_model_name} state dict requires setting trust_remote_code=True"
+#     #     )
+#     #     kwargs["trust_remote_code"] = True
+#     if "dino" in official_model_name:
+#         is_timm = False
 
-    try:
-        print("Official model name", official_model_name)
+#     try:
+#         print("Official model name", official_model_name)
 
-        eva02_models = [
-            "open-clip:timm/eva02_base_patch16_clip_224.merged2b_s8b_b131k",
-            "open-clip:timm/eva02_enormous_patch14_clip_224.laion2b_s4b_b115k",
-            "open-clip:timm/eva02_enormous_patch14_plus_clip_224.laion2b_s9b_b144",
-            "open-clip:timm/eva02_large_patch14_clip_224.merged2b_s4b_b131k",
-            "open-clip:timm/eva02_large_patch14_clip_336.merged2b_s6b_b61k",
-            "open-clip:timm/eva_giant_patch14_clip_224.laion400m_s11b_b41k",
-            "open-clip:timm/eva_giant_patch14_plus_clip_224.merged2b_s11b_b114k",
-        ]
-        if official_model_name in eva02_models:
-            model_name, model_weights = official_model_name.split(".")
-            model_name = model_name.split("/")[1]
-            hf_model = timm.create_model(model_name, pretrained=model_weights)
-            for param in hf_model.parameters():
-                param.requires_grad = False
-            state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
-        elif is_timm:
-            hf_model = hf_model if hf_model is not None else timm.create_model(official_model_name, pretrained=True)
-            for param in hf_model.parameters():
-                param.requires_grad = False
-            state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
-        elif is_clip and official_model_name.startswith("open-clip:"):
-            logging.info("Converting OpenCLIP weights")
-            checkpoint_path = download_pretrained_from_hf(
-                remove_open_clip_prefix(official_model_name),
-                filename="open_clip_pytorch_model.bin",
-            )
-            old_state_dict = load_state_dict(checkpoint_path)
-            if model_type == ModelType.VISION:
-                state_dict = convert_open_clip_weights(old_state_dict, cfg)
-            else:
-                state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
-        elif is_clip and official_model_name.startswith("kandinsky"):
-            logging.info("Converting Kandinsky weights")
-            from transformers import CLIPVisionModelWithProjection
+#         eva02_models = [
+#             "open-clip:timm/eva02_base_patch16_clip_224.merged2b_s8b_b131k",
+#             "open-clip:timm/eva02_enormous_patch14_clip_224.laion2b_s4b_b115k",
+#             "open-clip:timm/eva02_enormous_patch14_plus_clip_224.laion2b_s9b_b144",
+#             "open-clip:timm/eva02_large_patch14_clip_224.merged2b_s4b_b131k",
+#             "open-clip:timm/eva02_large_patch14_clip_336.merged2b_s6b_b61k",
+#             "open-clip:timm/eva_giant_patch14_clip_224.laion400m_s11b_b41k",
+#             "open-clip:timm/eva_giant_patch14_plus_clip_224.merged2b_s11b_b114k",
+#         ]
+#         if official_model_name in eva02_models:
+#             model_name, model_weights = official_model_name.split(".")
+#             model_name = model_name.split("/")[1]
+#             hf_model = timm.create_model(model_name, pretrained=model_weights)
+#             for param in hf_model.parameters():
+#                 param.requires_grad = False
+#             state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
+#         elif is_timm:
+#             hf_model = hf_model if hf_model is not None else timm.create_model(official_model_name, pretrained=True)
+#             for param in hf_model.parameters():
+#                 param.requires_grad = False
+#             state_dict = convert_timm_weights(hf_model.state_dict(), cfg)
+#         elif is_clip and official_model_name.startswith("open-clip:"):
+#             logging.info("Converting OpenCLIP weights")
+#             checkpoint_path = download_pretrained_from_hf(
+#                 remove_open_clip_prefix(official_model_name),
+#                 filename="open_clip_pytorch_model.bin",
+#             )
+#             old_state_dict = load_state_dict(checkpoint_path)
+#             if model_type == ModelType.VISION:
+#                 state_dict = convert_open_clip_weights(old_state_dict, cfg)
+#             else:
+#                 state_dict = convert_open_clip_text_weights(old_state_dict, cfg)
+#         elif is_clip and official_model_name.startswith("kandinsky"):
+#             logging.info("Converting Kandinsky weights")
+#             from transformers import CLIPVisionModelWithProjection
 
-            hf_model = CLIPVisionModelWithProjection.from_pretrained(
-                "kandinsky-community/kandinsky-2-1-prior",
-                subfolder="image_encoder",
-                torch_dtype=torch.float16,
-                cache_dir="/network/scratch/s/sonia.joseph/diffusion",
-            ).to("cuda")
-            old_state_dict = hf_model.state_dict()
-            state_dict = convert_kandinsky_clip_weights(old_state_dict, cfg)
-        elif is_clip:
-            full_model = (
-                hf_model
-                if hf_model is not None
-                else CLIPModel.from_pretrained(official_model_name)
-            )
-            for param in full_model.parameters():
-                param.requires_grad = False
-            vision = full_model.vision_model
-            visual_projection = full_model.visual_projection
-            state_dict = convert_clip_weights(
-                vision.state_dict(), visual_projection.state_dict(), cfg
-            )
-        elif cfg.is_video_transformer:
-            if "vivit" in official_model_name:
-                hf_model = (
-                    hf_model
-                    if hf_model is not None
-                    else VivitForVideoClassification.from_pretrained(
-                        official_model_name, torch_dtype=dtype, **kwargs
-                    )
-                )
-                for param in hf_model.parameters():
-                    param.requires_grad = False
-                state_dict = convert_vivet_weights(hf_model.state_dict(), cfg)
-            elif "vjepa" in official_model_name:
-                # load from internal config
-                from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel
-                from importlib import resources
-                import yaml
-                with resources.open_text('vit_prisma.vjepa_hf', 'paths_cw.yaml') as f:
-                    model_paths = yaml.safe_load(f) 
-                model_path = model_paths[official_model_name]["loc"]
-                hf_model = VJEPAModel.from_pretrained(model_path)
-                state_dict = convert_vjepa_weights(hf_model.state_dict(), cfg)
-            else:
-                raise ValueError
+#             hf_model = CLIPVisionModelWithProjection.from_pretrained(
+#                 "kandinsky-community/kandinsky-2-1-prior",
+#                 subfolder="image_encoder",
+#                 torch_dtype=torch.float16,
+#                 cache_dir="/network/scratch/s/sonia.joseph/diffusion",
+#             ).to("cuda")
+#             old_state_dict = hf_model.state_dict()
+#             state_dict = convert_kandinsky_clip_weights(old_state_dict, cfg)
+#         elif is_clip:
+#             full_model = (
+#                 hf_model
+#                 if hf_model is not None
+#                 else CLIPModel.from_pretrained(official_model_name)
+#             )
+#             for param in full_model.parameters():
+#                 param.requires_grad = False
+#             vision = full_model.vision_model
+#             visual_projection = full_model.visual_projection
+#             state_dict = convert_clip_weights(
+#                 vision.state_dict(), visual_projection.state_dict(), cfg
+#             )
+#         elif cfg.is_video_transformer:
+#             if "vivit" in official_model_name:
+#                 hf_model = (
+#                     hf_model
+#                     if hf_model is not None
+#                     else VivitForVideoClassification.from_pretrained(
+#                         official_model_name, torch_dtype=dtype, **kwargs
+#                     )
+#                 )
+#                 for param in hf_model.parameters():
+#                     param.requires_grad = False
+#                 state_dict = convert_vivet_weights(hf_model.state_dict(), cfg)
+#             elif "vjepa" in official_model_name:
+#                 # load from internal config
+#                 from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel
+#                 from importlib import resources
+#                 import yaml
+#                 with resources.open_text('vit_prisma.vjepa_hf', 'paths_cw.yaml') as f:
+#                     model_paths = yaml.safe_load(f) 
+#                 model_path = model_paths[official_model_name]["loc"]
+#                 hf_model = VJEPAModel.from_pretrained(model_path)
+#                 state_dict = convert_vjepa_weights(hf_model.state_dict(), cfg)
+#             else:
+#                 raise ValueError
 
-        elif "dino" in official_model_name:
-            hf_model = (
-                hf_model
-                if hf_model is not None
-                else ViTModel.from_pretrained(
-                    official_model_name, torch_dtype=dtype, **kwargs
-                )
-            )
-            for param in hf_model.parameters():
-                param.requires_grad = False
-            state_dict = convert_dino_weights(hf_model.state_dict(), cfg)
+#         elif "dino" in official_model_name:
+#             hf_model = (
+#                 hf_model
+#                 if hf_model is not None
+#                 else ViTModel.from_pretrained(
+#                     official_model_name, torch_dtype=dtype, **kwargs
+#                 )
+#             )
+#             for param in hf_model.parameters():
+#                 param.requires_grad = False
+#             state_dict = convert_dino_weights(hf_model.state_dict(), cfg)
 
-        else:
-            hf_model = (
-                hf_model
-                if hf_model is not None
-                else ViTForImageClassification.from_pretrained(
-                    official_model_name, torch_dtype=dtype, **kwargs
-                )
-            )
-            state_dict = convert_hf_vit_for_image_classification_weights(
-                hf_model.state_dict(), cfg
-            )
+#         else:
+#             hf_model = (
+#                 hf_model
+#                 if hf_model is not None
+#                 else ViTForImageClassification.from_pretrained(
+#                     official_model_name, torch_dtype=dtype, **kwargs
+#                 )
+#             )
+#             state_dict = convert_hf_vit_for_image_classification_weights(
+#                 hf_model.state_dict(), cfg
+#             )
 
-            # Load model weights, and fold in layer norm weights
+#             # Load model weights, and fold in layer norm weights
 
-        return state_dict
+#         return state_dict
 
-    except Exception as e:
-        raise ValueError(
-            f"Loading weights from the architecture is not currently supported: {cfg.original_architecture}, generated "
-            f"from model name {official_model_name}. Feel free to open an issue on GitHub to request this feature."
-        ) from e
+#     except Exception as e:
+#         raise ValueError(
+#             f"Loading weights from the architecture is not currently supported: {cfg.original_architecture}, generated "
+#             f"from model name {official_model_name}. Feel free to open an issue on GitHub to request this feature."
+#         ) from e
 
 
 def fill_missing_keys(model, state_dict):
