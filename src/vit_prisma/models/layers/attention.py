@@ -122,6 +122,8 @@ class Attention(nn.Module):
             self.W_K, "head_index d_model d_head -> head_index d_head d_model"
         )
         return FactoredMatrix(self.W_Q, W_K_transpose)
+
+
     
     def forward(
             self,
@@ -142,21 +144,32 @@ class Attention(nn.Module):
         
         q, k, v  = self.calculate_qkv_matrices(query_input, key_input, value_input)
 
-        attn_scores = self.calculate_attn_scores(q, k, attention_mask)
-        attn_scores = self.hook_attn_scores(attn_scores)
+        if self.cfg.use_sdpa: # used for VJEPA, saves vRAM
+            q = q.permute(0, 2, 1, 3)  # (batch, head_index, pos, d_head)
+            k = k.permute(0, 2, 1, 3)  # (batch, head_index, pos, d_head)
+            v = v.permute(0, 2, 1, 3)  # (batch, head_index, pos, d_head)
+            with torch.backends.cuda.sdp_kernel():
+                z = F.scaled_dot_product_attention(q, k, v, dropout_p=0)
+                attn = None
+                z = z.permute(0, 2, 1, 3)  # (batch, pos, head_index, d_head)
 
-        pattern = F.softmax(attn_scores, dim=-1) # where do I do normalization? 
-        pattern = torch.where(torch.isnan(pattern), torch.zeros_like(pattern), pattern)
-        pattern = self.hook_pattern(pattern)
+        else: # Used by default
+            attn_scores = self.calculate_attn_scores(q, k, attention_mask)
+            attn_scores = self.hook_attn_scores(attn_scores)
 
-        pattern = pattern.to(self.cfg.dtype)
-        z = self.calculate_z_scores(v, pattern)
+            pattern = F.softmax(attn_scores, dim=-1) # where do I do normalization? 
+            pattern = torch.where(torch.isnan(pattern), torch.zeros_like(pattern), pattern)
+            pattern = self.hook_pattern(pattern)
 
+            pattern = pattern.to(self.cfg.dtype)
+            z = self.calculate_z_scores(v, pattern)
+        
+        # Compute final output
         if not self.cfg.use_attn_result:
             out = (
                 (
                     einsum(
-                        "batch pos head_index d_head, \
+                        f"batch pos head_index d_head, \
                         head_index d_head d_model -> \
                         batch pos d_model",
                         z,
@@ -170,7 +183,7 @@ class Attention(nn.Module):
             # Off by default to not eat through GPU memory.
             result = self.hook_result(
                 einsum(
-                    "batch pos head_index d_head, \
+                    f"{z_string}, \
                     head_index d_head d_model -> \
                     batch pos head_index d_model",
                     z,
@@ -212,6 +225,8 @@ class Attention(nn.Module):
             qkv_einops_string = "batch pos head_index d_model"
         else:
             qkv_einops_string = "batch pos d_model"
+
+    
 
 
         q = self.hook_q(

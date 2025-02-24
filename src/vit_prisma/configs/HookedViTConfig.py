@@ -117,6 +117,7 @@ class HookedViTConfig:
     is_video_transformer: bool = False
     video_tubelet_depth: Optional[int] = None  # Can be int or None
     video_num_frames: Optional[int] = None  # Can be int or None
+    use_sdpa: bool = False # For VJEPA, saves VRAM
 
 
     @classmethod

@@ -53,6 +53,7 @@ def convert_vjepa_weights(
     
     new_vision_model_state_dict = {}
 
+
     new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["pos_embed"].squeeze()
 
     new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["patch_embed.proj.weight"]
@@ -88,6 +89,8 @@ def convert_vjepa_weights(
         new_vision_model_state_dict[f"{layer_key}.attn.W_K"] = W_K
         new_vision_model_state_dict[f"{layer_key}.attn.W_V"] = W_V
 
+        # shape of each
+        
         W_O = old_state_dict[f"{layer_key}.attn.proj.weight"]
         W_O = einops.rearrange(W_O, "m (i h)->i h m", i=cfg.n_heads)
         new_vision_model_state_dict[f"{layer_key}.attn.W_O"] = W_O
@@ -549,6 +552,7 @@ def convert_clip_weights(
         W_K = old_state_dict[f"{layer_key}.self_attn.k_proj.weight"]
         W_V = old_state_dict[f"{layer_key}.self_attn.v_proj.weight"]
         W_O = old_state_dict[f"{layer_key}.self_attn.out_proj.weight"]
+        
 
         W_Q = einops.rearrange(
             W_Q, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head

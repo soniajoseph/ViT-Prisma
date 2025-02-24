@@ -640,9 +640,11 @@ VJEPA_CONFIGS = {
         "n_heads": 16,
         "d_model": 1024,
         "n_layers": 24,
-        "eps": 1e-5,
         "is_video_transformer": True,
         'd_mlp': 4096,
+        "use_sdpa": True, # saves VRAM in attn calculation; useful for video and large models
+        "normalize_output": False,
+        "classification_type": "return_all_patches",
     },
 }
 

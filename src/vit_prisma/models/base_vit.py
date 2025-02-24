@@ -206,6 +206,9 @@ class HookedViT(HookedTransformer):
                 )
             else:
                 x = cls_token
+        elif self.cfg.classification_type == "return_full_output": # return all patches
+            x = x # return all patches
+    
 
         x = x if self.cfg.return_type == "pre_logits" else self.head(x)
 
