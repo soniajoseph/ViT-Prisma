@@ -621,12 +621,23 @@ VIVIT_CONFIGS = {
 
 # VJEPA model configurations
 VJEPA_CONFIGS = {
-    # "vjepa_v1_vit_huge": {
-    #     "use_cls_token": False,
-    #     "layer_norm_pre": False,
-    #     "return_type": "pre_logits",
-    #     "eps": 1e-6,
-    # },
+    "vjepa_v1_vit_huge_patch16_224": {
+        "use_cls_token": False,
+        "layer_norm_pre": False,
+        "return_type": "pre_logits",
+        "eps": 1e-6,
+        "video_tubelet_depth": 2,
+        "video_num_frames": 16,
+        "patch_size": 16,
+        "n_heads": 16,
+        "d_model": 1280,
+        "n_layers": 32,
+        "is_video_transformer": True,
+        'd_mlp': 5120,
+        "use_sdpa": True, # saves VRAM in attn calculation; useful for video and large models
+        "normalize_output": False,
+        "classification_type": "return_all_patches",
+    },
 
     # From https://github.com/facebookresearch/jepa/blob/main/configs/pretrain/vitl16.yaml
     "vjepa_v1_vit_large_patch16": {
