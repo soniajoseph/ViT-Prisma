@@ -618,13 +618,31 @@ VIVIT_CONFIGS = {
     },
 }
 
+
 # VJEPA model configurations
 VJEPA_CONFIGS = {
-    "vjepa_v1_vit_huge": {
+    # "vjepa_v1_vit_huge": {
+    #     "use_cls_token": False,
+    #     "layer_norm_pre": False,
+    #     "return_type": "pre_logits",
+    #     "eps": 1e-6,
+    # },
+
+    # From https://github.com/facebookresearch/jepa/blob/main/configs/pretrain/vitl16.yaml
+    "vjepa_v1_vit_large_patch16": {
         "use_cls_token": False,
         "layer_norm_pre": False,
         "return_type": "pre_logits",
         "eps": 1e-6,
+        "video_tubelet_depth": 2,
+        "video_num_frames": 16,
+        "patch_size": 16,
+        "n_heads": 16,
+        "d_model": 1024,
+        "n_layers": 24,
+        "eps": 1e-5,
+        "is_video_transformer": True,
+        'd_mlp': 4096,
     },
 }
 

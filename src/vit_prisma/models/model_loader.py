@@ -186,6 +186,11 @@ def load_config(
     elif category in [ModelCategory.CLIP, ModelCategory.VIVIT]:
         old_config = _get_general_hf_config(model_name, model_type)
         new_config = _create_config_from_hf(old_config, model_name, model_type)
+        # create generic config
+    elif category == ModelCategory.VJEPA:
+        new_config = create_config_object(model_name, model_type)
+    else:
+        raise ValueError(f"Unsupported model category: {category}")
     
     # Apply registry overrides
     registry_overrides = MODEL_CONFIGS[model_type].get(model_name, {})
@@ -588,8 +593,6 @@ def load_original_weights(
     elif category == ModelCategory.VJEPA:
         return _load_vjepa_weights(model_name, **kwargs)
     
-    elif category == ModelCategory.KANDINSKY:
-        return _load_kandinsky_weights(model_name, **kwargs)
     
     else:
         raise ValueError(f"Unsupported model category: {category}")
@@ -745,18 +748,30 @@ def _load_vivit_weights(model_name, dtype, **kwargs):
 
 def _load_vjepa_weights(model_name, **kwargs):
     """Load weights from a VJEPA model."""
-    try:
-        from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel
-        import yaml
-        from importlib import resources
-    except ImportError:
-        raise ImportError("VJEPA modules not found. Make sure vit_prisma.vjepa_hf is available.")
+    # hardcoded for now (test version)
+
+    path = '/network/scratch/s/sonia.joseph/jepa_models/github_models/vit-l-16/vitl16.pth.tar'
+    model = torch.load(path)
+
+    encoder_dict = model['encoder']
+    new_state_dict = {k.replace('module.', ''): v for k, v in encoder_dict.items()}
+    new_state_dict = {k.replace('backbone.', ''): v for k, v in new_state_dict.items()}
+    return new_state_dict
+
+
+
+    # try:
+    #     from vit_prisma.vjepa_hf.modeling_vjepa import VJEPAModel
+    #     import yaml
+    #     from importlib import resources
+    # except ImportError:
+    #     raise ImportError("VJEPA modules not found. Make sure vit_prisma.vjepa_hf is available.")
         
-    with resources.open_text('vit_prisma.vjepa_hf', 'paths_cw.yaml') as f:
-        model_paths = yaml.safe_load(f)
-    model_path = model_paths[model_name]["loc"]
-    model = VJEPAModel.from_pretrained(model_path)
-    return model.state_dict()
+    # with resources.open_text('vit_prisma.vjepa_hf', 'paths_cw.yaml') as f:
+    #     model_paths = yaml.safe_load(f)
+    # model_path = model_paths[model_name]["loc"]
+    # model = VJEPAModel.from_pretrained(model_path)
+    # return model.state_dict()
 
 def _load_kandinsky_weights(model_name, **kwargs):
     """Load weights from a Kandinsky model."""

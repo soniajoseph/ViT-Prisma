@@ -50,24 +50,23 @@ def convert_vjepa_weights(
         device = 'cuda',
 ):
 
-    print("CONFIG", cfg)
     
     new_vision_model_state_dict = {}
 
-    new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["embeddings.position_embeddings"].squeeze()
+    new_vision_model_state_dict["pos_embed.W_pos"] = old_state_dict["pos_embed"].squeeze()
 
-    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["embeddings.patch_embeddings.proj.weight"]
-    new_vision_model_state_dict["embed.proj.bias"] =  old_state_dict["embeddings.patch_embeddings.proj.bias"]
+    new_vision_model_state_dict["embed.proj.weight"] = old_state_dict["patch_embed.proj.weight"]
+    new_vision_model_state_dict["embed.proj.bias"] =  old_state_dict["patch_embed.proj.bias"]
 
-    new_vision_model_state_dict["ln_final.w"] = old_state_dict["layernorm.weight"]
-    new_vision_model_state_dict["ln_final.b"] = old_state_dict["layernorm.bias"]
+    new_vision_model_state_dict["ln_final.w"] = old_state_dict["norm.weight"]
+    new_vision_model_state_dict["ln_final.b"] = old_state_dict["norm.bias"]
     
     # new_vision_model_state_dict["ln_pre.w"] = old_state_dict["pre_layrnorm.weight"] #typo in ClipModel
     # new_vision_model_state_dict["ln_pre.b"] = old_state_dict["pre_layrnorm.bias"]
 
 
     for layer in range(cfg.n_layers):
-        layer_key = f"encoder.layer.{layer}"
+        layer_key = f"blocks.{layer}"
         new_layer_key = f"blocks.{layer}"
 
         new_vision_model_state_dict[f"{new_layer_key}.ln1.w"] = old_state_dict[f"{layer_key}.norm1.weight"]
@@ -75,34 +74,40 @@ def convert_vjepa_weights(
         new_vision_model_state_dict[f"{new_layer_key}.ln2.w"] = old_state_dict[f"{layer_key}.norm2.weight"]
         new_vision_model_state_dict[f"{new_layer_key}.ln2.b"] = old_state_dict[f"{layer_key}.norm2.bias"]
 
-        W_Q = old_state_dict[f"{layer_key}.attention.query.weight"]
-        W_K = old_state_dict[f"{layer_key}.attention.key.weight"]
-        W_V = old_state_dict[f"{layer_key}.attention.value.weight"]
-        W_O = old_state_dict[f"{layer_key}.attention.proj.weight"]
+        W = old_state_dict[f"{layer_key}.attn.qkv.weight"]
+        W_reshape = einops.rearrange(
+            W,
+            "(three h dh) d ->three h d dh",
+            three=3,
+            h=cfg.n_heads,
+            d=cfg.d_model,
+            dh=cfg.d_head,
+        )
+        W_Q, W_K, W_V = torch.unbind(W_reshape, dim=0)
+        new_vision_model_state_dict[f"{layer_key}.attn.W_Q"] = W_Q
+        new_vision_model_state_dict[f"{layer_key}.attn.W_K"] = W_K
+        new_vision_model_state_dict[f"{layer_key}.attn.W_V"] = W_V
 
-        W_Q = einops.rearrange(W_Q, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        W_K = einops.rearrange(W_K, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        W_V = einops.rearrange(W_V, "(h dh) d-> h d dh", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        W_O = einops.rearrange(W_O, "d (h dh) -> h dh d", h=cfg.n_heads, d=cfg.d_model, dh=cfg.d_head)
-        
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_Q"] = W_Q
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_K"] = W_K
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_V"] = W_V
-        new_vision_model_state_dict[f"{new_layer_key}.attn.W_O"] = W_O
+        W_O = old_state_dict[f"{layer_key}.attn.proj.weight"]
+        W_O = einops.rearrange(W_O, "m (i h)->i h m", i=cfg.n_heads)
+        new_vision_model_state_dict[f"{layer_key}.attn.W_O"] = W_O
 
-        b_Q = old_state_dict[f"{layer_key}.attention.query.bias"]
-        b_K = old_state_dict[f"{layer_key}.attention.key.bias"]
-        b_V = old_state_dict[f"{layer_key}.attention.value.bias"]
-        b_O = old_state_dict[f"{layer_key}.attention.proj.bias"]
+        attn_bias = old_state_dict[f"{layer_key}.attn.qkv.bias"]
+        attn_bias_reshape = einops.rearrange(
+            attn_bias,
+            "(three h dh) -> three h dh",
+            three=3,
+            h=cfg.n_heads,
+            dh=cfg.d_head,
+        )
+        b_Q, b_K, b_V = torch.unbind(attn_bias_reshape, dim=0)
+        new_vision_model_state_dict[f"{layer_key}.attn.b_Q"] = b_Q
+        new_vision_model_state_dict[f"{layer_key}.attn.b_K"] = b_K
+        new_vision_model_state_dict[f"{layer_key}.attn.b_V"] = b_V
 
-        b_Q = einops.rearrange(b_Q, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
-        b_K = einops.rearrange(b_K, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
-        b_V = einops.rearrange(b_V, "(h dh) -> h dh", h=cfg.n_heads, dh=cfg.d_head)
+        b_O = old_state_dict[f"{layer_key}.attn.proj.bias"]
+        new_vision_model_state_dict[f"{layer_key}.attn.b_O"] = b_O
 
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_Q"] = b_Q
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_K"] = b_K
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_V"] = b_V
-        new_vision_model_state_dict[f"{new_layer_key}.attn.b_O"] = b_O
 
         mlp_W_in = old_state_dict[f"{layer_key}.mlp.fc1.weight"]
         mlp_W_out = old_state_dict[f"{layer_key}.mlp.fc2.weight"]
@@ -117,8 +122,6 @@ def convert_vjepa_weights(
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_in"] = mlp_b_in
         new_vision_model_state_dict[f"{new_layer_key}.mlp.b_out"] = mlp_b_out
 
-    new_vision_model_state_dict["head.W_H"] = torch.eye(cfg.d_model)
-    new_vision_model_state_dict["head.b_H"] = torch.zeros((cfg.d_model,))
         
     return new_vision_model_state_dict
 
