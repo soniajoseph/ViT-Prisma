@@ -753,7 +753,7 @@ def _load_vjepa_weights(model_name, **kwargs):
     path = '/network/scratch/s/sonia.joseph/jepa_models/github_models/vit-l-16/vitl16.pth.tar'
     model = torch.load(path)
 
-    encoder_dict = model['encoder']
+    encoder_dict = model['target_encoder']
     new_state_dict = {k.replace('module.', ''): v for k, v in encoder_dict.items()}
     new_state_dict = {k.replace('backbone.', ''): v for k, v in new_state_dict.items()}
     return new_state_dict
